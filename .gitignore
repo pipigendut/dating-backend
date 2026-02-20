@@ -1,0 +1,16 @@
+# Binary
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go
+bin/
+vendor/
+
+# Env
+.env
+
+# Mac
+.DS_Store
