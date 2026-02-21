@@ -11,4 +11,7 @@ type UserRepository interface {
 	GetWithProfile(id uuid.UUID) (*entities.User, error)
 	Update(user *entities.User) error
 	GetByEmail(email string) (*entities.User, error)
+	GetByProvider(provider, providerUserID string) (*entities.User, error)
+	LinkProvider(userID uuid.UUID, provider, providerUserID string) error
+	CreateWithProfile(user *entities.User) error
 }

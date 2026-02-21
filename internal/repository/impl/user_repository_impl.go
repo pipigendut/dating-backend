@@ -1,6 +1,8 @@
 package impl
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/repository"
@@ -57,4 +59,60 @@ func (r *userRepo) GetByEmail(email string) (*entities.User, error) {
 	var user entities.User
 	err := r.db.First(&user, "email = ?", email).Error
 	return &user, err
+}
+
+func (r *userRepo) GetByProvider(provider, providerUserID string) (*entities.User, error) {
+	var authProvider entities.AuthProvider
+	err := r.db.Where("provider = ? AND provider_user_id = ?", provider, providerUserID).First(&authProvider).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return r.GetByID(authProvider.UserID)
+}
+
+func (r *userRepo) LinkProvider(userID uuid.UUID, provider, providerUserID string) error {
+	authProvider := entities.AuthProvider{
+		ID:             uuid.New(),
+		UserID:         userID,
+		Provider:       provider,
+		ProviderUserID: providerUserID,
+		CreatedAt:      time.Now(),
+	}
+	return r.db.Create(&authProvider).Error
+}
+
+func (r *userRepo) CreateWithProfile(user *entities.User) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(user).Error; err != nil {
+			return err
+		}
+
+		if user.Profile != nil {
+			user.Profile.UserID = user.ID
+			if err := tx.Create(user.Profile).Error; err != nil {
+				return err
+			}
+		}
+
+		if len(user.Photos) > 0 {
+			for i := range user.Photos {
+				user.Photos[i].UserID = user.ID
+				if err := tx.Create(&user.Photos[i]).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		if len(user.AuthProviders) > 0 {
+			for i := range user.AuthProviders {
+				user.AuthProviders[i].UserID = user.ID
+				if err := tx.Create(&user.AuthProviders[i]).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }

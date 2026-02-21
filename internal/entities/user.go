@@ -23,6 +23,7 @@ type User struct {
 	UpdatedAt    time.Time
 	Profile      *Profile
 	Photos       []Photo
+	AuthProviders []AuthProvider
 }
 
 type AuthProvider struct {

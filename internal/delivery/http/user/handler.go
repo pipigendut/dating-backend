@@ -20,6 +20,17 @@ func NewUserHandler(r *gin.RouterGroup, usecase *usecases.UserUsecase) {
 	}
 }
 
+// GetProfile godoc
+// @Summary      Get user profile
+// @Description  Retrieves the full profile of a user by their UUID.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string  true  "User ID (UUID)"
+// @Success      200  {object}  UserResponse
+// @Failure      404  {object}  errors.AppError
+// @Security     BearerAuth
+// @Router       /users/profile/{id} [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	id := c.Param("id")
 	user, err := h.usecase.GetProfile(id)

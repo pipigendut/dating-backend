@@ -1,0 +1,269 @@
+basePath: /api/v1
+definitions:
+  auth.AuthResponse:
+    properties:
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  auth.CheckEmailRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+    required:
+    - email
+    type: object
+  auth.CheckEmailResponse:
+    properties:
+      exists:
+        example: true
+        type: boolean
+    type: object
+  auth.GoogleLoginRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      full_name:
+        example: John Doe
+        type: string
+      google_id:
+        example: "123456789"
+        type: string
+      profile_picture:
+        example: https://example.com/photo.jpg
+        type: string
+    required:
+    - email
+    - google_id
+    type: object
+  auth.LoginEmailRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.RegisterEmailRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  entities.UserStatus:
+    enum:
+    - onboarding
+    - active
+    - banned
+    type: string
+    x-enum-varnames:
+    - UserStatusOnboarding
+    - UserStatusActive
+    - UserStatusBanned
+  errors.AppError:
+    properties:
+      message:
+        type: string
+    type: object
+  user.PhotoResponse:
+    properties:
+      is_main:
+        type: boolean
+      url:
+        type: string
+    type: object
+  user.ProfileResponse:
+    properties:
+      bio:
+        type: string
+      date_of_birth:
+        type: string
+      full_name:
+        type: string
+      gender:
+        type: string
+    type: object
+  user.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      photos:
+        items:
+          $ref: '#/definitions/user.PhotoResponse'
+        type: array
+      profile:
+        $ref: '#/definitions/user.ProfileResponse'
+      status:
+        $ref: '#/definitions/entities.UserStatus'
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a high-performance dating app backend server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Dating App API
+  version: "1.0"
+paths:
+  /auth/check-email:
+    post:
+      consumes:
+      - application/json
+      description: Checks if the provided email is already registered in the system.
+      parameters:
+      - description: Email to check
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.CheckEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.CheckEmailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.AppError'
+      summary: Check if email exists
+      tags:
+      - auth
+  /auth/google:
+    post:
+      consumes:
+      - application/json
+      description: Handles Google OAuth authentication, including automatic account
+        linking if the email already exists.
+      parameters:
+      - description: Google OAuth data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.GoogleLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.AppError'
+      summary: Google OAuth Login/Register
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user with email and password and returns a JWT
+        token.
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.AppError'
+      summary: Login via Email
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account using email and password.
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.AppError'
+      summary: Register via Email
+      tags:
+      - auth
+  /users/profile/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the full profile of a user by their UUID.
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.UserResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.AppError'
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: Type 'Bearer ' followed by your JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

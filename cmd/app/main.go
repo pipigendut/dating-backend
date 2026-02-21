@@ -5,13 +5,37 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/infra"
-	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/internal/repository/impl"
 	"github.com/pipigendut/dating-backend/internal/usecases"
+
+	_ "github.com/pipigendut/dating-backend/docs"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// @title           Dating App API
+// @version         1.0
+// @description     This is a high-performance dating app backend server.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type 'Bearer ' followed by your JWT token.
 
 func main() {
 	// 1. Setup Infrastructure
@@ -41,6 +65,7 @@ func main() {
 	// 2. Initialize Layers
 	userRepo := impl.NewUserRepo(db)
 	userUC := usecases.NewUserUsecase(userRepo)
+	authUC := usecases.NewAuthUsecase(userRepo)
 	
 	r := gin.Default()
 	
@@ -54,6 +79,10 @@ func main() {
 	}
 
 	user.NewUserHandler(v1, userUC)
+	auth.NewAuthHandler(v1, authUC)
+
+	// Swagger route
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	port := os.Getenv("PORT")
 	if port == "" {
