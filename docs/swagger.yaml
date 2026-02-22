@@ -73,36 +73,54 @@ definitions:
     - UserStatusOnboarding
     - UserStatusActive
     - UserStatusBanned
-  errors.AppError:
+  response.BaseResponse:
     properties:
+      data: {}
+      errors: {}
       message:
+        example: Success
         type: string
+      status:
+        example: 200
+        type: integer
     type: object
   user.PhotoResponse:
     properties:
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
       is_main:
+        example: true
         type: boolean
       url:
+        example: https://example.com/photo.jpg
         type: string
     type: object
   user.ProfileResponse:
     properties:
       bio:
+        example: Avid hiker and coffee lover.
         type: string
       date_of_birth:
+        example: "1995-01-01T00:00:00Z"
         type: string
       full_name:
+        example: John Doe
         type: string
       gender:
+        example: male
         type: string
     type: object
   user.UserResponse:
     properties:
       created_at:
+        example: "2023-01-01T00:00:00Z"
         type: string
       email:
+        example: user@example.com
         type: string
       id:
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       photos:
         items:
@@ -111,7 +129,9 @@ definitions:
       profile:
         $ref: '#/definitions/user.ProfileResponse'
       status:
-        $ref: '#/definitions/entities.UserStatus'
+        allOf:
+        - $ref: '#/definitions/entities.UserStatus'
+        example: active
     type: object
 host: localhost:8080
 info:
@@ -145,11 +165,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/auth.CheckEmailResponse'
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.CheckEmailResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/errors.AppError'
+            $ref: '#/definitions/response.BaseResponse'
       summary: Check if email exists
       tags:
       - auth
@@ -172,11 +197,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/auth.AuthResponse'
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.AuthResponse'
+              type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/errors.AppError'
+            $ref: '#/definitions/response.BaseResponse'
       summary: Google OAuth Login/Register
       tags:
       - auth
@@ -199,11 +229,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/auth.AuthResponse'
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.AuthResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/errors.AppError'
+            $ref: '#/definitions/response.BaseResponse'
       summary: Login via Email
       tags:
       - auth
@@ -225,11 +260,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/auth.AuthResponse'
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.AuthResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/errors.AppError'
+            $ref: '#/definitions/response.BaseResponse'
       summary: Register via Email
       tags:
       - auth
@@ -250,11 +290,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.UserResponse'
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.UserResponse'
+              type: object
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/errors.AppError'
+            $ref: '#/definitions/response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get user profile

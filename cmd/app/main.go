@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
@@ -38,6 +39,11 @@ import (
 // @description Type 'Bearer ' followed by your JWT token.
 
 func main() {
+	// 0. Load environment variables
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system environment variables")
+	}
+
 	// 1. Setup Infrastructure
 	dbCfg := infra.Config{
 		DBHost:     os.Getenv("DB_HOST"),

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
 	"github.com/pipigendut/dating-backend/internal/infra/errors"
 	"github.com/pipigendut/dating-backend/internal/usecases"
 )
@@ -14,9 +15,9 @@ type UserHandler struct {
 
 func NewUserHandler(r *gin.RouterGroup, usecase *usecases.UserUsecase) {
 	handler := &UserHandler{usecase: usecase}
-	group := r.Group("/users")
+	users := r.Group("/users")
 	{
-		group.GET("/profile/:id", handler.GetProfile)
+		users.GET("/profile/:id", handler.GetProfile)
 	}
 }
 
@@ -27,8 +28,8 @@ func NewUserHandler(r *gin.RouterGroup, usecase *usecases.UserUsecase) {
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "User ID (UUID)"
-// @Success      200  {object}  UserResponse
-// @Failure      404  {object}  errors.AppError
+// @Success      200  {object}  response.BaseResponse{data=UserResponse}
+// @Failure      404  {object}  response.BaseResponse
 // @Security     BearerAuth
 // @Router       /users/profile/{id} [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
@@ -36,12 +37,12 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	user, err := h.usecase.GetProfile(id)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
-			c.JSON(appErr.Code, appErr)
+			response.Error(c, appErr.Code, appErr.Message, nil)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal server error"})
+		response.Error(c, http.StatusInternalServerError, "Internal server error", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, ToUserResponse(user))
+	response.OK(c, ToUserResponse(user))
 }

@@ -8,24 +8,25 @@ import (
 )
 
 type UserResponse struct {
-	ID        uuid.UUID             `json:"id"`
-	Email     *string               `json:"email,omitempty"`
-	Status    entities.UserStatus   `json:"status"`
+	ID        uuid.UUID             `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Email     *string               `json:"email,omitempty" example:"user@example.com"`
+	Status    entities.UserStatus   `json:"status" example:"active"`
 	Profile   *ProfileResponse      `json:"profile,omitempty"`
 	Photos    []PhotoResponse       `json:"photos,omitempty"`
-	CreatedAt time.Time             `json:"created_at"`
+	CreatedAt time.Time             `json:"created_at" example:"2023-01-01T00:00:00Z"`
 }
 
 type ProfileResponse struct {
-	FullName    string    `json:"full_name"`
-	DateOfBirth time.Time `json:"date_of_birth"`
-	Gender      string    `json:"gender"`
-	Bio         string    `json:"bio"`
+	FullName    string    `json:"full_name" example:"John Doe"`
+	DateOfBirth time.Time `json:"date_of_birth" example:"1995-01-01T00:00:00Z"`
+	Gender      string    `json:"gender" example:"male"`
+	Bio         string    `json:"bio" example:"Avid hiker and coffee lover."`
 }
 
 type PhotoResponse struct {
-	URL    string `json:"url"`
-	IsMain bool   `json:"is_main"`
+	ID     uuid.UUID `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	URL    string    `json:"url" example:"https://example.com/photo.jpg"`
+	IsMain bool      `json:"is_main" example:"true"`
 }
 
 func ToUserResponse(u *entities.User) UserResponse {
@@ -47,6 +48,7 @@ func ToUserResponse(u *entities.User) UserResponse {
 
 	for _, p := range u.Photos {
 		resp.Photos = append(resp.Photos, PhotoResponse{
+			ID:     p.ID,
 			URL:    p.URL,
 			IsMain: p.IsMain,
 		})
