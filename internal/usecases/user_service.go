@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,16 +21,20 @@ type UpdateProfileRequest struct {
 	LookingFor      *string
 	LocationCity    *string
 	LocationCountry *string
+	Latitude        *float64
+	Longitude       *float64
 	Interests       *[]string
 	Languages       *[]string
+	Photos          *[]PhotoDTO
 }
 
 type UserUsecase struct {
-	repo repository.UserRepository
+	repo      repository.UserRepository
+	storageUC *StorageUsecase
 }
 
-func NewUserUsecase(repo repository.UserRepository) *UserUsecase {
-	return &UserUsecase{repo: repo}
+func NewUserUsecase(repo repository.UserRepository, storageUC *StorageUsecase) *UserUsecase {
+	return &UserUsecase{repo: repo, storageUC: storageUC}
 }
 
 func (u *UserUsecase) GetProfile(id string) (*entities.User, error) {
@@ -90,13 +95,67 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 	if data.LocationCountry != nil {
 		user.Profile.LocationCountry = *data.LocationCountry
 	}
+	if data.Latitude != nil {
+		user.Profile.Latitude = data.Latitude
+	}
+	if data.Longitude != nil {
+		user.Profile.Longitude = data.Longitude
+	}
 	if data.Interests != nil {
-		// Join slices into string or handle as needed
-		user.Profile.Interests = "" // simplistic for now
+		user.Profile.Interests = ""
+		for i, interest := range *data.Interests {
+			if i > 0 {
+				user.Profile.Interests += ","
+			}
+			user.Profile.Interests += interest
+		}
 	}
 	if data.Languages != nil {
-		user.Profile.Languages = "" // simplistic for now
+		user.Profile.Languages = ""
+		for i, lang := range *data.Languages {
+			if i > 0 {
+				user.Profile.Languages += ","
+			}
+			user.Profile.Languages += lang
+		}
+	}
+
+	if data.Photos != nil {
+		// Replace all photos: Clear existing first
+		// We use the repository through a transaction for safety if needed,
+		// but GORM's Replace can also work if configured correctly.
+		// For simplicity/reliability at this stage, we'll let GORM handle the sync via FullSaveAssociations
+		// But we need to make sure the user.Photos slice is what we want the DB to reflect.
+		newPhotos := make([]entities.Photo, 0)
+		for i, p := range *data.Photos {
+			newPhotos = append(newPhotos, entities.Photo{
+				ID:        uuid.New(),
+				UserID:    userID,
+				URL:       p.URL,
+				IsMain:    p.IsMain,
+				SortOrder: i,
+				CreatedAt: time.Now(),
+			})
+		}
+		user.Photos = newPhotos
 	}
 
 	return u.repo.Update(user)
+}
+
+func (u *UserUsecase) DeleteAccount(userID uuid.UUID) error {
+	// First fetch the user to get their photos
+	user, err := u.GetProfile(userID.String())
+	if err == nil && user != nil && u.storageUC != nil {
+		// Attempt to delete all associated photos from storage concurrently or sequentially
+		// We'll do it sequentially for simplicity
+		for _, photo := range user.Photos {
+			// In our schema, photo.URL holds the S3 key (e.g. users/UUID/profile/...)
+			if photo.URL != "" {
+				_ = u.storageUC.DeleteFile(context.Background(), photo.URL) // Fire and forget or handle gracefully
+			}
+		}
+	}
+
+	return u.repo.Delete(userID)
 }

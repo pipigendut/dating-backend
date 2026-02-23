@@ -17,10 +17,16 @@ func NewUserHandler(r *gin.RouterGroup, usecase *usecases.UserUsecase, storageUC
 		storageUC: storageUC,
 	}
 	users := r.Group("/users")
+
+	// Unauthenticated endpoints
+	users.GET("/upload-url/public", handler.GetUploadURLPublic)
+
+	// Authenticated endpoints
 	users.Use(authMiddleware)
 	{
 		users.GET("/profile/:id", handler.GetProfile)
 		users.PATCH("/profile", handler.UpdateProfile)
+		users.DELETE("/profile", handler.DeleteAccount)
 		users.GET("/upload-url", handler.GetUploadURL)
 	}
 }
@@ -54,6 +60,15 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
+	var photosDTO *[]usecases.PhotoDTO
+	if req.Photos != nil {
+		mapped := make([]usecases.PhotoDTO, len(*req.Photos))
+		for i, p := range *req.Photos {
+			mapped[i] = usecases.PhotoDTO{URL: p.URL, IsMain: p.IsMain}
+		}
+		photosDTO = &mapped
+	}
+
 	usecaseReq := usecases.UpdateProfileRequest{
 		FullName:        req.FullName,
 		DateOfBirth:     req.DateOfBirth,
@@ -64,8 +79,11 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		LookingFor:      req.LookingFor,
 		LocationCity:    req.LocationCity,
 		LocationCountry: req.LocationCountry,
+		Latitude:        req.Latitude,
+		Longitude:       req.Longitude,
 		Interests:       req.Interests,
 		Languages:       req.Languages,
+		Photos:          photosDTO,
 	}
 
 	if req.Status != nil {
@@ -85,12 +103,36 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	response.OK(c, nil)
 }
 
+func (h *UserHandler) DeleteAccount(c *gin.Context) {
+	userID := c.MustGet("userID").(uuid.UUID)
+
+	if err := h.usecase.DeleteAccount(userID); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to delete account", err.Error())
+		return
+	}
+
+	response.OK(c, nil)
+}
+
 func (h *UserHandler) GetUploadURL(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 
 	url, key, err := h.storageUC.GetUploadURL(c.Request.Context(), userID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to generate upload URL", err.Error())
+		return
+	}
+
+	response.OK(c, UploadURLResponse{
+		UploadURL: url,
+		FileKey:   key,
+	})
+}
+
+func (h *UserHandler) GetUploadURLPublic(c *gin.Context) {
+	url, key, err := h.storageUC.GetUploadURLPublic(c.Request.Context())
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to generate public upload URL", err.Error())
 		return
 	}
 

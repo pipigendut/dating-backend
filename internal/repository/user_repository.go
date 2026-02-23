@@ -14,4 +14,5 @@ type UserRepository interface {
 	GetByProvider(provider, providerUserID string) (*entities.User, error)
 	LinkProvider(userID uuid.UUID, provider, providerUserID string) error
 	CreateWithProfile(user *entities.User) error
+	Delete(id uuid.UUID) error
 }

@@ -18,19 +18,23 @@ type S3Storage struct {
 }
 
 func NewS3Storage(accessKey, secretKey, endpoint, region, bucketName string) (*S3Storage, error) {
-	resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			URL:               endpoint,
-			SigningRegion:     region,
-			HostnameImmutable: true,
-		}, nil
-	})
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	opts := []func(*config.LoadOptions) error{
 		config.WithRegion(region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
-		config.WithEndpointResolverWithOptions(resolver),
-	)
+	}
+
+	if endpoint != "" {
+		resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+			return aws.Endpoint{
+				URL:               endpoint,
+				SigningRegion:     region,
+				HostnameImmutable: true,
+			}, nil
+		})
+		opts = append(opts, config.WithEndpointResolverWithOptions(resolver))
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load SDK config: %v", err)
 	}
@@ -70,4 +74,17 @@ func (s *S3Storage) GeneratePresignedGetURL(ctx context.Context, key string, exp
 	}
 
 	return request.URL, nil
+}
+
+func (s *S3Storage) DeleteFile(ctx context.Context, key string) error {
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucketName),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to delete file from S3: %v", err)
+	}
+
+	return nil
 }

@@ -52,7 +52,8 @@ func (r *userRepo) GetWithProfile(id uuid.UUID) (*entities.User, error) {
 }
 
 func (r *userRepo) Update(user *entities.User) error {
-	return r.db.Save(user).Error
+	// FullSaveAssociations ensures that Profile and Photos are also updated
+	return r.db.Session(&gorm.Session{FullSaveAssociations: true}).Save(user).Error
 }
 
 func (r *userRepo) GetByEmail(email string) (*entities.User, error) {
@@ -116,4 +117,8 @@ func (r *userRepo) CreateWithProfile(user *entities.User) error {
 
 		return nil
 	})
+}
+
+func (r *userRepo) Delete(id uuid.UUID) error {
+	return r.db.Delete(&entities.User{}, "id = ?", id).Error
 }

@@ -74,26 +74,37 @@ func main() {
 		log.Printf("Warning: Redis not connected: %v", err)
 	}
 
-	// 1.5 Setup S3 Client (Oracle Object Storage)
+	// 1.5 Setup Storage Provider
+	storageProvider := os.Getenv("STORAGE_PROVIDER")
 	s3AccessKey := os.Getenv("S3_ACCESS_KEY")
 	s3SecretKey := os.Getenv("S3_SECRET_KEY")
 	s3Endpoint := os.Getenv("S3_ENDPOINT")
 	s3Region := os.Getenv("S3_REGION")
+	s3Bucket := os.Getenv("S3_BUCKET_NAME")
+
+	if storageProvider == "AWS" {
+		// AWS doesn't need custom endpoint usually, it uses regional ones
+		s3Endpoint = ""
+	}
+
 	if s3Region == "" {
 		s3Region = "ap-singapore-1"
 	}
-	s3Bucket := os.Getenv("S3_BUCKET_NAME")
 
-	s3Storage, err := infraStorage.NewS3Storage(s3AccessKey, s3SecretKey, s3Endpoint, s3Region, s3Bucket)
-	if err != nil {
-		log.Printf("Warning: S3 Storage not connected: %v", err)
+	var storageImpl infraStorage.StorageProvider
+	var errS3 error
+
+	storageImpl, errS3 = infraStorage.NewS3Storage(s3AccessKey, s3SecretKey, s3Endpoint, s3Region, s3Bucket)
+	if errS3 != nil {
+		log.Printf("Warning: Storage Provider (%s) not connected: %v", storageProvider, errS3)
 	}
 
 	// 2. Initialize Layers
 	userRepo := impl.NewUserRepo(db)
-	userUC := usecases.NewUserUsecase(userRepo)
-	authUC := usecases.NewAuthUsecase(userRepo)
-	storageUC := usecases.NewStorageUsecase(s3Storage)
+	sessionRepo := impl.NewSessionRepo(db)
+	storageUC := usecases.NewStorageUsecase(storageImpl)
+	userUC := usecases.NewUserUsecase(userRepo, storageUC)
+	authUC := usecases.NewAuthUsecase(userRepo, sessionRepo)
 
 	r := gin.Default()
 

@@ -24,6 +24,8 @@ type User struct {
 	Profile       *Profile       `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	Photos        []Photo        `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	AuthProviders []AuthProvider `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Devices       []Device       `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	RefreshTokens []RefreshToken `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 type AuthProvider struct {
@@ -45,6 +47,8 @@ type Profile struct {
 	LookingFor      string
 	LocationCity    string
 	LocationCountry string
+	Latitude        *float64
+	Longitude       *float64
 	Interests       string
 	Languages       string
 	CreatedAt       time.Time `gorm:"autoCreateTime"`
@@ -58,4 +62,30 @@ type Photo struct {
 	IsMain    bool
 	SortOrder int
 	CreatedAt time.Time `gorm:"autoCreateTime"`
+}
+
+type Device struct {
+	ID          uuid.UUID `gorm:"primaryKey;type:uuid"`
+	UserID      uuid.UUID `gorm:"type:uuid;index"`
+	DeviceID    string    `gorm:"uniqueIndex"`
+	DeviceName  string
+	DeviceModel string
+	OSVersion   string
+	AppVersion  string
+	FCMToken    *string
+	LastIP      string
+	LastLogin   time.Time
+	IsActive    bool
+	CreatedAt   time.Time `gorm:"autoCreateTime"`
+	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
+}
+
+type RefreshToken struct {
+	ID        uuid.UUID  `gorm:"primaryKey;type:uuid"`
+	UserID    uuid.UUID  `gorm:"type:uuid;index"`
+	DeviceID  uuid.UUID  `gorm:"type:uuid;index"`
+	TokenHash string     `gorm:"uniqueIndex"`
+	ExpiresAt time.Time  `gorm:"index"`
+	RevokedAt *time.Time `gorm:"index"`
+	CreatedAt time.Time  `gorm:"autoCreateTime"`
 }

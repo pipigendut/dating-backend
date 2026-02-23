@@ -3,10 +3,12 @@ package auth
 import (
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
+	userHandler "github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/usecases"
 )
 
@@ -22,6 +24,12 @@ func NewAuthHandler(r *gin.RouterGroup, usecase *usecases.AuthUsecase) {
 		group.POST("/register", handler.Register)
 		group.POST("/login", handler.Login)
 		group.POST("/google", handler.GoogleLogin)
+		group.POST("/refresh", handler.Refresh)
+
+		// Protected routes
+		protected := group.Group("")
+		protected.Use(middleware.AuthMiddleware())
+		protected.POST("/logout", handler.Logout)
 	}
 }
 
@@ -68,19 +76,50 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	dob, err := time.Parse("2006-01-02", req.DateOfBirth)
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid date format, use YYYY-MM-DD", err.Error())
-		return
+	var photosDTO *[]usecases.PhotoDTO
+	if req.Photos != nil {
+		mapped := make([]usecases.PhotoDTO, len(*req.Photos))
+		for i, p := range *req.Photos {
+			mapped[i] = usecases.PhotoDTO{URL: p.URL, IsMain: p.IsMain}
+		}
+		photosDTO = &mapped
 	}
 
-	token, err := h.usecase.RegisterEmail(req.Email, req.Password, req.FullName, dob)
+	dto := usecases.RegisterEmailDTO{
+		Email:           req.Email,
+		Password:        req.Password,
+		FullName:        req.FullName,
+		DateOfBirth:     req.DateOfBirth,
+		Gender:          req.Gender,
+		HeightCM:        req.HeightCM,
+		Bio:             req.Bio,
+		InterestedIn:    req.InterestedIn,
+		LookingFor:      req.LookingFor,
+		LocationCity:    req.LocationCity,
+		LocationCountry: req.LocationCountry,
+		Latitude:        req.Latitude,
+		Longitude:       req.Longitude,
+		Interests:       req.Interests,
+		Languages:       req.Languages,
+		Photos:          photosDTO,
+		Device: usecases.DeviceDTO{
+			DeviceID:    req.Device.DeviceID,
+			DeviceName:  req.Device.DeviceName,
+			DeviceModel: req.Device.DeviceModel,
+			OSVersion:   req.Device.OSVersion,
+			AppVersion:  req.Device.AppVersion,
+			FCMToken:    req.Device.FCMToken,
+			LastIP:      c.ClientIP(),
+		},
+	}
+
+	token, refresh, user, err := h.usecase.RegisterEmail(dto)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
 
-	response.OK(c, AuthResponse{Token: token})
+	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user)})
 }
 
 // Login godoc
@@ -100,13 +139,27 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.usecase.LoginEmail(req.Email, req.Password)
+	dto := usecases.LoginEmailDTO{
+		Email:    req.Email,
+		Password: req.Password,
+		Device: usecases.DeviceDTO{
+			DeviceID:    req.Device.DeviceID,
+			DeviceName:  req.Device.DeviceName,
+			DeviceModel: req.Device.DeviceModel,
+			OSVersion:   req.Device.OSVersion,
+			AppVersion:  req.Device.AppVersion,
+			FCMToken:    req.Device.FCMToken,
+			LastIP:      c.ClientIP(),
+		},
+	}
+
+	token, refresh, user, err := h.usecase.LoginEmail(dto)
 	if err != nil {
 		response.Error(c, http.StatusUnauthorized, err.Error(), nil)
 		return
 	}
 
-	response.OK(c, AuthResponse{Token: token})
+	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user)})
 }
 
 // GoogleLogin godoc
@@ -126,19 +179,116 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	dto := usecases.GoogleLoginDTO{
-		Email:          req.Email,
-		GoogleID:       req.GoogleID,
-		FullName:       req.FullName,
-		ProfilePicture: req.ProfilePicture,
+	var photosDTO *[]usecases.PhotoDTO
+	if req.Photos != nil {
+		mapped := make([]usecases.PhotoDTO, len(*req.Photos))
+		for i, p := range *req.Photos {
+			mapped[i] = usecases.PhotoDTO{URL: p.URL, IsMain: p.IsMain}
+		}
+		photosDTO = &mapped
 	}
 
-	token, err := h.usecase.LoginWithGoogle(dto)
+	dto := usecases.GoogleLoginDTO{
+		Email:           req.Email,
+		GoogleID:        req.GoogleID,
+		FullName:        req.FullName,
+		ProfilePicture:  req.ProfilePicture,
+		DateOfBirth:     req.DateOfBirth,
+		Gender:          req.Gender,
+		HeightCM:        req.HeightCM,
+		Bio:             req.Bio,
+		InterestedIn:    req.InterestedIn,
+		LookingFor:      req.LookingFor,
+		LocationCity:    req.LocationCity,
+		LocationCountry: req.LocationCountry,
+		Latitude:        req.Latitude,
+		Longitude:       req.Longitude,
+		Interests:       req.Interests,
+		Languages:       req.Languages,
+		Photos:          photosDTO,
+		Device: usecases.DeviceDTO{
+			DeviceID:    req.Device.DeviceID,
+			DeviceName:  req.Device.DeviceName,
+			DeviceModel: req.Device.DeviceModel,
+			OSVersion:   req.Device.OSVersion,
+			AppVersion:  req.Device.AppVersion,
+			FCMToken:    req.Device.FCMToken,
+			LastIP:      c.ClientIP(),
+		},
+	}
+
+	token, refresh, user, err := h.usecase.LoginWithGoogle(dto)
 	if err != nil {
 		log.Printf("[GoogleLogin Error] %v", err)
 		response.Error(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	response.OK(c, AuthResponse{Token: token})
+	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user)})
+}
+
+// Refresh godoc
+// @Summary      Refresh Access Token
+// @Description  Allows the client to get a new access token using a valid refresh token and device ID.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      RefreshTokenRequest  true  "Refresh credentials"
+// @Success      200      {object}  response.BaseResponse{data=TokenResponse}
+// @Failure      401      {object}  response.BaseResponse
+// @Router       /auth/refresh [post]
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	var req RefreshTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
+		return
+	}
+
+	token, refresh, err := h.usecase.RefreshToken(req.RefreshToken, req.DeviceID)
+	if err != nil {
+		response.Error(c, http.StatusUnauthorized, err.Error(), nil)
+		return
+	}
+
+	response.OK(c, TokenResponse{Token: token, RefreshToken: refresh})
+}
+
+// Logout godoc
+// @Summary      Logout
+// @Description  Revokes tokens and deactivates the associated device for the currently authenticated user.
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      LogoutRequest  true  "Device data"
+// @Success      200      {object}  response.BaseResponse
+// @Failure      401      {object}  response.BaseResponse
+// @Router       /auth/logout [post]
+func (h *AuthHandler) Logout(c *gin.Context) {
+	var req LogoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	// userID is a string from middleware
+	uid, err := uuid.Parse(userID.(string))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid User ID format", nil)
+		return
+	}
+
+	err = h.usecase.Logout(req.DeviceID, uid)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	response.OK(c, nil)
 }
