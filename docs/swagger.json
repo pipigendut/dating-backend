@@ -225,61 +225,6 @@
                     }
                 }
             }
-        },
-        "/users/profile/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves the full profile of a user by their UUID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get user profile",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID (UUID)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/user.UserResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -358,13 +303,23 @@
         "auth.RegisterEmailRequest": {
             "type": "object",
             "required": [
+                "date_of_birth",
                 "email",
+                "full_name",
                 "password"
             ],
             "properties": {
+                "date_of_birth": {
+                    "type": "string",
+                    "example": "1995-01-01"
+                },
                 "email": {
                     "type": "string",
                     "example": "user@example.com"
+                },
+                "full_name": {
+                    "type": "string",
+                    "example": "John Doe"
                 },
                 "password": {
                     "type": "string",
@@ -372,19 +327,6 @@
                     "example": "password123"
                 }
             }
-        },
-        "entities.UserStatus": {
-            "type": "string",
-            "enum": [
-                "onboarding",
-                "active",
-                "banned"
-            ],
-            "x-enum-varnames": [
-                "UserStatusOnboarding",
-                "UserStatusActive",
-                "UserStatusBanned"
-            ]
         },
         "response.BaseResponse": {
             "type": "object",
@@ -398,78 +340,6 @@
                 "status": {
                     "type": "integer",
                     "example": 200
-                }
-            }
-        },
-        "user.PhotoResponse": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "is_main": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "url": {
-                    "type": "string",
-                    "example": "https://example.com/photo.jpg"
-                }
-            }
-        },
-        "user.ProfileResponse": {
-            "type": "object",
-            "properties": {
-                "bio": {
-                    "type": "string",
-                    "example": "Avid hiker and coffee lover."
-                },
-                "date_of_birth": {
-                    "type": "string",
-                    "example": "1995-01-01T00:00:00Z"
-                },
-                "full_name": {
-                    "type": "string",
-                    "example": "John Doe"
-                },
-                "gender": {
-                    "type": "string",
-                    "example": "male"
-                }
-            }
-        },
-        "user.UserResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string",
-                    "example": "2023-01-01T00:00:00Z"
-                },
-                "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "photos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/user.PhotoResponse"
-                    }
-                },
-                "profile": {
-                    "$ref": "#/definitions/user.ProfileResponse"
-                },
-                "status": {
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entities.UserStatus"
-                        }
-                    ],
-                    "example": "active"
                 }
             }
         }

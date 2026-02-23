@@ -52,27 +52,25 @@ definitions:
     type: object
   auth.RegisterEmailRequest:
     properties:
+      date_of_birth:
+        example: "1995-01-01"
+        type: string
       email:
         example: user@example.com
+        type: string
+      full_name:
+        example: John Doe
         type: string
       password:
         example: password123
         minLength: 8
         type: string
     required:
+    - date_of_birth
     - email
+    - full_name
     - password
     type: object
-  entities.UserStatus:
-    enum:
-    - onboarding
-    - active
-    - banned
-    type: string
-    x-enum-varnames:
-    - UserStatusOnboarding
-    - UserStatusActive
-    - UserStatusBanned
   response.BaseResponse:
     properties:
       data: {}
@@ -83,55 +81,6 @@ definitions:
       status:
         example: 200
         type: integer
-    type: object
-  user.PhotoResponse:
-    properties:
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      is_main:
-        example: true
-        type: boolean
-      url:
-        example: https://example.com/photo.jpg
-        type: string
-    type: object
-  user.ProfileResponse:
-    properties:
-      bio:
-        example: Avid hiker and coffee lover.
-        type: string
-      date_of_birth:
-        example: "1995-01-01T00:00:00Z"
-        type: string
-      full_name:
-        example: John Doe
-        type: string
-      gender:
-        example: male
-        type: string
-    type: object
-  user.UserResponse:
-    properties:
-      created_at:
-        example: "2023-01-01T00:00:00Z"
-        type: string
-      email:
-        example: user@example.com
-        type: string
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      photos:
-        items:
-          $ref: '#/definitions/user.PhotoResponse'
-        type: array
-      profile:
-        $ref: '#/definitions/user.ProfileResponse'
-      status:
-        allOf:
-        - $ref: '#/definitions/entities.UserStatus'
-        example: active
     type: object
 host: localhost:8080
 info:
@@ -273,38 +222,6 @@ paths:
       summary: Register via Email
       tags:
       - auth
-  /users/profile/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves the full profile of a user by their UUID.
-      parameters:
-      - description: User ID (UUID)
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/user.UserResponse'
-              type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/response.BaseResponse'
-      security:
-      - BearerAuth: []
-      summary: Get user profile
-      tags:
-      - users
 securityDefinitions:
   BearerAuth:
     description: Type 'Bearer ' followed by your JWT token.

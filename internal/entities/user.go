@@ -15,41 +15,47 @@ const (
 )
 
 type User struct {
-	ID           uuid.UUID
-	Email        *string
-	PasswordHash *string
-	Status       UserStatus
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	Profile      *Profile
-	Photos       []Photo
-	AuthProviders []AuthProvider
+	ID            uuid.UUID `gorm:"primaryKey;type:uuid"`
+	Email         *string   `gorm:"uniqueIndex"`
+	PasswordHash  *string
+	Status        UserStatus
+	CreatedAt     time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt     time.Time      `gorm:"autoUpdateTime"`
+	Profile       *Profile       `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Photos        []Photo        `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	AuthProviders []AuthProvider `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 type AuthProvider struct {
-	ID             uuid.UUID
-	UserID         uuid.UUID
-	Provider       string
-	ProviderUserID string
-	CreatedAt      time.Time
+	ID             uuid.UUID `gorm:"primaryKey;type:uuid"`
+	UserID         uuid.UUID `gorm:"type:uuid;index"`
+	Provider       string    `gorm:"uniqueIndex:idx_provider_user"`
+	ProviderUserID string    `gorm:"uniqueIndex:idx_provider_user"`
+	CreatedAt      time.Time `gorm:"autoCreateTime"`
 }
 
 type Profile struct {
-	UserID      uuid.UUID
-	FullName    string
-	DateOfBirth time.Time
-	Gender      string
-	HeightCM    int
-	Bio         string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	UserID          uuid.UUID `gorm:"primaryKey;type:uuid"`
+	FullName        string
+	DateOfBirth     time.Time `gorm:"index"`
+	Gender          string    `gorm:"index"`
+	HeightCM        int
+	Bio             string
+	InterestedIn    string
+	LookingFor      string
+	LocationCity    string
+	LocationCountry string
+	Interests       string
+	Languages       string
+	CreatedAt       time.Time `gorm:"autoCreateTime"`
+	UpdatedAt       time.Time `gorm:"autoUpdateTime"`
 }
 
 type Photo struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
+	ID        uuid.UUID `gorm:"primaryKey;type:uuid"`
+	UserID    uuid.UUID `gorm:"type:uuid;index"`
 	URL       string
 	IsMain    bool
 	SortOrder int
-	CreatedAt time.Time
+	CreatedAt time.Time `gorm:"autoCreateTime"`
 }

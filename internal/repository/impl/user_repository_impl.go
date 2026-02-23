@@ -84,7 +84,8 @@ func (r *userRepo) LinkProvider(userID uuid.UUID, provider, providerUserID strin
 
 func (r *userRepo) CreateWithProfile(user *entities.User) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(user).Error; err != nil {
+		// Omit associations to handle them manually below and avoid GORM's "smart" upsert issues
+		if err := tx.Omit("Profile", "Photos", "AuthProviders").Create(user).Error; err != nil {
 			return err
 		}
 

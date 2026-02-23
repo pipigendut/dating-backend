@@ -1,9 +1,12 @@
 # Binary
+app
+app.exe
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+
 
 # Go
 bin/

@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
@@ -66,7 +68,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	token, err := h.usecase.RegisterEmail(req.Email, req.Password)
+	dob, err := time.Parse("2006-01-02", req.DateOfBirth)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid date format, use YYYY-MM-DD", err.Error())
+		return
+	}
+
+	token, err := h.usecase.RegisterEmail(req.Email, req.Password, req.FullName, dob)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error(), nil)
 		return
@@ -127,6 +135,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 
 	token, err := h.usecase.LoginWithGoogle(dto)
 	if err != nil {
+		log.Printf("[GoogleLogin Error] %v", err)
 		response.Error(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}

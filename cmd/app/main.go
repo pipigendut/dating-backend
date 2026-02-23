@@ -10,6 +10,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/infra"
+	infraStorage "github.com/pipigendut/dating-backend/internal/infra/storage"
 	"github.com/pipigendut/dating-backend/internal/repository/impl"
 	"github.com/pipigendut/dating-backend/internal/usecases"
 
@@ -59,6 +60,11 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
+	// 1.1 Run Migrations
+	if err := infra.Migrate(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
 	redisPass := os.Getenv("REDIS_PASSWORD")
@@ -68,23 +74,40 @@ func main() {
 		log.Printf("Warning: Redis not connected: %v", err)
 	}
 
+	// 1.5 Setup S3 Client (Oracle Object Storage)
+	s3AccessKey := os.Getenv("S3_ACCESS_KEY")
+	s3SecretKey := os.Getenv("S3_SECRET_KEY")
+	s3Endpoint := os.Getenv("S3_ENDPOINT")
+	s3Region := os.Getenv("S3_REGION")
+	if s3Region == "" {
+		s3Region = "ap-singapore-1"
+	}
+	s3Bucket := os.Getenv("S3_BUCKET_NAME")
+
+	s3Storage, err := infraStorage.NewS3Storage(s3AccessKey, s3SecretKey, s3Endpoint, s3Region, s3Bucket)
+	if err != nil {
+		log.Printf("Warning: S3 Storage not connected: %v", err)
+	}
+
 	// 2. Initialize Layers
 	userRepo := impl.NewUserRepo(db)
 	userUC := usecases.NewUserUsecase(userRepo)
 	authUC := usecases.NewAuthUsecase(userRepo)
-	
+	storageUC := usecases.NewStorageUsecase(s3Storage)
+
 	r := gin.Default()
-	
+
 	// API Group
 	v1 := r.Group("/api/v1")
-	
+
 	// Middleware setup
+	authMiddleware := middleware.AuthMiddleware()
 	if redisClient != nil {
 		_ = middleware.NewCacheMiddleware(redisClient)
 		// Can use cacheMiddleware.Cache(time.Minute) on routes
 	}
 
-	user.NewUserHandler(v1, userUC)
+	user.NewUserHandler(v1, userUC, storageUC, authMiddleware)
 	auth.NewAuthHandler(v1, authUC)
 
 	// Swagger route

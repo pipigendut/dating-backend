@@ -5,8 +5,10 @@ type CheckEmailRequest struct {
 }
 
 type RegisterEmailRequest struct {
-	Email    string `json:"email" binding:"required,email" example:"user@example.com"`
-	Password string `json:"password" binding:"required,min=8" example:"password123"`
+	Email       string `json:"email" binding:"required,email" example:"user@example.com"`
+	Password    string `json:"password" binding:"required,min=8" example:"password123"`
+	FullName    string `json:"full_name" binding:"required" example:"John Doe"`
+	DateOfBirth string `json:"date_of_birth" binding:"required" example:"1995-01-01"`
 }
 
 type LoginEmailRequest struct {

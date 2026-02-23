@@ -49,9 +49,12 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, error) {
 		Email:     &dto.Email,
 		Status:    entities.UserStatusOnboarding,
 		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 		Profile: &entities.Profile{
-			FullName:  dto.FullName,
-			CreatedAt: time.Now(),
+			FullName:    dto.FullName,
+			DateOfBirth: time.Date(1995, 1, 1, 0, 0, 0, 0, time.UTC),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		},
 		Photos: []entities.Photo{
 			{
@@ -87,7 +90,7 @@ func (u *AuthUsecase) CheckEmail(email string) (bool, error) {
 	return true, nil // Email exists
 }
 
-func (u *AuthUsecase) RegisterEmail(email, password string) (string, error) {
+func (u *AuthUsecase) RegisterEmail(email, password, fullName string, dateOfBirth time.Time) (string, error) {
 	exists, _ := u.CheckEmail(email)
 	if exists {
 		return "", errors.New("email already registered")
@@ -104,9 +107,14 @@ func (u *AuthUsecase) RegisterEmail(email, password string) (string, error) {
 		PasswordHash: &hashedPassword,
 		Status:       entities.UserStatusOnboarding,
 		CreatedAt:    time.Now(),
+		Profile: &entities.Profile{
+			FullName:    fullName,
+			DateOfBirth: dateOfBirth,
+			CreatedAt:   time.Now(),
+		},
 	}
 
-	err = u.repo.Create(user)
+	err = u.repo.CreateWithProfile(user)
 	if err != nil {
 		return "", err
 	}
