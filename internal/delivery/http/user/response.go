@@ -8,19 +8,24 @@ import (
 )
 
 type UserResponse struct {
-	ID        uuid.UUID             `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	Email     *string               `json:"email,omitempty" example:"user@example.com"`
-	Status    entities.UserStatus   `json:"status" example:"active"`
-	Profile   *ProfileResponse      `json:"profile,omitempty"`
-	Photos    []PhotoResponse       `json:"photos,omitempty"`
-	CreatedAt time.Time             `json:"created_at" example:"2023-01-01T00:00:00Z"`
-}
-
-type ProfileResponse struct {
-	FullName    string    `json:"full_name" example:"John Doe"`
-	DateOfBirth time.Time `json:"date_of_birth" example:"1995-01-01T00:00:00Z"`
-	Gender      string    `json:"gender" example:"male"`
-	Bio         string    `json:"bio" example:"Avid hiker and coffee lover."`
+	ID              uuid.UUID           `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Email           *string             `json:"email,omitempty" example:"user@example.com"`
+	Status          entities.UserStatus `json:"status" example:"active"`
+	FullName        string              `json:"full_name" example:"John Doe"`
+	DateOfBirth     time.Time           `json:"date_of_birth" example:"1995-01-01T00:00:00Z"`
+	Bio             string              `json:"bio" example:"Avid hiker and coffee lover."`
+	HeightCM        int                 `json:"height_cm"`
+	Gender          *string             `json:"gender,omitempty"`
+	LookingFor      []string            `json:"looking_for,omitempty"`
+	InterestedIn    []string            `json:"interested_in,omitempty"`
+	Interests       []string            `json:"interests,omitempty"`
+	Languages       []string            `json:"languages,omitempty"`
+	Photos          []PhotoResponse     `json:"photos,omitempty"`
+	LocationCity    string              `json:"location_city,omitempty"`
+	LocationCountry string              `json:"location_country,omitempty"`
+	Latitude        *float64            `json:"latitude,omitempty"`
+	Longitude       *float64            `json:"longitude,omitempty"`
+	CreatedAt       time.Time           `json:"created_at" example:"2023-01-01T00:00:00Z"`
 }
 
 type PhotoResponse struct {
@@ -31,19 +36,36 @@ type PhotoResponse struct {
 
 func ToUserResponse(u *entities.User) UserResponse {
 	resp := UserResponse{
-		ID:        u.ID,
-		Email:     u.Email,
-		Status:    u.Status,
-		CreatedAt: u.CreatedAt,
+		ID:              u.ID,
+		Email:           u.Email,
+		Status:          u.Status,
+		FullName:        u.FullName,
+		DateOfBirth:     u.DateOfBirth,
+		Bio:             u.Bio,
+		HeightCM:        u.HeightCM,
+		LocationCity:    u.LocationCity,
+		LocationCountry: u.LocationCountry,
+		Latitude:        u.Latitude,
+		Longitude:       u.Longitude,
+		CreatedAt:       u.CreatedAt,
 	}
 
-	if u.Profile != nil {
-		resp.Profile = &ProfileResponse{
-			FullName:    u.Profile.FullName,
-			DateOfBirth: u.Profile.DateOfBirth,
-			Gender:      u.Profile.Gender,
-			Bio:         u.Profile.Bio,
-		}
+	if u.GenderID != nil {
+		g := u.GenderID.String()
+		resp.Gender = &g
+	}
+	if u.RelationshipTypeID != nil {
+		resp.LookingFor = append(resp.LookingFor, u.RelationshipTypeID.String())
+	}
+
+	for _, g := range u.InterestedGenders {
+		resp.InterestedIn = append(resp.InterestedIn, g.ID.String())
+	}
+	for _, i := range u.Interests {
+		resp.Interests = append(resp.Interests, i.ID.String())
+	}
+	for _, l := range u.Languages {
+		resp.Languages = append(resp.Languages, l.ID.String())
 	}
 
 	for _, p := range u.Photos {

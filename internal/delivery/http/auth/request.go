@@ -19,6 +19,7 @@ type DeviceRequest struct {
 }
 
 type RegisterEmailRequest struct {
+	ID              *string         `json:"id"`
 	Email           string          `json:"email" binding:"required,email" example:"user@example.com"`
 	Password        string          `json:"password" binding:"required,min=8" example:"password123"`
 	FullName        string          `json:"full_name" binding:"required" example:"John Doe"`
@@ -45,6 +46,7 @@ type LoginEmailRequest struct {
 }
 
 type GoogleLoginRequest struct {
+	ID              *string         `json:"id"`
 	Email           string          `json:"email" binding:"required,email" example:"user@example.com"`
 	GoogleID        string          `json:"google_id" binding:"required" example:"123456789"`
 	FullName        string          `json:"full_name" example:"John Doe"`

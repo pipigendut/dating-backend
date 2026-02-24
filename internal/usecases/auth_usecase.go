@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,15 +14,18 @@ import (
 type AuthUsecase struct {
 	repo        repository.UserRepository
 	sessionRepo repository.SessionRepository
+	storageUC   *StorageUsecase
 }
 
-func NewAuthUsecase(repo repository.UserRepository, sessionRepo repository.SessionRepository) *AuthUsecase {
-	return &AuthUsecase{repo: repo, sessionRepo: sessionRepo}
+func NewAuthUsecase(repo repository.UserRepository, sessionRepo repository.SessionRepository, storageUC *StorageUsecase) *AuthUsecase {
+	return &AuthUsecase{repo: repo, sessionRepo: sessionRepo, storageUC: storageUC}
 }
 
 type PhotoDTO struct {
-	URL    string
-	IsMain bool
+	ID      *string `json:"id,omitempty"`
+	URL     string  `json:"url"`
+	IsMain  bool    `json:"is_main"`
+	Destroy *bool   `json:"destroy,omitempty"`
 }
 
 type DeviceDTO struct {
@@ -35,6 +39,7 @@ type DeviceDTO struct {
 }
 
 type GoogleLoginDTO struct {
+	ID              *string
 	Email           string
 	GoogleID        string
 	FullName        string
@@ -56,6 +61,7 @@ type GoogleLoginDTO struct {
 }
 
 type RegisterEmailDTO struct {
+	ID              *string
 	Email           string
 	Password        string
 	FullName        string
@@ -145,10 +151,26 @@ func (u *AuthUsecase) generateTokensAndDevice(userID uuid.UUID, dto DeviceDTO) (
 	return accessToken, refreshTokenStr, nil
 }
 
+func (u *AuthUsecase) formatUserPhotos(user *entities.User) {
+	if user == nil || u.storageUC == nil {
+		return
+	}
+	for i := range user.Photos {
+		if user.Photos[i].URL != "" && !strings.HasPrefix(user.Photos[i].URL, "http") {
+			user.Photos[i].URL = u.storageUC.GetPublicURL(user.Photos[i].URL)
+		}
+	}
+}
+
 func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *entities.User, error) {
 	// 1. Check if this Google account is already linked
 	user, err := u.repo.GetByProvider("google", dto.GoogleID)
 	if err == nil {
+		fullUser, _ := u.repo.GetWithRelations(user.ID)
+		if fullUser != nil {
+			user = fullUser
+		}
+		u.formatUserPhotos(user)
 		token, refresh, err := u.generateTokensAndDevice(user.ID, dto.Device)
 		return token, refresh, user, err
 	}
@@ -161,12 +183,22 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		if err != nil {
 			return "", "", nil, err
 		}
+		fullUser, _ := u.repo.GetWithRelations(user.ID)
+		if fullUser != nil {
+			user = fullUser
+		}
+		u.formatUserPhotos(user)
 		token, refresh, err := u.generateTokensAndDevice(user.ID, dto.Device)
 		return token, refresh, user, err
 	}
 
 	// 3. Register New User via Google
 	userID := uuid.New()
+	if dto.ID != nil && *dto.ID != "" {
+		if parsed, errParse := uuid.Parse(*dto.ID); errParse == nil {
+			userID = parsed
+		}
+	}
 
 	dob := time.Date(1995, 1, 1, 0, 0, 0, 0, time.UTC)
 	if dto.DateOfBirth != nil {
@@ -182,30 +214,29 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 	}
 
 	newUser := &entities.User{
-		ID:        userID,
-		Email:     &dto.Email,
-		Status:    status,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Profile: &entities.Profile{
-			UserID:          userID,
-			FullName:        dto.FullName,
-			DateOfBirth:     dob,
-			Gender:          getString(dto.Gender),
-			HeightCM:        getInt(dto.HeightCM),
-			Bio:             getString(dto.Bio),
-			InterestedIn:    getString(dto.InterestedIn),
-			LookingFor:      getString(dto.LookingFor),
-			LocationCity:    getString(dto.LocationCity),
-			LocationCountry: getString(dto.LocationCountry),
-			Latitude:        dto.Latitude,
-			Longitude:       dto.Longitude,
-			Interests:       joinStrings(dto.Interests),
-			Languages:       joinStrings(dto.Languages),
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
-		},
+		ID:              userID,
+		Email:           &dto.Email,
+		Status:          status,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		FullName:        dto.FullName,
+		DateOfBirth:     dob,
+		HeightCM:        getInt(dto.HeightCM),
+		Bio:             getString(dto.Bio),
+		LocationCity:    getString(dto.LocationCity),
+		LocationCountry: getString(dto.LocationCountry),
+		Latitude:        dto.Latitude,
+		Longitude:       dto.Longitude,
+		GenderID:        parseUUIDPtr(dto.Gender),
 	}
+
+	if relIDs := parseCommaSeparatedUUIDs(dto.LookingFor); len(relIDs) > 0 {
+		newUser.RelationshipTypeID = &relIDs[0]
+	}
+
+	newUser.InterestedGenders = toMasterGenders(parseCommaSeparatedUUIDs(dto.InterestedIn))
+	newUser.Interests = toMasterInterests(parseStringArrayToUUIDs(dto.Interests))
+	newUser.Languages = toMasterLanguages(parseStringArrayToUUIDs(dto.Languages))
 
 	if dto.Photos != nil && len(*dto.Photos) > 0 {
 		for i, p := range *dto.Photos {
@@ -240,11 +271,12 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		},
 	}
 
-	err = u.repo.CreateWithProfile(newUser)
+	err = u.repo.CreateWithRelations(newUser)
 	if err != nil {
 		return "", "", nil, err
 	}
 
+	u.formatUserPhotos(newUser)
 	token, refresh, err := u.generateTokensAndDevice(newUser.ID, dto.Device)
 	return token, refresh, newUser, err
 }
@@ -277,6 +309,73 @@ func joinStrings(s *[]string) string {
 	return res
 }
 
+func parseUUIDPtr(s *string) *uuid.UUID {
+	if s == nil || strings.TrimSpace(*s) == "" {
+		return nil
+	}
+	id, err := uuid.Parse(strings.TrimSpace(*s))
+	if err != nil {
+		return nil
+	}
+	return &id
+}
+
+func parseCommaSeparatedUUIDs(s *string) []uuid.UUID {
+	if s == nil || *s == "" {
+		return nil
+	}
+	parts := strings.Split(*s, ",")
+	var ids []uuid.UUID
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if id, err := uuid.Parse(p); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func parseStringArrayToUUIDs(arr *[]string) []uuid.UUID {
+	if arr == nil {
+		return nil
+	}
+	var ids []uuid.UUID
+	for _, p := range *arr {
+		p = strings.TrimSpace(p)
+		if id, err := uuid.Parse(p); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func toMasterGenders(ids []uuid.UUID) []entities.MasterGender {
+	var res []entities.MasterGender
+	for _, id := range ids {
+		res = append(res, entities.MasterGender{ID: id})
+	}
+	return res
+}
+
+func toMasterInterests(ids []uuid.UUID) []entities.MasterInterest {
+	var res []entities.MasterInterest
+	for _, id := range ids {
+		res = append(res, entities.MasterInterest{ID: id})
+	}
+	return res
+}
+
+func toMasterLanguages(ids []uuid.UUID) []entities.MasterLanguage {
+	var res []entities.MasterLanguage
+	for _, id := range ids {
+		res = append(res, entities.MasterLanguage{ID: id})
+	}
+	return res
+}
+
 func (u *AuthUsecase) CheckEmail(email string) (bool, error) {
 	_, err := u.repo.GetByEmail(email)
 	if err != nil {
@@ -297,6 +396,12 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	}
 
 	userID := uuid.New()
+	if dto.ID != nil && *dto.ID != "" {
+		if parsed, errParse := uuid.Parse(*dto.ID); errParse == nil {
+			userID = parsed
+		}
+	}
+
 	dob, _ := time.Parse("2006-01-02", dto.DateOfBirth)
 
 	status := entities.UserStatusOnboarding
@@ -305,29 +410,29 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	}
 
 	user := &entities.User{
-		ID:           userID,
-		Email:        &dto.Email,
-		PasswordHash: &hashedPassword,
-		Status:       status,
-		CreatedAt:    time.Now(),
-		Profile: &entities.Profile{
-			UserID:          userID,
-			FullName:        dto.FullName,
-			DateOfBirth:     dob,
-			Gender:          getString(dto.Gender),
-			HeightCM:        getInt(dto.HeightCM),
-			Bio:             getString(dto.Bio),
-			InterestedIn:    getString(dto.InterestedIn),
-			LookingFor:      getString(dto.LookingFor),
-			LocationCity:    getString(dto.LocationCity),
-			LocationCountry: getString(dto.LocationCountry),
-			Latitude:        dto.Latitude,
-			Longitude:       dto.Longitude,
-			Interests:       joinStrings(dto.Interests),
-			Languages:       joinStrings(dto.Languages),
-			CreatedAt:       time.Now(),
-		},
+		ID:              userID,
+		Email:           &dto.Email,
+		PasswordHash:    &hashedPassword,
+		Status:          status,
+		CreatedAt:       time.Now(),
+		FullName:        dto.FullName,
+		DateOfBirth:     dob,
+		HeightCM:        getInt(dto.HeightCM),
+		Bio:             getString(dto.Bio),
+		LocationCity:    getString(dto.LocationCity),
+		LocationCountry: getString(dto.LocationCountry),
+		Latitude:        dto.Latitude,
+		Longitude:       dto.Longitude,
+		GenderID:        parseUUIDPtr(dto.Gender),
 	}
+
+	if relIDs := parseCommaSeparatedUUIDs(dto.LookingFor); len(relIDs) > 0 {
+		user.RelationshipTypeID = &relIDs[0]
+	}
+
+	user.InterestedGenders = toMasterGenders(parseCommaSeparatedUUIDs(dto.InterestedIn))
+	user.Interests = toMasterInterests(parseStringArrayToUUIDs(dto.Interests))
+	user.Languages = toMasterLanguages(parseStringArrayToUUIDs(dto.Languages))
 
 	if dto.Photos != nil && len(*dto.Photos) > 0 {
 		for i, p := range *dto.Photos {
@@ -342,11 +447,12 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 		}
 	}
 
-	err = u.repo.CreateWithProfile(user)
+	err = u.repo.CreateWithRelations(user)
 	if err != nil {
 		return "", "", nil, err
 	}
 
+	u.formatUserPhotos(user)
 	token, refresh, err := u.generateTokensAndDevice(user.ID, dto.Device)
 	return token, refresh, user, err
 }
@@ -361,6 +467,12 @@ func (u *AuthUsecase) LoginEmail(dto LoginEmailDTO) (string, string, *entities.U
 		return "", "", nil, errors.New("email or password incorrect")
 	}
 
+	fullUser, _ := u.repo.GetWithRelations(user.ID)
+	if fullUser != nil {
+		user = fullUser
+	}
+
+	u.formatUserPhotos(user)
 	token, refresh, err := u.generateTokensAndDevice(user.ID, dto.Device)
 	return token, refresh, user, err
 }

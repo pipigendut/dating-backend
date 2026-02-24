@@ -15,6 +15,8 @@ type S3Storage struct {
 	client     *s3.Client
 	presigner  *s3.PresignClient
 	bucketName string
+	region     string
+	endpoint   string
 }
 
 func NewS3Storage(accessKey, secretKey, endpoint, region, bucketName string) (*S3Storage, error) {
@@ -46,6 +48,8 @@ func NewS3Storage(accessKey, secretKey, endpoint, region, bucketName string) (*S
 		client:     client,
 		presigner:  presigner,
 		bucketName: bucketName,
+		region:     region,
+		endpoint:   endpoint,
 	}, nil
 }
 
@@ -74,6 +78,15 @@ func (s *S3Storage) GeneratePresignedGetURL(ctx context.Context, key string, exp
 	}
 
 	return request.URL, nil
+}
+
+func (s *S3Storage) GetPublicURL(key string) string {
+	if s.endpoint != "" {
+		// e.g., Supabase or MinIO (http://endpoint/bucket/key)
+		return fmt.Sprintf("%s/%s/%s", s.endpoint, s.bucketName, key)
+	}
+	// AWS Native
+	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucketName, s.region, key)
 }
 
 func (s *S3Storage) DeleteFile(ctx context.Context, key string) error {

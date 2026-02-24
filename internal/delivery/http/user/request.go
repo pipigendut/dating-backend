@@ -6,8 +6,10 @@ type UploadURLResponse struct {
 }
 
 type PhotoRequest struct {
-	URL    string `json:"url" binding:"required"`
-	IsMain bool   `json:"is_main"`
+	ID      *string `json:"id"`
+	URL     string  `json:"url" binding:"required"`
+	IsMain  bool    `json:"is_main"`
+	Destroy *bool   `json:"_destroy"`
 }
 
 type UpdateProfileRequest struct {

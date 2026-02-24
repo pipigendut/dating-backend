@@ -86,6 +86,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	dto := usecases.RegisterEmailDTO{
+		ID:              req.ID,
 		Email:           req.Email,
 		Password:        req.Password,
 		FullName:        req.FullName,
@@ -189,6 +190,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	}
 
 	dto := usecases.GoogleLoginDTO{
+		ID:              req.ID,
 		Email:           req.Email,
 		GoogleID:        req.GoogleID,
 		FullName:        req.FullName,
@@ -277,14 +279,23 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	// userID is a string from middleware
-	uid, err := uuid.Parse(userID.(string))
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid User ID format", nil)
+	var uid uuid.UUID
+	switch v := userID.(type) {
+	case string:
+		var err error
+		uid, err = uuid.Parse(v)
+		if err != nil {
+			response.Error(c, http.StatusBadRequest, "Invalid User ID format", nil)
+			return
+		}
+	case uuid.UUID:
+		uid = v
+	default:
+		response.Error(c, http.StatusBadRequest, "Invalid User ID type", nil)
 		return
 	}
 
-	err = h.usecase.Logout(req.DeviceID, uid)
+	err := h.usecase.Logout(req.DeviceID, uid)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error(), nil)
 		return

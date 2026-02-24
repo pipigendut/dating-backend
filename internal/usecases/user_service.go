@@ -43,15 +43,21 @@ func (u *UserUsecase) GetProfile(id string) (*entities.User, error) {
 		return nil, errors.NewBadRequest("invalid user id format")
 	}
 
-	user, err := u.repo.GetWithProfile(uid)
+	user, err := u.repo.GetWithRelations(uid)
 	if err != nil {
 		return nil, errors.NewNotFound("user not found")
+	}
+
+	for i := range user.Photos {
+		if user.Photos[i].URL != "" && u.storageUC != nil {
+			user.Photos[i].URL = u.storageUC.GetPublicURL(user.Photos[i].URL)
+		}
 	}
 
 	return user, nil
 }
 func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest) error {
-	user, err := u.repo.GetWithProfile(userID)
+	user, err := u.repo.GetWithRelations(userID)
 	if err != nil {
 		return errors.NewNotFound("user not found")
 	}
@@ -60,76 +66,111 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 		user.Status = *data.Status
 	}
 
-	if user.Profile == nil {
-		user.Profile = &entities.Profile{UserID: userID}
+	if data.Gender != nil {
+		if *data.Gender == "" {
+			user.GenderID = nil
+		} else {
+			uid, err := uuid.Parse(*data.Gender)
+			if err != nil {
+				return errors.NewBadRequest("invalid gender id format")
+			}
+			user.GenderID = &uid
+		}
+	}
+
+	if data.LookingFor != nil {
+		if *data.LookingFor == "" {
+			user.RelationshipTypeID = nil
+		} else {
+			uid, err := uuid.Parse(*data.LookingFor)
+			if err != nil {
+				return errors.NewBadRequest("invalid relationship type id format")
+			}
+			user.RelationshipTypeID = &uid
+		}
+	}
+
+	if data.InterestedIn != nil {
+		if *data.InterestedIn == "" {
+			user.InterestedGenders = nil
+		} else {
+			uid, err := uuid.Parse(*data.InterestedIn)
+			if err == nil {
+				user.InterestedGenders = []entities.MasterGender{{ID: uid}}
+			}
+		}
 	}
 
 	if data.FullName != nil {
-		user.Profile.FullName = *data.FullName
+		user.FullName = *data.FullName
 	}
 	if data.DateOfBirth != nil {
 		dob, err := time.Parse("2006-01-02", *data.DateOfBirth)
 		if err != nil {
 			return errors.NewBadRequest("invalid date format, use YYYY-MM-DD")
 		}
-		user.Profile.DateOfBirth = dob
-	}
-	if data.Gender != nil {
-		user.Profile.Gender = *data.Gender
+		user.DateOfBirth = dob
 	}
 	if data.HeightCM != nil {
-		user.Profile.HeightCM = *data.HeightCM
+		user.HeightCM = *data.HeightCM
 	}
 	if data.Bio != nil {
-		user.Profile.Bio = *data.Bio
-	}
-	if data.InterestedIn != nil {
-		user.Profile.InterestedIn = *data.InterestedIn
-	}
-	if data.LookingFor != nil {
-		user.Profile.LookingFor = *data.LookingFor
+		user.Bio = *data.Bio
 	}
 	if data.LocationCity != nil {
-		user.Profile.LocationCity = *data.LocationCity
+		user.LocationCity = *data.LocationCity
 	}
 	if data.LocationCountry != nil {
-		user.Profile.LocationCountry = *data.LocationCountry
+		user.LocationCountry = *data.LocationCountry
 	}
 	if data.Latitude != nil {
-		user.Profile.Latitude = data.Latitude
+		user.Latitude = data.Latitude
 	}
 	if data.Longitude != nil {
-		user.Profile.Longitude = data.Longitude
+		user.Longitude = data.Longitude
 	}
+
 	if data.Interests != nil {
-		user.Profile.Interests = ""
-		for i, interest := range *data.Interests {
-			if i > 0 {
-				user.Profile.Interests += ","
+		var newInterests []entities.MasterInterest
+		for _, rawID := range *data.Interests {
+			uid, err := uuid.Parse(rawID)
+			if err == nil {
+				newInterests = append(newInterests, entities.MasterInterest{ID: uid})
 			}
-			user.Profile.Interests += interest
 		}
+		user.Interests = newInterests
 	}
+
 	if data.Languages != nil {
-		user.Profile.Languages = ""
-		for i, lang := range *data.Languages {
-			if i > 0 {
-				user.Profile.Languages += ","
+		var newLanguages []entities.MasterLanguage
+		for _, rawID := range *data.Languages {
+			uid, err := uuid.Parse(rawID)
+			if err == nil {
+				newLanguages = append(newLanguages, entities.MasterLanguage{ID: uid})
 			}
-			user.Profile.Languages += lang
 		}
+		user.Languages = newLanguages
 	}
 
 	if data.Photos != nil {
-		// Replace all photos: Clear existing first
-		// We use the repository through a transaction for safety if needed,
-		// but GORM's Replace can also work if configured correctly.
-		// For simplicity/reliability at this stage, we'll let GORM handle the sync via FullSaveAssociations
-		// But we need to make sure the user.Photos slice is what we want the DB to reflect.
 		newPhotos := make([]entities.Photo, 0)
+		newPhotoIDs := make(map[uuid.UUID]bool)
 		for i, p := range *data.Photos {
+			pid := uuid.New()
+			if p.ID != nil && *p.ID != "" {
+				if parsed, err := uuid.Parse(*p.ID); err == nil {
+					pid = parsed
+				}
+			}
+
+			// If frontend says destroy, skip adding it to the newPhoto array and diff
+			if p.Destroy != nil && *p.Destroy {
+				continue
+			}
+
+			newPhotoIDs[pid] = true
 			newPhotos = append(newPhotos, entities.Photo{
-				ID:        uuid.New(),
+				ID:        pid,
 				UserID:    userID,
 				URL:       p.URL,
 				IsMain:    p.IsMain,
@@ -137,6 +178,22 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 				CreatedAt: time.Now(),
 			})
 		}
+
+		// Find deleted photos to remove from S3 and DB
+		existingUser, err := u.repo.GetWithRelations(userID)
+		if err == nil && existingUser != nil {
+			for _, existingPhoto := range existingUser.Photos {
+				if !newPhotoIDs[existingPhoto.ID] {
+					// Delete from S3
+					if u.storageUC != nil && existingPhoto.URL != "" {
+						_ = u.storageUC.DeleteFile(context.Background(), existingPhoto.URL)
+					}
+					// Explicitly delete from DB to avoid orphan records
+					_ = u.repo.DeletePhoto(existingPhoto.ID)
+				}
+			}
+		}
+
 		user.Photos = newPhotos
 	}
 

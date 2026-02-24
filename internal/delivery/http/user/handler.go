@@ -64,7 +64,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	if req.Photos != nil {
 		mapped := make([]usecases.PhotoDTO, len(*req.Photos))
 		for i, p := range *req.Photos {
-			mapped[i] = usecases.PhotoDTO{URL: p.URL, IsMain: p.IsMain}
+			mapped[i] = usecases.PhotoDTO{ID: p.ID, URL: p.URL, IsMain: p.IsMain, Destroy: p.Destroy}
 		}
 		photosDTO = &mapped
 	}
@@ -130,7 +130,13 @@ func (h *UserHandler) GetUploadURL(c *gin.Context) {
 }
 
 func (h *UserHandler) GetUploadURLPublic(c *gin.Context) {
-	url, key, err := h.storageUC.GetUploadURLPublic(c.Request.Context())
+	clientID := c.Query("client_id")
+	if clientID == "" {
+		response.Error(c, http.StatusBadRequest, "client_id is required", nil)
+		return
+	}
+
+	url, key, err := h.storageUC.GetUploadURLPublic(c.Request.Context(), clientID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to generate public upload URL", err.Error())
 		return

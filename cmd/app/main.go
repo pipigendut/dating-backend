@@ -7,9 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/master"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/infra"
+	"github.com/pipigendut/dating-backend/internal/infra/seeds"
 	infraStorage "github.com/pipigendut/dating-backend/internal/infra/storage"
 	"github.com/pipigendut/dating-backend/internal/repository/impl"
 	"github.com/pipigendut/dating-backend/internal/usecases"
@@ -65,6 +67,11 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// 1.2 Run Master Seeders
+	if err := seeds.SeedMasterData(db); err != nil {
+		log.Fatalf("Failed to execute master data seeders: %v", err)
+	}
+
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
 	redisPass := os.Getenv("REDIS_PASSWORD")
@@ -102,9 +109,12 @@ func main() {
 	// 2. Initialize Layers
 	userRepo := impl.NewUserRepo(db)
 	sessionRepo := impl.NewSessionRepo(db)
+	masterRepo := impl.NewMasterRepository(db)
+
 	storageUC := usecases.NewStorageUsecase(storageImpl)
 	userUC := usecases.NewUserUsecase(userRepo, storageUC)
-	authUC := usecases.NewAuthUsecase(userRepo, sessionRepo)
+	authUC := usecases.NewAuthUsecase(userRepo, sessionRepo, storageUC)
+	masterUC := usecases.NewMasterUsecase(masterRepo)
 
 	r := gin.Default()
 
@@ -120,6 +130,7 @@ func main() {
 
 	user.NewUserHandler(v1, userUC, storageUC, authMiddleware)
 	auth.NewAuthHandler(v1, authUC)
+	master.NewMasterHandler(v1, masterUC)
 
 	// Swagger route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

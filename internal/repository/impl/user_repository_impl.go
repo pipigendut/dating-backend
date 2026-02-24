@@ -44,16 +44,61 @@ func (r *userRepo) GetByID(id uuid.UUID) (*entities.User, error) {
 	return &user, err
 }
 
-func (r *userRepo) GetWithProfile(id uuid.UUID) (*entities.User, error) {
+func (r *userRepo) GetWithRelations(id uuid.UUID) (*entities.User, error) {
 	var user entities.User
 	// Explicit Preload only when needed
-	err := r.db.Preload("Profile").Preload("Photos").First(&user, "id = ?", id).Error
+	err := r.db.Preload("Photos").
+		Preload("Gender").
+		Preload("RelationshipType").
+		Preload("InterestedGenders").
+		Preload("Interests").
+		Preload("Languages").
+		First(&user, "id = ?", id).Error
 	return &user, err
 }
 
 func (r *userRepo) Update(user *entities.User) error {
-	// FullSaveAssociations ensures that Profile and Photos are also updated
-	return r.db.Session(&gorm.Session{FullSaveAssociations: true}).Save(user).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Save base user fields, ignoring associations
+		if err := tx.Omit("Photos", "InterestedGenders", "Interests", "Languages", "AuthProviders", "Devices", "RefreshTokens", "Gender", "RelationshipType").Save(user).Error; err != nil {
+			return err
+		}
+
+		// Sync Many2Many manually
+		if err := tx.Model(user).Association("InterestedGenders").Replace(user.InterestedGenders); err != nil {
+			return err
+		}
+		if err := tx.Model(user).Association("Interests").Replace(user.Interests); err != nil {
+			return err
+		}
+		if err := tx.Model(user).Association("Languages").Replace(user.Languages); err != nil {
+			return err
+		}
+
+		// Hard delete omitted photos manually instead of detaching them
+		var photoIDs []string
+		for _, p := range user.Photos {
+			if p.ID.String() != "" && p.ID.String() != "00000000-0000-0000-0000-000000000000" {
+				photoIDs = append(photoIDs, p.ID.String())
+			}
+		}
+
+		if len(photoIDs) > 0 {
+			if err := tx.Unscoped().Where("user_id = ? AND id NOT IN ?", user.ID, photoIDs).Delete(&entities.Photo{}).Error; err != nil {
+				return err
+			}
+		} else {
+			if err := tx.Unscoped().Where("user_id = ?", user.ID).Delete(&entities.Photo{}).Error; err != nil {
+				return err
+			}
+		}
+
+		if err := tx.Model(user).Association("Photos").Replace(user.Photos); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r *userRepo) GetByEmail(email string) (*entities.User, error) {
@@ -83,18 +128,11 @@ func (r *userRepo) LinkProvider(userID uuid.UUID, provider, providerUserID strin
 	return r.db.Create(&authProvider).Error
 }
 
-func (r *userRepo) CreateWithProfile(user *entities.User) error {
+func (r *userRepo) CreateWithRelations(user *entities.User) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// Omit associations to handle them manually below and avoid GORM's "smart" upsert issues
-		if err := tx.Omit("Profile", "Photos", "AuthProviders").Create(user).Error; err != nil {
+		if err := tx.Omit("Photos", "AuthProviders").Create(user).Error; err != nil {
 			return err
-		}
-
-		if user.Profile != nil {
-			user.Profile.UserID = user.ID
-			if err := tx.Create(user.Profile).Error; err != nil {
-				return err
-			}
 		}
 
 		if len(user.Photos) > 0 {
@@ -120,5 +158,10 @@ func (r *userRepo) CreateWithProfile(user *entities.User) error {
 }
 
 func (r *userRepo) Delete(id uuid.UUID) error {
-	return r.db.Delete(&entities.User{}, "id = ?", id).Error
+	user := entities.User{ID: id}
+	return r.db.Select("Photos", "AuthProviders", "Devices", "RefreshTokens", "InterestedGenders", "Interests", "Languages").Delete(&user).Error
+}
+
+func (r *userRepo) DeletePhoto(photoID uuid.UUID) error {
+	return r.db.Delete(&entities.Photo{}, "id = ?", photoID).Error
 }
