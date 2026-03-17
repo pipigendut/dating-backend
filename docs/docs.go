@@ -588,7 +588,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/swipe.UserSwipeProfileResponse"
+                                                "$ref": "#/definitions/user.UserResponse"
                                             }
                                         }
                                     }
@@ -684,7 +684,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/swipe.UserSwipeProfileResponse"
+                                            "$ref": "#/definitions/user.UserResponse"
                                         }
                                     }
                                 }
@@ -1060,7 +1060,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/swipe.UserSwipeProfileResponse"
+                    "$ref": "#/definitions/user.UserResponse"
                 }
             }
         },
@@ -1071,23 +1071,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "match_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "swipe.PhotoDTO": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "is_main": {
-                    "type": "boolean"
-                },
-                "sort_order": {
-                    "type": "integer"
-                },
-                "url": {
                     "type": "string"
                 }
             }
@@ -1109,38 +1092,6 @@ const docTemplate = `{
                 },
                 "swiped_id": {
                     "type": "string"
-                }
-            }
-        },
-        "swipe.UserSwipeProfileResponse": {
-            "type": "object",
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "bio": {
-                    "type": "string"
-                },
-                "full_name": {
-                    "type": "string"
-                },
-                "height_cm": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "location_city": {
-                    "type": "string"
-                },
-                "location_country": {
-                    "type": "string"
-                },
-                "photos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/swipe.PhotoDTO"
-                    }
                 }
             }
         },
@@ -1185,7 +1136,7 @@ const docTemplate = `{
                     "example": "John Doe"
                 },
                 "gender": {
-                    "type": "string"
+                    "$ref": "#/definitions/master.MasterItemResponse"
                 },
                 "height_cm": {
                     "type": "integer"
@@ -1194,22 +1145,22 @@ const docTemplate = `{
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
-                "interested_in": {
+                "interested_genders": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/master.MasterItemResponse"
                     }
                 },
                 "interests": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/master.MasterItemResponse"
                     }
                 },
                 "languages": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/master.MasterItemResponse"
                     }
                 },
                 "latitude": {
@@ -1224,17 +1175,14 @@ const docTemplate = `{
                 "longitude": {
                     "type": "number"
                 },
-                "looking_for": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "photos": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/user.PhotoResponse"
                     }
+                },
+                "relationship_type": {
+                    "$ref": "#/definitions/master.MasterItemResponse"
                 },
                 "status": {
                     "allOf": [

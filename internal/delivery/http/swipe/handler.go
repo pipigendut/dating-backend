@@ -8,12 +8,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
+	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/services"
 )
 
-func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, authMiddleware gin.HandlerFunc) {
+func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, storageUC storageUsecase, authMiddleware gin.HandlerFunc) {
 	handler := &SwipeHandler{
 		swipeService: swipeSvc,
+		storageUC:    storageUC,
 	}
 
 	swipeGroup := r.Group("/swipe")
@@ -26,8 +29,26 @@ func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, authMid
 	}
 }
 
+// storageUsecase is a minimal interface for photo URL resolution (avoids circular imports)
+type storageUsecase interface {
+	GetPublicURL(key string) string
+}
+
 type SwipeHandler struct {
 	swipeService services.SwipeService
+	storageUC    storageUsecase
+}
+
+// resolvePhotoURLs converts raw S3 file keys in Photos to full public URLs
+func (h *SwipeHandler) resolvePhotoURLs(u *entities.User) {
+	if h.storageUC == nil {
+		return
+	}
+	for i := range u.Photos {
+		if u.Photos[i].URL != "" {
+			u.Photos[i].URL = h.storageUC.GetPublicURL(u.Photos[i].URL)
+		}
+	}
 }
 
 // GetCandidates godoc
@@ -37,7 +58,7 @@ type SwipeHandler struct {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200  {object}  response.BaseResponse{data=[]UserSwipeProfileResponse} "List of swipe candidates"
+// @Success      200  {object}  response.BaseResponse{data=[]user.UserResponse} "List of swipe candidates"
 // @Failure      500  {object}  response.BaseResponse "Internal server error"
 // @Router       /swipe/candidates [get]
 func (h *SwipeHandler) GetCandidates(c *gin.Context) {
@@ -52,30 +73,12 @@ func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 	// Record impressions for these candidates immediately since we're returning them to the client
 	// In a real high-scale app, the client might report back which ones were actually viewed
 	var shownIDs []uuid.UUID
-	var respCandidates []UserSwipeProfileResponse
-	for _, user := range candidates {
-		shownIDs = append(shownIDs, user.ID)
-
-		// Map photos
-		var photos []PhotoDTO
-		for _, p := range user.Photos {
-			photos = append(photos, PhotoDTO{
-				ID:        p.ID,
-				URL:       p.URL,
-				IsMain:    p.IsMain,
-				SortOrder: p.SortOrder,
-			})
-		}
-
-		respCandidates = append(respCandidates, UserSwipeProfileResponse{
-			ID:              user.ID,
-			FullName:        user.FullName,
-			Bio:             user.Bio,
-			HeightCM:        user.HeightCM,
-			LocationCity:    user.LocationCity,
-			LocationCountry: user.LocationCountry,
-			Photos:          photos,
-		})
+	var respCandidates []user.UserResponse
+	for _, u := range candidates {
+		shownIDs = append(shownIDs, u.ID)
+		uCopy := u // capture loop variable cleanly
+		h.resolvePhotoURLs(&uCopy)
+		respCandidates = append(respCandidates, user.ToUserResponse(&uCopy))
 	}
 
 	// Fire and forget impression recording
@@ -144,25 +147,9 @@ func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
 
 	var respLikes []IncomingLikeResponse
 	for _, like := range likes {
-		var photos []PhotoDTO
-		for _, p := range like.User.Photos {
-			photos = append(photos, PhotoDTO{
-				ID:        p.ID,
-				URL:       p.URL,
-				IsMain:    p.IsMain,
-				SortOrder: p.SortOrder,
-			})
-		}
-
-		userResp := UserSwipeProfileResponse{
-			ID:              like.User.ID,
-			FullName:        like.User.FullName,
-			Bio:             like.User.Bio,
-			HeightCM:        like.User.HeightCM,
-			LocationCity:    like.User.LocationCity,
-			LocationCountry: like.User.LocationCountry,
-			Photos:          photos,
-		}
+		userCopy := like.User
+		h.resolvePhotoURLs(&userCopy)
+		userResp := user.ToUserResponse(&userCopy)
 
 		respLikes = append(respLikes, IncomingLikeResponse{
 			User:          userResp,
@@ -182,7 +169,7 @@ func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200  {object}  response.BaseResponse{data=UserSwipeProfileResponse} "Successfully reverted the swipe"
+// @Success      200  {object}  response.BaseResponse{data=user.UserResponse} "Successfully reverted the swipe"
 // @Failure      400  {object}  response.BaseResponse "No swipe history or daily limit reached"
 // @Failure      500  {object}  response.BaseResponse "Internal server error"
 // @Router       /swipe/undo [post]
@@ -199,26 +186,8 @@ func (h *SwipeHandler) UndoSwipe(c *gin.Context) {
 		return
 	}
 
-	// Map returned user to response DTO
-	var photos []PhotoDTO
-	for _, p := range undoneUser.Photos {
-		photos = append(photos, PhotoDTO{
-			ID:        p.ID,
-			URL:       p.URL,
-			IsMain:    p.IsMain,
-			SortOrder: p.SortOrder,
-		})
-	}
-
-	userResp := UserSwipeProfileResponse{
-		ID:              undoneUser.ID,
-		FullName:        undoneUser.FullName,
-		Bio:             undoneUser.Bio,
-		HeightCM:        undoneUser.HeightCM,
-		LocationCity:    undoneUser.LocationCity,
-		LocationCountry: undoneUser.LocationCountry,
-		Photos:          photos,
-	}
+	h.resolvePhotoURLs(undoneUser)
+	userResp := user.ToUserResponse(undoneUser)
 
 	response.OK(c, userResp)
 }

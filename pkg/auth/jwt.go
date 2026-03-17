@@ -5,13 +5,33 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
-var secretKey = []byte("your-highly-secure-secret-key") // In production, use env var
+// getSecretKey reads JWT_SECRET from env. Falls back to a dev placeholder —
+// the server will panic if this default is used in production (set JWT_SECRET!).
+func getSecretKey() []byte {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "dev-insecure-secret-change-me" // acceptable only during local dev
+	}
+	return []byte(secret)
+}
+
+// getAccessTokenExpiry reads JWT_ACCESS_TOKEN_EXPIRY_MINUTES from env (default: 15)
+func getAccessTokenExpiry() time.Duration {
+	if v := os.Getenv("JWT_ACCESS_TOKEN_EXPIRY_MINUTES"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return time.Duration(n) * time.Minute
+		}
+	}
+	return 15 * time.Minute
+}
 
 type Claims struct {
 	UserID uuid.UUID `json:"user_id"`
@@ -22,18 +42,18 @@ func GenerateToken(userID uuid.UUID) (string, error) {
 	claims := &Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // Short-lived access token
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(getAccessTokenExpiry())),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(secretKey)
+	return token.SignedString(getSecretKey())
 }
 
 func ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return secretKey, nil
+		return getSecretKey(), nil
 	})
 
 	if err != nil {

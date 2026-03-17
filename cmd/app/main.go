@@ -137,7 +137,7 @@ func main() {
 	user.NewUserHandler(v1, userUC, storageUC, authMiddleware)
 	auth.NewAuthHandler(v1, authUC)
 	master.NewMasterHandler(v1, masterUC)
-	swipe.NewSwipeHandler(v1, swipeSvc, authMiddleware)
+	swipe.NewSwipeHandler(v1, swipeSvc, storageUC, authMiddleware)
 
 	// Swagger route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

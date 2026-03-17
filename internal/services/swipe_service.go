@@ -107,7 +107,41 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 		return nil, fmt.Errorf("failed to get swipe candidates: %w", err)
 	}
 
-	return candidates, nil
+	if len(candidates) == 0 {
+		return candidates, nil
+	}
+
+	var candidateIDs []uuid.UUID
+	orderMap := make(map[uuid.UUID]int)
+	for i, c := range candidates {
+		candidateIDs = append(candidateIDs, c.ID)
+		orderMap[c.ID] = i
+	}
+
+	var fullUsers []entities.User
+	err = s.db.WithContext(ctx).
+		Preload("Gender").
+		Preload("RelationshipType").
+		Preload("InterestedGenders").
+		Preload("Interests").
+		Preload("Languages").
+		Preload("Photos").
+		Where("id IN ?", candidateIDs).
+		Find(&fullUsers).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to load candidates relations: %w", err)
+	}
+
+	// Restore original weighted-random order
+	result := make([]entities.User, len(candidates))
+	for _, u := range fullUsers {
+		idx := orderMap[u.ID]
+		// Retain the raw query injected fields (though not strictly needed right now)
+		result[idx] = u
+	}
+
+	return result, nil
 }
 
 func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, error) {
@@ -230,13 +264,41 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID) (
 		return nil, fmt.Errorf("failed to get incoming likes: %w", err)
 	}
 
-	incomingLikes := make([]IncomingLike, len(results))
+	if len(results) == 0 {
+		return []IncomingLike{}, nil
+	}
+
+	var userIDs []uuid.UUID
+	orderMap := make(map[uuid.UUID]int)
 	for i, r := range results {
-		incomingLikes[i] = IncomingLike{
-			User:          r.User,
-			IsCrush:       r.RawDirection == string(entities.SwipeDirectionCrush),
-			PriorityScore: r.RawPriorityScore,
-			CreatedAt:     r.RawCreatedAt,
+		userIDs = append(userIDs, r.ID)
+		orderMap[r.ID] = i
+	}
+
+	var fullUsers []entities.User
+	err = s.db.WithContext(ctx).
+		Preload("Gender").
+		Preload("RelationshipType").
+		Preload("InterestedGenders").
+		Preload("Interests").
+		Preload("Languages").
+		Preload("Photos").
+		Where("id IN ?", userIDs).
+		Find(&fullUsers).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to load incoming likes relations: %w", err)
+	}
+
+	// Restore original ordered result
+	incomingLikes := make([]IncomingLike, len(results))
+	for _, u := range fullUsers {
+		idx := orderMap[u.ID]
+		incomingLikes[idx] = IncomingLike{
+			User:          u,
+			IsCrush:       results[idx].RawDirection == string(entities.SwipeDirectionCrush),
+			PriorityScore: results[idx].RawPriorityScore,
+			CreatedAt:     results[idx].RawCreatedAt,
 		}
 	}
 

@@ -2,6 +2,8 @@ package usecases
 
 import (
 	"errors"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -10,6 +12,16 @@ import (
 	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/pkg/auth"
 )
+
+// getRefreshTokenExpiry reads JWT_REFRESH_TOKEN_EXPIRY_DAYS from env (default: 30)
+func getRefreshTokenExpiry() time.Duration {
+	if v := os.Getenv("JWT_REFRESH_TOKEN_EXPIRY_DAYS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return time.Duration(n) * 24 * time.Hour
+		}
+	}
+	return 30 * 24 * time.Hour
+}
 
 type AuthUsecase struct {
 	repo        repository.UserRepository
@@ -141,7 +153,7 @@ func (u *AuthUsecase) generateTokensAndDevice(userID uuid.UUID, dto DeviceDTO) (
 		UserID:    userID,
 		DeviceID:  device.ID,
 		TokenHash: hashedToken,
-		ExpiresAt: time.Now().Add(30 * 24 * time.Hour), // 30 days
+		ExpiresAt: time.Now().Add(getRefreshTokenExpiry()),
 	}
 	err = u.sessionRepo.CreateRefreshToken(rf)
 	if err != nil {
