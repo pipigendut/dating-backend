@@ -2,9 +2,14 @@ basePath: /api/v1
 definitions:
   auth.AuthResponse:
     properties:
+      refresh_token:
+        example: abcdef123456...
+        type: string
       token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
+      user:
+        $ref: '#/definitions/user.UserResponse'
     type: object
   auth.CheckEmailRequest:
     properties:
@@ -20,17 +25,70 @@ definitions:
         example: true
         type: boolean
     type: object
+  auth.DeviceRequest:
+    properties:
+      app_version:
+        type: string
+      device_id:
+        type: string
+      device_model:
+        type: string
+      device_name:
+        type: string
+      fcm_token:
+        type: string
+      os_version:
+        type: string
+    required:
+    - device_id
+    type: object
   auth.GoogleLoginRequest:
     properties:
+      bio:
+        type: string
+      date_of_birth:
+        type: string
+      device:
+        $ref: '#/definitions/auth.DeviceRequest'
       email:
         example: user@example.com
         type: string
       full_name:
         example: John Doe
         type: string
+      gender:
+        type: string
       google_id:
         example: "123456789"
         type: string
+      height_cm:
+        type: integer
+      id:
+        type: string
+      interested_in:
+        type: string
+      interests:
+        items:
+          type: string
+        type: array
+      languages:
+        items:
+          type: string
+        type: array
+      latitude:
+        type: number
+      location_city:
+        type: string
+      location_country:
+        type: string
+      longitude:
+        type: number
+      looking_for:
+        type: string
+      photos:
+        items:
+          $ref: '#/definitions/auth.PhotoRequest'
+        type: array
       profile_picture:
         example: https://example.com/photo.jpg
         type: string
@@ -40,6 +98,8 @@ definitions:
     type: object
   auth.LoginEmailRequest:
     properties:
+      device:
+        $ref: '#/definitions/auth.DeviceRequest'
       email:
         example: user@example.com
         type: string
@@ -50,26 +110,117 @@ definitions:
     - email
     - password
     type: object
+  auth.LogoutRequest:
+    properties:
+      device_id:
+        type: string
+    required:
+    - device_id
+    type: object
+  auth.PhotoRequest:
+    properties:
+      is_main:
+        type: boolean
+      url:
+        type: string
+    required:
+    - url
+    type: object
+  auth.RefreshTokenRequest:
+    properties:
+      device_id:
+        type: string
+      refresh_token:
+        type: string
+    required:
+    - device_id
+    - refresh_token
+    type: object
   auth.RegisterEmailRequest:
     properties:
+      bio:
+        type: string
       date_of_birth:
         example: "1995-01-01"
         type: string
+      device:
+        $ref: '#/definitions/auth.DeviceRequest'
       email:
         example: user@example.com
         type: string
       full_name:
         example: John Doe
         type: string
+      gender:
+        type: string
+      height_cm:
+        type: integer
+      id:
+        type: string
+      interested_in:
+        type: string
+      interests:
+        items:
+          type: string
+        type: array
+      languages:
+        items:
+          type: string
+        type: array
+      latitude:
+        type: number
+      location_city:
+        type: string
+      location_country:
+        type: string
+      longitude:
+        type: number
+      looking_for:
+        type: string
       password:
         example: password123
         minLength: 8
         type: string
+      photos:
+        items:
+          $ref: '#/definitions/auth.PhotoRequest'
+        type: array
     required:
     - date_of_birth
     - email
     - full_name
     - password
+    type: object
+  auth.TokenResponse:
+    properties:
+      refresh_token:
+        example: abcdef123456...
+        type: string
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  entities.UserStatus:
+    enum:
+    - onboarding
+    - active
+    - banned
+    type: string
+    x-enum-varnames:
+    - UserStatusOnboarding
+    - UserStatusActive
+    - UserStatusBanned
+  master.MasterItemResponse:
+    properties:
+      icon:
+        example: ✈️
+        type: string
+      id:
+        example: bd0a597a-2d88-44e2-a0b4-eb416c1f2115
+        type: string
+      name:
+        example: Travel
+        type: string
     type: object
   response.BaseResponse:
     properties:
@@ -81,6 +232,139 @@ definitions:
       status:
         example: 200
         type: integer
+    type: object
+  swipe.IncomingLikeResponse:
+    properties:
+      is_crush:
+        type: boolean
+      priority_score:
+        type: integer
+      swipe_time:
+        type: string
+      user:
+        $ref: '#/definitions/swipe.UserSwipeProfileResponse'
+    type: object
+  swipe.MatchResponse:
+    properties:
+      is_match:
+        type: boolean
+      match_id:
+        type: string
+    type: object
+  swipe.PhotoDTO:
+    properties:
+      id:
+        type: string
+      is_main:
+        type: boolean
+      sort_order:
+        type: integer
+      url:
+        type: string
+    type: object
+  swipe.SwipeRequest:
+    properties:
+      direction:
+        enum:
+        - LIKE
+        - DISLIKE
+        - CRUSH
+        type: string
+      swiped_id:
+        type: string
+    required:
+    - direction
+    - swiped_id
+    type: object
+  swipe.UserSwipeProfileResponse:
+    properties:
+      age:
+        type: integer
+      bio:
+        type: string
+      full_name:
+        type: string
+      height_cm:
+        type: integer
+      id:
+        type: string
+      location_city:
+        type: string
+      location_country:
+        type: string
+      photos:
+        items:
+          $ref: '#/definitions/swipe.PhotoDTO'
+        type: array
+    type: object
+  user.PhotoResponse:
+    properties:
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      is_main:
+        example: true
+        type: boolean
+      url:
+        example: https://example.com/photo.jpg
+        type: string
+    type: object
+  user.UserResponse:
+    properties:
+      bio:
+        example: Avid hiker and coffee lover.
+        type: string
+      created_at:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      date_of_birth:
+        example: "1995-01-01T00:00:00Z"
+        type: string
+      email:
+        example: user@example.com
+        type: string
+      full_name:
+        example: John Doe
+        type: string
+      gender:
+        type: string
+      height_cm:
+        type: integer
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      interested_in:
+        items:
+          type: string
+        type: array
+      interests:
+        items:
+          type: string
+        type: array
+      languages:
+        items:
+          type: string
+        type: array
+      latitude:
+        type: number
+      location_city:
+        type: string
+      location_country:
+        type: string
+      longitude:
+        type: number
+      looking_for:
+        items:
+          type: string
+        type: array
+      photos:
+        items:
+          $ref: '#/definitions/user.PhotoResponse'
+        type: array
+      status:
+        allOf:
+        - $ref: '#/definitions/entities.UserStatus'
+        example: active
     type: object
 host: localhost:8080
 info:
@@ -191,6 +475,67 @@ paths:
       summary: Login via Email
       tags:
       - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revokes tokens and deactivates the associated device for the currently
+        authenticated user.
+      parameters:
+      - description: Device data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Allows the client to get a new access token using a valid refresh
+        token and device ID.
+      parameters:
+      - description: Refresh credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.TokenResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: Refresh Access Token
+      tags:
+      - auth
   /auth/register:
     post:
       consumes:
@@ -222,6 +567,232 @@ paths:
       summary: Register via Email
       tags:
       - auth
+  /master/genders:
+    get:
+      description: Returns a list of all active gender options for user profiling.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/master.MasterItemResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: Get all active genders
+      tags:
+      - master
+  /master/interests:
+    get:
+      description: Returns a list of all active interests/hobbies options.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/master.MasterItemResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: Get all active interests
+      tags:
+      - master
+  /master/languages:
+    get:
+      description: Returns a list of all active spoken languages options.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/master.MasterItemResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: Get all active languages
+      tags:
+      - master
+  /master/relationship-types:
+    get:
+      description: Returns a list of all active relationship types (e.g., Short-term,
+        Long-term) for user profiling.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/master.MasterItemResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: Get all active relationship types
+      tags:
+      - master
+  /swipe:
+    post:
+      consumes:
+      - application/json
+      description: Records a user's swipe interaction with another user. If it's a
+        mutual LIKE or CRUSH, it returns a Match ID.
+      parameters:
+      - description: Swipe action details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/swipe.SwipeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Swipe recorded successfully, returns match status
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/swipe.MatchResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Record a swipe action (LIKE, CRUSH or DISLIKE)
+      tags:
+      - swipe
+  /swipe/candidates:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a weighted-random list of active users that the current
+        user hasn't swiped on yet, applying cooldowns and priority scoring.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of swipe candidates
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/swipe.UserSwipeProfileResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Get list of users for swipe discovery
+      tags:
+      - swipe
+  /swipe/likes:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a list of users who have liked or crushed on the current
+        user, ordered by priority score (Crushes first, then Premium likes, then standard
+        likes).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of incoming likes
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/swipe.IncomingLikeResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Get list of incoming likes and crushes
+      tags:
+      - swipe
+  /swipe/undo:
+    post:
+      consumes:
+      - application/json
+      description: Reverts the most recent swipe (like, dislike, or crush). If it
+        was a match, the match is also removed. Returns the details of the undone
+        user so they can be shown again in the UI.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully reverted the swipe
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/swipe.UserSwipeProfileResponse'
+              type: object
+        "400":
+          description: No swipe history or daily limit reached
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Undo the last swipe action
+      tags:
+      - swipe
 securityDefinitions:
   BearerAuth:
     description: Type 'Bearer ' followed by your JWT token.

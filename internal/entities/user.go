@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type UserStatus string
@@ -28,6 +29,9 @@ type User struct {
 	Longitude          *float64
 	GenderID           *uuid.UUID `gorm:"type:uuid;index"`
 	RelationshipTypeID *uuid.UUID `gorm:"type:uuid;index"`
+	IsPremium          bool       `gorm:"default:false"`
+	BoostUntil         *time.Time `gorm:"index"`
+	LastActiveAt       time.Time  `gorm:"index"`
 	Status             UserStatus `gorm:"index"`
 	CreatedAt          time.Time  `gorm:"autoCreateTime"`
 	UpdatedAt          time.Time  `gorm:"autoUpdateTime"`
@@ -146,14 +150,17 @@ type SwipeDirection string
 const (
 	SwipeDirectionLike    SwipeDirection = "LIKE"
 	SwipeDirectionDislike SwipeDirection = "DISLIKE"
+	SwipeDirectionCrush   SwipeDirection = "CRUSH"
 )
 
 type Swipe struct {
-	ID        uuid.UUID      `gorm:"primaryKey;type:uuid"`
-	SwiperID  uuid.UUID      `gorm:"type:uuid;index"`
-	SwipedID  uuid.UUID      `gorm:"type:uuid;index"`
-	Direction SwipeDirection `gorm:"index"`
-	CreatedAt time.Time      `gorm:"autoCreateTime"`
+	ID            uuid.UUID      `gorm:"primaryKey;type:uuid"`
+	SwiperID      uuid.UUID      `gorm:"type:uuid;index"`
+	SwipedID      uuid.UUID      `gorm:"type:uuid;index"`
+	Direction     SwipeDirection `gorm:"index"`
+	PriorityScore int            `gorm:"index"` // Used primarily for LIKE ranking
+	CreatedAt     time.Time      `gorm:"autoCreateTime"`
+	DeletedAt     gorm.DeletedAt `gorm:"index"`
 }
 
 type Match struct {
@@ -161,4 +168,16 @@ type Match struct {
 	User1ID   uuid.UUID `gorm:"type:uuid;index"`
 	User2ID   uuid.UUID `gorm:"type:uuid;index"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
+}
+
+type UserImpression struct {
+	ID          uuid.UUID `gorm:"primaryKey;type:uuid"`
+	ViewerID    uuid.UUID `gorm:"type:uuid;index"`
+	ShownUserID uuid.UUID `gorm:"type:uuid;index"`
+	ShownAt     time.Time `gorm:"autoCreateTime;index"`
+}
+
+type AppConfig struct {
+	Key   string `gorm:"primaryKey"`
+	Value string
 }

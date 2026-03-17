@@ -9,11 +9,13 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/master"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/swipe"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/infra"
 	"github.com/pipigendut/dating-backend/internal/infra/seeds"
 	infraStorage "github.com/pipigendut/dating-backend/internal/infra/storage"
 	"github.com/pipigendut/dating-backend/internal/repository/impl"
+	"github.com/pipigendut/dating-backend/internal/services"
 	"github.com/pipigendut/dating-backend/internal/usecases"
 
 	_ "github.com/pipigendut/dating-backend/docs"
@@ -116,6 +118,10 @@ func main() {
 	authUC := usecases.NewAuthUsecase(userRepo, sessionRepo, storageUC)
 	masterUC := usecases.NewMasterUsecase(masterRepo)
 
+	configRepo := impl.NewConfigRepository(db)
+	configSvc := services.NewConfigService(configRepo)
+	swipeSvc := services.NewSwipeService(db, configSvc)
+
 	r := gin.Default()
 
 	// API Group
@@ -131,6 +137,7 @@ func main() {
 	user.NewUserHandler(v1, userUC, storageUC, authMiddleware)
 	auth.NewAuthHandler(v1, authUC)
 	master.NewMasterHandler(v1, masterUC)
+	swipe.NewSwipeHandler(v1, swipeSvc, authMiddleware)
 
 	// Swagger route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

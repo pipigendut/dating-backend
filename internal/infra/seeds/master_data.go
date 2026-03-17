@@ -88,6 +88,31 @@ func SeedMasterData(db *gorm.DB) error {
 			}
 		}
 
+		// 5. Seed App Configurations
+		configs := []entities.AppConfig{
+			{Key: "premium_score", Value: "50"},
+			{Key: "boost_score", Value: "200"},
+			{Key: "crush_score_bonus", Value: "500"},
+			{Key: "crush_limit_free", Value: "1"},
+			{Key: "crush_limit_premium", Value: "5"},
+			{Key: "undo_limit_free", Value: "1"},
+			{Key: "undo_limit_premium", Value: "10"},
+			{Key: "cooldown_premium_minutes", Value: "10"},
+			{Key: "cooldown_free_minutes", Value: "60"},
+			{Key: "cooldown_boost_minutes", Value: "3"},
+			{Key: "score_weight", Value: "0.7"},
+			{Key: "random_weight", Value: "0.3"},
+		}
+
+		for _, c := range configs {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "key"}},
+				DoUpdates: clause.AssignmentColumns([]string{"value"}),
+			}).Create(&c).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 }

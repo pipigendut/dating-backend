@@ -28,6 +28,8 @@ func Migrate(db *gorm.DB) error {
 		// Matching System
 		&entities.Swipe{},
 		&entities.Match{},
+		&entities.UserImpression{},
+		&entities.AppConfig{},
 	)
 	if err != nil {
 		return err
