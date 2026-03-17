@@ -112,14 +112,24 @@ func (h *SwipeHandler) Swipe(c *gin.Context) {
 		return
 	}
 
-	match, err := h.swipeService.CreateSwipe(c.Request.Context(), userID, req.SwipedID, req.Direction)
+	match, matchedUser, err := h.swipeService.CreateSwipe(c.Request.Context(), userID, req.SwipedID, req.Direction)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to record swipe", err.Error())
 		return
 	}
 
 	if match != nil {
-		response.OK(c, MatchResponse{IsMatch: true, MatchID: match.ID})
+		var matchedUserResp *user.UserResponse
+		if matchedUser != nil {
+			h.resolvePhotoURLs(matchedUser)
+			ur := user.ToUserResponse(matchedUser)
+			matchedUserResp = &ur
+		}
+		response.OK(c, MatchResponse{
+			IsMatch:     true,
+			MatchID:     match.ID,
+			MatchedUser: matchedUserResp,
+		})
 		return
 	}
 

@@ -12,7 +12,7 @@ import (
 
 type SwipeService interface {
 	GetSwipeCandidates(ctx context.Context, userID uuid.UUID, limit int) ([]entities.User, error)
-	CreateSwipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, error)
+	CreateSwipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, *entities.User, error)
 	GetIncomingLikes(ctx context.Context, userID uuid.UUID) ([]IncomingLike, error)
 	UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*entities.User, error)
 	RecordImpressions(ctx context.Context, viewerID uuid.UUID, shownUserIDs []uuid.UUID) error
@@ -144,8 +144,9 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 	return result, nil
 }
 
-func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, error) {
+func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, *entities.User, error) {
 	var match *entities.Match
+	var matchedUser *entities.User
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var swiper entities.User
@@ -214,6 +215,12 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 					return err
 				}
 				match = &newMatch
+
+				// Fetch matched user details for the response
+				var u entities.User
+				if err := tx.Preload("Photos").Where("id = ?", swipedID).First(&u).Error; err == nil {
+					matchedUser = &u
+				}
 			} else if err != gorm.ErrRecordNotFound {
 				return err
 			}
@@ -222,7 +229,7 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 		return nil
 	})
 
-	return match, err
+	return match, matchedUser, err
 }
 
 type IncomingLike struct {

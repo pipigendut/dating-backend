@@ -12,8 +12,9 @@ type SwipeRequest struct {
 }
 
 type MatchResponse struct {
-	IsMatch bool      `json:"is_match"`
-	MatchID uuid.UUID `json:"match_id,omitempty"`
+	IsMatch     bool               `json:"is_match"`
+	MatchID     uuid.UUID          `json:"match_id,omitempty"`
+	MatchedUser *user.UserResponse `json:"matched_user,omitempty"`
 }
 
 type IncomingLikeResponse struct {
