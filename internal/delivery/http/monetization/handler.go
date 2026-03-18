@@ -13,15 +13,17 @@ type MonetizationHandler struct {
 	subService services.SubscriptionService
 }
 
-func NewMonetizationHandler(r *gin.RouterGroup, subService services.SubscriptionService) {
+func NewMonetizationHandler(r *gin.RouterGroup, subService services.SubscriptionService, authMiddleware gin.HandlerFunc) {
 	handler := &MonetizationHandler{
 		subService: subService,
 	}
 
 	monGroup := r.Group("/monetization")
+	monGroup.Use(authMiddleware)
 	{
 		monGroup.GET("/plans", handler.GetPlans)
 		monGroup.GET("/consumables", handler.GetConsumableItems)
+		monGroup.GET("/status", handler.GetStatus)
 		monGroup.POST("/purchase/consumable", handler.PurchaseConsumable)
 		monGroup.POST("/purchase/plan", handler.PurchasePlan)
 	}
@@ -111,4 +113,32 @@ func (h *MonetizationHandler) PurchasePlan(c *gin.Context) {
 		return
 	}
 	response.OK(c, "Subscription successful")
+}
+
+// GetStatus godoc
+// @Summary Get current user's subscription status and features
+// @Tags Monetization
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.BaseResponse
+// @Router /monetization/status [get]
+func (h *MonetizationHandler) GetStatus(c *gin.Context) {
+	val, exists := c.Get("userID")
+	if !exists {
+		// Fallback for some routers that might use different key
+		val, exists = c.Get("user_id")
+	}
+	
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "User not authenticated", "")
+		return
+	}
+
+	userID := val.(uuid.UUID)
+	status, err := h.subService.GetStatus(c.Request.Context(), userID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to get subscription status", err.Error())
+		return
+	}
+	response.OK(c, status)
 }

@@ -93,17 +93,15 @@ func SeedMasterData(db *gorm.DB) error {
 			{Key: "premium_score", Value: "50"},
 			{Key: "boost_score", Value: "200"},
 			{Key: "crush_score_bonus", Value: "500"},
-			{Key: "crush_limit_free", Value: "1"},
-			{Key: "crush_limit_premium", Value: "5"},
-			{Key: "undo_limit_free", Value: "1"},
-			{Key: "undo_limit_premium", Value: "10"},
-			{Key: "cooldown_premium_minutes", Value: "10"},
-			{Key: "cooldown_free_minutes", Value: "1"},
-			{Key: "cooldown_boost_minutes", Value: "3"},
+			{Key: "swipe_impression_cooldown_premium", Value: "10"},
+			{Key: "swipe_impression_cooldown_free", Value: "1"},
+			{Key: "swipe_impression_cooldown_boost", Value: "3"},
 			{Key: "score_weight", Value: "0.7"},
 			{Key: "random_weight", Value: "0.3"},
-			{Key: "delay_free_minutes", Value: "60"},
-			{Key: "delay_premium_minutes", Value: "10"},
+			{Key: "incoming_like_delay_free", Value: "60"},
+			{Key: "incoming_like_delay_premium", Value: "10"},
+			{Key: "dislike_recycle_minutes", Value: "43200"},
+			{Key: "max_limit_likes_free", Value: "50"},
 		}
 
 		for _, c := range configs {
@@ -149,11 +147,14 @@ func SeedMasterData(db *gorm.DB) error {
 		}{
 			{"f0000000-0000-0000-0000-000000000001", plusID, "hide_ads", true, "Take Control", "ShieldOff", "Hide Ads", false, 0},
 			{"f0000000-0000-0000-0000-000000000003", plusID, "unlimited_likes", true, "Match+", "Heart", "Unlimited Likes", false, 0},
+			{"f0000000-0000-0000-0000-100000000001", plusID, "undo_swipe", true, "Take Control", "RotateCcw", "Undo swipe", false, 0},
 
 			{"f0000000-0000-0000-0000-000000000004", premiumID, "hide_ads", true, "Take Control", "ShieldOff", "Hide Ads", false, 0},
 			{"f0000000-0000-0000-0000-000000000005", premiumID, "see_likes", true, "Match+", "Eye", "See Who Likes You", false, 0},
 			{"f0000000-0000-0000-0000-000000000006", premiumID, "priority_likes", true, "Match+", "Star", "Priority Likes", false, 0},
 			{"f0000000-0000-0000-0000-000000000007", premiumID, "unlimited_likes", true, "Match+", "Heart", "Unlimited Likes", false, 0},
+			{"f0000000-0000-0000-0000-100000000002", premiumID, "undo_swipe", true, "Take Control", "RotateCcw", "Undo swipe", false, 0},
+
 			{"f0000000-0000-0000-0000-000000000013", premiumID, "monthly_boost", true, "Take Control", "Zap", "1 free boost per month", true, 1},
 
 			{"f0000000-0000-0000-0000-000000000008", ultimateID, "hide_ads", true, "Take Control", "ShieldOff", "Hide Ads", false, 0},
@@ -163,6 +164,7 @@ func SeedMasterData(db *gorm.DB) error {
 			{"f0000000-0000-0000-0000-000000000012", ultimateID, "passport_mode", true, "Take Control", "Globe", "Passport Mode", false, 0},
 			{"f0000000-0000-0000-0000-000000000014", ultimateID, "monthly_boost", true, "Take Control", "Zap", "1 free boost per month", true, 1},
 			{"f0000000-0000-0000-0000-000000000015", ultimateID, "monthly_crush", true, "Match+", "Crown", "5 free crushes per week", true, 5},
+			{"f0000000-0000-0000-0000-100000000003", ultimateID, "undo_swipe", true, "Take Control", "RotateCcw", "Undo swipe", false, 0},
 		}
 
 		for _, f := range featureList {
@@ -190,11 +192,11 @@ func SeedMasterData(db *gorm.DB) error {
 			// Plus
 			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000001"), PlanID: plusID, DurationType: "monthly", Price: 9.99, Currency: "USD", ExternalSlug: "plus_1m"},
 			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000002"), PlanID: plusID, DurationType: "yearly", Price: 59.99, Currency: "USD", ExternalSlug: "plus_1y"},
-			
+
 			// Premium
 			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000003"), PlanID: premiumID, DurationType: "monthly", Price: 19.99, Currency: "USD", ExternalSlug: "premium_1m"},
 			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000004"), PlanID: premiumID, DurationType: "yearly", Price: 119.99, Currency: "USD", ExternalSlug: "premium_1y"},
-			
+
 			// Ultimate
 			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000005"), PlanID: ultimateID, DurationType: "monthly", Price: 29.99, Currency: "USD", ExternalSlug: "ultimate_1m"},
 			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000006"), PlanID: ultimateID, DurationType: "yearly", Price: 179.99, Currency: "USD", ExternalSlug: "ultimate_1y"},

@@ -18,14 +18,26 @@ type SubscriptionService interface {
 	GetConsumableItems(ctx context.Context) ([]entities.ConsumableItem, error)
 	PurchaseConsumable(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) error
 	PurchasePlan(ctx context.Context, userID uuid.UUID, planID uuid.UUID, priceID uuid.UUID) error
+	GetStatus(ctx context.Context, userID uuid.UUID) (*MonetizationStatus, error)
+}
+
+type MonetizationStatus struct {
+	IsPremium   bool            `json:"is_premium"`
+	PlanName    string          `json:"plan_name"`
+	Features    map[string]bool `json:"features"`
+	Consumables map[string]int  `json:"consumables"`
 }
 
 type subscriptionService struct {
-	repo repository.SubscriptionRepository
+	repo     repository.SubscriptionRepository
+	userRepo repository.UserRepository
 }
 
-func NewSubscriptionService(repo repository.SubscriptionRepository) SubscriptionService {
-	return &subscriptionService{repo: repo}
+func NewSubscriptionService(repo repository.SubscriptionRepository, userRepo repository.UserRepository) SubscriptionService {
+	return &subscriptionService{
+		repo:     repo,
+		userRepo: userRepo,
+	}
 }
 
 func (s *subscriptionService) GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*entities.UserSubscription, error) {
@@ -133,5 +145,44 @@ func (s *subscriptionService) PurchasePlan(ctx context.Context, userID uuid.UUID
 		IsActive:  true,
 	}
 
-	return s.repo.CreateUserSubscription(ctx, sub)
+	if err := s.repo.CreateUserSubscription(ctx, sub); err != nil {
+		return err
+	}
+
+	// Update user's premium status
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return err
+	}
+	user.IsPremium = true
+	return s.userRepo.Update(user)
+}
+
+func (s *subscriptionService) GetStatus(ctx context.Context, userID uuid.UUID) (*MonetizationStatus, error) {
+	sub, err := s.repo.GetActiveSubscription(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	consumables, err := s.GetConsumables(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	status := &MonetizationStatus{
+		IsPremium:   false,
+		PlanName:    "Free",
+		Features:    make(map[string]bool),
+		Consumables: consumables,
+	}
+
+	if sub != nil && sub.Plan != nil {
+		status.IsPremium = true
+		status.PlanName = sub.Plan.Name
+		for _, f := range sub.Plan.Features {
+			status.Features[f.FeatureKey] = f.IsActive
+		}
+	}
+
+	return status, nil
 }

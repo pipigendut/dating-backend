@@ -73,6 +73,10 @@ func Migrate(db *gorm.DB) error {
 	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_unmatch ON unmatches(user_id, target_user_id)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_unmatch_match_id ON unmatches(match_id)")
 
+	// Session System Optimizations
+	db.Exec("DROP INDEX IF EXISTS idx_devices_device_id")
+	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_user ON devices(device_id, user_id)")
+
 	// Cleanup legacy columns
 	db.Exec("ALTER TABLE subscription_plan_features DROP COLUMN IF EXISTS value")
 

@@ -29,7 +29,7 @@ type SentLike struct {
 }
 
 type swipeService struct {
-	db        *gorm.DB
+	db           *gorm.DB
 	config       ConfigService
 	chat         ChatService
 	subscription SubscriptionService
@@ -51,11 +51,12 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 	// 1. Get configurations from fast in-memory cache
 	premiumScore := s.config.GetInt("premium_score", 50)
 	boostScore := s.config.GetInt("boost_score", 200)
-	cdPremium := s.config.GetInt("cooldown_premium_minutes", 10)
-	cdFree := s.config.GetInt("cooldown_free_minutes", 60)
-	cdBoost := s.config.GetInt("cooldown_boost_minutes", 3)
+	cdPremium := s.config.GetInt("swipe_impression_cooldown_premium", 10)
+	cdFree := s.config.GetInt("swipe_impression_cooldown_free", 60)
+	cdBoost := s.config.GetInt("swipe_impression_cooldown_boost", 3)
 	scoreWeight := s.config.GetFloat("score_weight", 0.7)
 	randomWeight := s.config.GetFloat("random_weight", 0.3)
+	dislikeRecycleMinutes := s.config.GetInt("dislike_recycle_minutes", 43200)
 
 	var candidates []entities.User
 
@@ -120,10 +121,14 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 			WHERE u.id != ?
 			AND u.status = 'active'
 			AND u.gender_id IN (?)
-			-- Exclude already swiped
+			-- Exclude already swiped (Likes/Crushes are permanent, Dislikes recycle after X days)
 			AND NOT EXISTS (
 				SELECT 1 FROM swipes s 
 				WHERE s.swiper_id = ? AND s.swiped_id = u.id AND s.deleted_at IS NULL
+				AND (
+					s.direction IN ('LIKE', 'CRUSH')
+					OR s.created_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 minute')
+				)
 			)
 			-- Cooldown Rules: only show if last_shown is NULL or older than their specific cooldown
 			AND (
@@ -147,10 +152,11 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 		userID,                   // recent_impressions viewer_id
 		userID,                   // recent_unmatches user_id
 		premiumScore, boostScore, // scores
-		userID,              // u.id != ?
-		interestedGenderIDs, // u.gender_id IN (?)
-		userID,              // swipes.swiper_id = ?
-		cdBoost,             // cooldowns
+		userID,                // u.id != ?
+		interestedGenderIDs,   // u.gender_id IN (?)
+		userID,                // swipes.swiper_id = ?
+		dislikeRecycleMinutes, // dislike recycling
+		cdBoost,               // cooldowns
 		cdPremium,
 		cdFree,
 		scoreWeight, // weights
@@ -205,14 +211,14 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var swiper entities.User
-		if err := tx.Select("is_premium", "last_active_at").Where("id = ?", swiperID).First(&swiper).Error; err != nil {
+		if err := tx.Select("is_premium", "last_active_at", "swipe_count_today", "updated_at").Where("id = ?", swiperID).First(&swiper).Error; err != nil {
 			return fmt.Errorf("swiper not found: %w", err)
 		}
 
 		// 1. Calculate Ranking Score & Priority Score
 		var rankingScore float64
 		var priorityScore int
-		
+
 		if direction == entities.SwipeDirectionLike || direction == entities.SwipeDirectionCrush {
 			// Base Activity Score (can be simplified here if we use the one from candidate search)
 			rankingScore = 1.0
@@ -236,41 +242,51 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 			if direction == entities.SwipeDirectionCrush {
 				priorityScore = s.config.GetInt("crush_priority_score", 100)
 				rankingScore += float64(s.config.GetInt("crush_score_bonus", 500))
-				
+
 				// Use consumable
 				success, err := s.subscription.UseConsumable(ctx, swiperID, "crush")
 				if err != nil {
 					return err
 				}
 				if !success {
-					return fmt.Errorf("no crushes remaining")
+					return fmt.Errorf("No Crushes Remaining")
 				}
 			}
 		}
 
 		// 2. Anti-Cheat: Daily Swipe Limit
-		limitKey := "swipe_limit_free"
 		hasUnlimited, _, _ := s.subscription.HasFeature(ctx, swiperID, "unlimited_likes")
-		if hasUnlimited {
-			// No limit check or very high limit
-		} else {
-			hasPremiumLimit, _, _ := s.subscription.HasFeature(ctx, swiperID, "swipe_limit_premium")
-			if hasPremiumLimit {
-				limitKey = "swipe_limit_premium"
-			}
-			
-			limit := s.config.GetInt(limitKey, 50)
-			if swiper.SwipeCountToday >= limit {
-				return fmt.Errorf("daily swipe limit reached")
+
+		// Reset count if it's a new day
+		currentCount := swiper.SwipeCountToday
+		isNewDay := swiper.UpdatedAt.Before(time.Now().Truncate(24 * time.Hour))
+		if isNewDay {
+			currentCount = 0
+		}
+
+		if !hasUnlimited {
+			limit := s.config.GetInt("max_limit_likes_free", 50)
+			if currentCount >= limit {
+				return fmt.Errorf("Daily Like Limit Reached")
 			}
 		}
 
 		// Update swipe count
-		if err := tx.Model(&entities.User{}).Where("id = ?", swiperID).Update("swipe_count_today", gorm.Expr("swipe_count_today + 1")).Error; err != nil {
-			return err
+		var updateErr error
+		if isNewDay {
+			updateErr = tx.Model(&entities.User{}).Where("id = ?", swiperID).Updates(map[string]interface{}{
+				"swipe_count_today": 1,
+				"updated_at":        time.Now(),
+			}).Error
+		} else {
+			updateErr = tx.Model(&entities.User{}).Where("id = ?", swiperID).Update("swipe_count_today", gorm.Expr("swipe_count_today + 1")).Error
 		}
 
-		// 3. Insert Swipe Record
+		if updateErr != nil {
+			return updateErr
+		}
+
+		// 3. Insert or Update Swipe Record (Upsert to handle soft-deleted duplicates)
 		swipe := entities.Swipe{
 			ID:            uuid.New(),
 			SwiperID:      swiperID,
@@ -279,7 +295,17 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 			RankingScore:  rankingScore,
 			PriorityScore: priorityScore,
 		}
-		if err := tx.Create(&swipe).Error; err != nil {
+
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "swiper_id"}, {Name: "swiped_id"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{
+				"direction":      direction,
+				"ranking_score":  rankingScore,
+				"priority_score": priorityScore,
+				"deleted_at":     nil,
+				"created_at":     time.Now(),
+			}),
+		}).Create(&swipe).Error; err != nil {
 			return err
 		}
 
@@ -287,7 +313,7 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 		if direction == entities.SwipeDirectionLike || direction == entities.SwipeDirectionCrush {
 			var reverseSwipe entities.Swipe
 			err := tx.Where("swiper_id = ? AND swiped_id = ? AND direction IN ?", swipedID, swiperID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).First(&reverseSwipe).Error
-			
+
 			if err == nil {
 				// Mutual Like exists! Create a Match with Delay
 				// Calculate delay based on premium status
@@ -371,8 +397,8 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID) (
 							SELECT 1 FROM user_subscriptions us 
 							JOIN subscription_plan_features spf ON us.plan_id = spf.plan_id 
 							WHERE us.user_id = ? AND us.is_active = true AND us.expired_at > NOW() AND spf.feature_key = 'priority_likes'
-						) THEN 'delay_premium_minutes' 
-						ELSE 'delay_free_minutes' 
+						) THEN 'incoming_like_delay_premium' 
+						ELSE 'incoming_like_delay_free' 
 					END
 				)
 			)
@@ -436,9 +462,18 @@ func (s *swipeService) UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*en
 	var undoneUser *entities.User
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 1. Get the last created swipe
-		var lastSwipe entities.Swipe
-		err := tx.Where("swiper_id = ?", userID).Order("created_at DESC").First(&lastSwipe).Error
+		// 1. Check for undo feature
+		hasUndo, _, err := s.subscription.HasFeature(ctx, userID, "undo_swipe")
+		if err != nil {
+			return err
+		}
+		if !hasUndo {
+			return fmt.Errorf("undo feature is restricted to premium users")
+		}
+
+		// 2. Get the last created swipe (including deleted ones to verify one-time undo)
+		var lastOverall entities.Swipe
+		err = tx.Unscoped().Where("swiper_id = ?", userID).Order("created_at DESC").First(&lastOverall).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return fmt.Errorf("no swipe history found to undo")
@@ -446,30 +481,15 @@ func (s *swipeService) UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*en
 			return err
 		}
 
-		// 2. Fetch user to check premium status & verify undo limits
-		var swiper entities.User
-		if err := tx.Select("is_premium").Where("id = ?", userID).First(&swiper).Error; err != nil {
-			return err
+		// If the most recent record is already deleted, it means the last action was an UNDO.
+		if lastOverall.DeletedAt.Valid {
+			return fmt.Errorf("only one undo allowed per swipe action. Swipe again to enable undo.")
 		}
 
-		var todayUndos int64
-		startOfDay := time.Now().Truncate(24 * time.Hour)
-		// Count how many swipes this user has SOFT DELETED today
-		tx.Unscoped().Model(&entities.Swipe{}).
-			Where("swiper_id = ? AND deleted_at >= ?", userID, startOfDay).
-			Count(&todayUndos)
+		lastSwipe := lastOverall
 
-		limit := s.config.GetInt("undo_limit_free", 1)
-		if swiper.IsPremium {
-			limit = s.config.GetInt("undo_limit_premium", 10)
-		}
-
-		if int(todayUndos) >= limit {
-			return fmt.Errorf("daily undo limit reached (limit: %d)", limit)
-		}
-
-		// 3. Delete the swipe (soft delete)
-		if err := tx.Delete(&lastSwipe).Error; err != nil {
+		// 3. Delete the swipe (hard delete to allow re-swipe)
+		if err := tx.Unscoped().Delete(&lastSwipe).Error; err != nil {
 			return err
 		}
 
@@ -482,7 +502,7 @@ func (s *swipeService) UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*en
 
 			err := tx.Where("user_low_id = ? AND user_high_id = ?", userLowID, userHighID).
 				Delete(&entities.Match{}).Error
-			
+
 			if err != nil && err != gorm.ErrRecordNotFound {
 				return err
 			}
@@ -493,7 +513,7 @@ func (s *swipeService) UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*en
 		if err := tx.Preload("Photos").Where("id = ?", lastSwipe.SwipedID).First(&targetUser).Error; err != nil {
 			return err
 		}
-		
+
 		undoneUser = &targetUser
 		return nil
 	})

@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"errors"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -135,7 +136,10 @@ func (u *AuthUsecase) generateTokensAndDevice(userID uuid.UUID, dto DeviceDTO) (
 		if dto.FCMToken != "" {
 			device.FCMToken = &dto.FCMToken
 		}
-		_ = u.sessionRepo.CreateDevice(device)
+		err = u.sessionRepo.CreateDevice(device)
+		if err != nil {
+			log.Printf("[generateTokensAndDevice] Error creating device: %v", err)
+		}
 	} else {
 		device.LastLogin = time.Now()
 		device.IsActive = true
@@ -144,7 +148,10 @@ func (u *AuthUsecase) generateTokensAndDevice(userID uuid.UUID, dto DeviceDTO) (
 		if dto.FCMToken != "" {
 			device.FCMToken = &dto.FCMToken
 		}
-		_ = u.sessionRepo.UpdateDevice(device)
+		err = u.sessionRepo.UpdateDevice(device)
+		if err != nil {
+			log.Printf("[generateTokensAndDevice] Error updating device: %v", err)
+		}
 	}
 
 	// Save RefreshToken

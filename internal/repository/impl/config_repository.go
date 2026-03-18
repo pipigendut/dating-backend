@@ -36,3 +36,6 @@ func (r *configRepository) Set(ctx context.Context, key, value string) error {
 	config := entities.AppConfig{Key: key, Value: value}
 	return r.db.WithContext(ctx).Save(&config).Error
 }
+func (r *configRepository) DeleteAll(ctx context.Context) error {
+	return r.db.WithContext(ctx).Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&entities.AppConfig{}).Error
+}

@@ -23,14 +23,14 @@ func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, storage
 	swipeGroup.Use(authMiddleware)
 	{
 		swipeGroup.GET("/candidates", handler.GetCandidates)
-		
+
 		// Apply anti-cheat only to create swipe if provided
 		if anticheatMiddleware != nil {
 			swipeGroup.POST("/", anticheatMiddleware, handler.Swipe)
 		} else {
 			swipeGroup.POST("/", handler.Swipe)
 		}
-		
+
 		swipeGroup.GET("/likes", handler.GetIncomingLikes)
 		swipeGroup.GET("/likes/sent", handler.GetLikesSent)
 		swipeGroup.POST("/undo", handler.UndoSwipe)
@@ -125,7 +125,7 @@ func (h *SwipeHandler) Swipe(c *gin.Context) {
 
 	match, matchedUser, err := h.swipeService.CreateSwipe(c.Request.Context(), userID, req.SwipedID, req.Direction)
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, "Failed to record swipe", err.Error())
+		response.Error(c, http.StatusInternalServerError, err.Error(), "Failed to record swipe")
 		return
 	}
 
@@ -173,10 +173,10 @@ func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
 		userResp := user.ToUserResponse(&userCopy)
 
 		respLikes = append(respLikes, IncomingLikeResponse{
-			User:          userResp,
-			IsCrush:       like.IsCrush,
+			User:         userResp,
+			IsCrush:      like.IsCrush,
 			RankingScore: like.RankingScore,
-			SwipeTime:     like.CreatedAt.Format(time.RFC3339),
+			SwipeTime:    like.CreatedAt.Format(time.RFC3339),
 		})
 	}
 
@@ -212,6 +212,7 @@ func (h *SwipeHandler) UndoSwipe(c *gin.Context) {
 
 	response.OK(c, userResp)
 }
+
 // Unmatch godoc
 // @Summary      Unmatch a user
 // @Description  Soft deletes the match and conversation, and applies a ranking penalty for future discovery.

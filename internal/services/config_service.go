@@ -15,6 +15,7 @@ type ConfigService interface {
 	GetInt(key string, defaultVal int) int
 	GetFloat(key string, defaultVal float64) float64
 	Set(ctx context.Context, key, value string) error
+	ResetDB(ctx context.Context) error
 }
 
 type configService struct {
@@ -103,4 +104,8 @@ func (s *configService) Set(ctx context.Context, key, value string) error {
 	s.mu.Unlock()
 
 	return nil
+}
+
+func (s *configService) ResetDB(ctx context.Context) error {
+	return s.repo.DeleteAll(ctx)
 }

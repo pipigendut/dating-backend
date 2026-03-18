@@ -459,6 +459,34 @@ info:
   title: Dating App API
   version: "1.0"
 paths:
+  /admin/configs/reload:
+    post:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Reload settings from database to RAM
+      tags:
+      - admin
+  /admin/configs/reset:
+    post:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: WIPE and Reset all configs to code defaults
+      tags:
+      - admin
   /auth/check-email:
     post:
       consumes:
@@ -930,6 +958,20 @@ paths:
           schema:
             $ref: '#/definitions/response.BaseResponse'
       summary: Purchase a subscription plan
+      tags:
+      - Monetization
+  /monetization/status:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user's subscription status and features
       tags:
       - Monetization
   /swipe/:

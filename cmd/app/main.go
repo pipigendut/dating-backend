@@ -13,6 +13,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/monetization"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/swipe"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/admin"
 	"github.com/pipigendut/dating-backend/internal/delivery/ws"
 	"github.com/pipigendut/dating-backend/internal/infra"
 	"github.com/pipigendut/dating-backend/internal/infra/kafka"
@@ -145,7 +146,7 @@ func main() {
 	swipeRepo := impl.NewSwipeRepository(db)
 	subscriptionRepo := impl.NewSubscriptionRepository(db)
 
-	subscriptionService := services.NewSubscriptionService(subscriptionRepo)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo)
 	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, subscriptionService, swipeRepo)
 
 	// 2.1 Kafka Consumer
@@ -170,9 +171,10 @@ func main() {
 	user.NewUserHandler(v1, userUC, storageUC, authMiddleware)
 	auth.NewAuthHandler(v1, authUC)
 	master.NewMasterHandler(v1, masterUC)
-	monetization.NewMonetizationHandler(v1, subscriptionService)
+	monetization.NewMonetizationHandler(v1, subscriptionService, authMiddleware)
 	swipe.NewSwipeHandler(v1, swipeSvc, storageUC, authMiddleware, anticheatMiddleware)
 	chat.NewChatHandler(v1, chatSvc, storageUC, authMiddleware)
+	admin.NewAdminHandler(db, configSvc).RegisterRoutes(v1)
 
 	// WebSocket Route
 	wsHandler := ws.NewHandler(wsManager, chatSvc)

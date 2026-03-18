@@ -83,8 +83,8 @@ type Photo struct {
 
 type Device struct {
 	ID          uuid.UUID `gorm:"primaryKey;type:uuid"`
-	UserID      uuid.UUID `gorm:"type:uuid;index"`
-	DeviceID    string    `gorm:"uniqueIndex"`
+	UserID      uuid.UUID `gorm:"type:uuid;index;uniqueIndex:idx_device_user"`
+	DeviceID    string    `gorm:"uniqueIndex:idx_device_user"`
 	DeviceName  string
 	DeviceModel string
 	OSVersion   string
