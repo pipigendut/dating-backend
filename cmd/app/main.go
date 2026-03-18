@@ -7,16 +7,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/chat"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/master"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/swipe"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
+	"github.com/pipigendut/dating-backend/internal/delivery/ws"
 	"github.com/pipigendut/dating-backend/internal/infra"
+	"github.com/pipigendut/dating-backend/internal/infra/kafka"
 	"github.com/pipigendut/dating-backend/internal/infra/seeds"
 	infraStorage "github.com/pipigendut/dating-backend/internal/infra/storage"
 	"github.com/pipigendut/dating-backend/internal/repository/impl"
 	"github.com/pipigendut/dating-backend/internal/services"
 	"github.com/pipigendut/dating-backend/internal/usecases"
+	"strings"
+	"context"
 
 	_ "github.com/pipigendut/dating-backend/docs"
 	swaggerFiles "github.com/swaggo/files"
@@ -108,6 +113,18 @@ func main() {
 		log.Printf("Warning: Storage Provider (%s) not connected: %v", storageProvider, errS3)
 	}
 
+	// 1.6 Setup Kafka
+	kafkaBrokers := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
+	if os.Getenv("KAFKA_BROKERS") == "" {
+		kafkaBrokers = []string{"localhost:9092"}
+	}
+	kafkaProducer := kafka.NewProducer(kafkaBrokers)
+	defer kafkaProducer.Close()
+
+	// 1.7 Setup WebSocket Manager
+	wsManager := ws.NewManager()
+	go wsManager.Run()
+
 	// 2. Initialize Layers
 	userRepo := impl.NewUserRepo(db)
 	sessionRepo := impl.NewSessionRepo(db)
@@ -120,7 +137,17 @@ func main() {
 
 	configRepo := impl.NewConfigRepository(db)
 	configSvc := services.NewConfigService(configRepo)
-	swipeSvc := services.NewSwipeService(db, configSvc)
+
+	chatRepo := impl.NewChatRepository(db)
+	chatSvc := services.NewChatService(chatRepo, kafkaProducer)
+
+	swipeRepo := impl.NewSwipeRepository(db)
+	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, swipeRepo)
+
+	// 2.1 Kafka Consumer
+	chatConsumer := kafka.NewConsumer(kafkaBrokers, "chat-group", "chat.messages", chatRepo, wsManager)
+	go chatConsumer.Start(context.Background())
+	defer chatConsumer.Close()
 
 	r := gin.Default()
 
@@ -138,6 +165,11 @@ func main() {
 	auth.NewAuthHandler(v1, authUC)
 	master.NewMasterHandler(v1, masterUC)
 	swipe.NewSwipeHandler(v1, swipeSvc, storageUC, authMiddleware)
+	chat.NewChatHandler(v1, chatSvc, storageUC, authMiddleware)
+
+	// WebSocket Route
+	wsHandler := ws.NewHandler(wsManager, chatSvc)
+	v1.GET("/ws", wsHandler.HandleWebSocket)
 
 	// Swagger route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

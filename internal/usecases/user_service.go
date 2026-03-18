@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -172,7 +173,7 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 			newPhotos = append(newPhotos, entities.Photo{
 				ID:        pid,
 				UserID:    userID,
-				URL:       p.URL,
+				URL:       stripPublicURL(p.URL),
 				IsMain:    p.IsMain,
 				SortOrder: i,
 				CreatedAt: time.Now(),
@@ -215,4 +216,18 @@ func (u *UserUsecase) DeleteAccount(userID uuid.UUID) error {
 	}
 
 	return u.repo.Delete(userID)
+}
+
+func stripPublicURL(url string) string {
+	if !strings.HasPrefix(url, "http") {
+		return url
+	}
+	// Attempt to find the storage key part starting from users/ or chat/
+	if idx := strings.Index(url, "users/"); idx != -1 {
+		return url[idx:]
+	}
+	if idx := strings.Index(url, "chat/"); idx != -1 {
+		return url[idx:]
+	}
+	return url
 }

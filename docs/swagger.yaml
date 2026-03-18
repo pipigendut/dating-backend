@@ -200,6 +200,77 @@ definitions:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
     type: object
+  chat.ChatUploadURLResponse:
+    properties:
+      file_key:
+        type: string
+      upload_url:
+        type: string
+    type: object
+  chat.ConversationResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      last_message:
+        $ref: '#/definitions/chat.MessageResponse'
+      participants:
+        items:
+          $ref: '#/definitions/chat.ParticipantResponse'
+        type: array
+      unread_count:
+        type: integer
+    type: object
+  chat.MessageResponse:
+    properties:
+      content:
+        type: string
+      conversation_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_read:
+        type: boolean
+      metadata:
+        $ref: '#/definitions/entities.MessageMetadata'
+      sender_id:
+        type: string
+      type:
+        $ref: '#/definitions/entities.MessageType'
+    type: object
+  chat.ParticipantResponse:
+    properties:
+      full_name:
+        type: string
+      is_online:
+        type: boolean
+      photo_url:
+        type: string
+      user_id:
+        type: string
+    type: object
+  entities.MessageMetadata:
+    properties:
+      gif_provider:
+        type: string
+      image_height:
+        type: integer
+      image_width:
+        type: integer
+    type: object
+  entities.MessageType:
+    enum:
+    - text
+    - image
+    - gif
+    type: string
+    x-enum-varnames:
+    - MessageTypeText
+    - MessageTypeImage
+    - MessageTypeGif
   entities.UserStatus:
     enum:
     - onboarding
@@ -237,8 +308,8 @@ definitions:
     properties:
       is_crush:
         type: boolean
-      priority_score:
-        type: integer
+      ranking_score:
+        type: number
       swipe_time:
         type: string
       user:
@@ -250,6 +321,8 @@ definitions:
         type: boolean
       match_id:
         type: string
+      matched_user:
+        $ref: '#/definitions/user.UserResponse'
     type: object
   swipe.SwipeRequest:
     properties:
@@ -533,6 +606,126 @@ paths:
       summary: Register via Email
       tags:
       - auth
+  /chat/conversations:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all active conversations for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/chat.ConversationResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List user conversations
+      tags:
+      - Chat
+  /chat/conversations/{id}/messages:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated message history for a specific conversation
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 50
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/chat.MessageResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get conversation messages
+      tags:
+      - Chat
+  /chat/conversations/match/{target_user_id}:
+    post:
+      consumes:
+      - application/json
+      description: Get or create a 1:1 conversation between matched users
+      parameters:
+      - description: Target User ID
+        in: path
+        name: target_user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/chat.ConversationResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Initialize conversation with a match
+      tags:
+      - Chat
+  /chat/upload-url:
+    get:
+      consumes:
+      - application/json
+      description: Generate a presigned S3/Oracle URL for uploading chat attachments
+      parameters:
+      - description: Conversation ID
+        in: query
+        name: conversation_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/chat.ChatUploadURLResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get presigned upload URL for chat media
+      tags:
+      - Chat
   /master/genders:
     get:
       description: Returns a list of all active gender options for user profiling.

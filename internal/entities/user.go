@@ -30,7 +30,6 @@ type User struct {
 	GenderID           *uuid.UUID `gorm:"type:uuid;index"`
 	RelationshipTypeID *uuid.UUID `gorm:"type:uuid;index"`
 	IsPremium          bool       `gorm:"default:false"`
-	BoostUntil         *time.Time `gorm:"index"`
 	LastActiveAt       time.Time  `gorm:"index"`
 	Status             UserStatus `gorm:"index"`
 	CreatedAt          time.Time  `gorm:"autoCreateTime"`
@@ -48,6 +47,18 @@ type User struct {
 	InterestedGenders []MasterGender   `gorm:"many2many:user_interested_genders;joinForeignKey:user_id;joinReferences:gender_id;constraint:OnDelete:CASCADE"`
 	Interests         []MasterInterest `gorm:"many2many:user_interests;joinForeignKey:user_id;joinReferences:interest_id;constraint:OnDelete:CASCADE"`
 	Languages         []MasterLanguage `gorm:"many2many:user_languages;joinForeignKey:user_id;joinReferences:language_id;constraint:OnDelete:CASCADE"`
+}
+
+func (u *User) GetMainPhotoProfile() *Photo {
+	if u == nil || len(u.Photos) == 0 {
+		return nil
+	}
+	for i := range u.Photos {
+		if u.Photos[i].IsMain {
+			return &u.Photos[i]
+		}
+	}
+	return &u.Photos[0]
 }
 
 type AuthProvider struct {
@@ -154,27 +165,47 @@ const (
 )
 
 type Swipe struct {
-	ID            uuid.UUID      `gorm:"primaryKey;type:uuid"`
-	SwiperID      uuid.UUID      `gorm:"type:uuid;index"`
-	SwipedID      uuid.UUID      `gorm:"type:uuid;index"`
-	Direction     SwipeDirection `gorm:"index"`
-	PriorityScore int            `gorm:"index"` // Used primarily for LIKE ranking
-	CreatedAt     time.Time      `gorm:"autoCreateTime"`
-	DeletedAt     gorm.DeletedAt `gorm:"index"`
+	ID           uuid.UUID      `gorm:"primaryKey;type:uuid"`
+	SwiperID     uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_swiper_swiped;index:idx_swiper_direction;index"`
+	SwipedID     uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_swiper_swiped;index:idx_swiped_direction;index"`
+	Direction    SwipeDirection `gorm:"type:varchar(20);index;index:idx_swiper_direction;index:idx_swiped_direction"`
+	IsBoosted    bool           `gorm:"default:false;index"`
+	RankingScore float64        `gorm:"index"` // Algorithm-based score for ranking
+	CreatedAt    time.Time      `gorm:"autoCreateTime;index"`
+	DeletedAt    gorm.DeletedAt `gorm:"index"`
 }
 
 type Match struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid"`
-	User1ID   uuid.UUID `gorm:"type:uuid;index"`
-	User2ID   uuid.UUID `gorm:"type:uuid;index"`
-	CreatedAt time.Time `gorm:"autoCreateTime"`
+	ID        uuid.UUID      `gorm:"primaryKey;type:uuid"`
+	// Use deterministic IDs: UserLowID always < UserHighID to prevent duplicates
+	UserLowID  uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_user_pair;index"`
+	UserHighID uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_user_pair;index"`
+	CreatedAt  time.Time      `gorm:"autoCreateTime;index"`
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
+}
+
+type Unmatch struct {
+	ID           uuid.UUID `gorm:"primaryKey;type:uuid"`
+	UserID       uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_target;index;not null"`
+	TargetUserID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_target;index;not null"`
+	MatchID      uuid.UUID `gorm:"type:uuid;index;not null"`
+	CreatedAt    time.Time `gorm:"autoCreateTime;index"`
 }
 
 type UserImpression struct {
 	ID          uuid.UUID `gorm:"primaryKey;type:uuid"`
-	ViewerID    uuid.UUID `gorm:"type:uuid;index"`
-	ShownUserID uuid.UUID `gorm:"type:uuid;index"`
+	ViewerID    uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_viewer_shown;index"`
+	ShownUserID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_viewer_shown;index"`
 	ShownAt     time.Time `gorm:"autoCreateTime;index"`
+}
+
+type UserBoost struct {
+	ID        uuid.UUID `gorm:"primaryKey;type:uuid"`
+	UserID    uuid.UUID `gorm:"type:uuid;index;not null"`
+	StartedAt time.Time `gorm:"index"`
+	ExpiredAt time.Time `gorm:"index"`
+	IsActive  bool      `gorm:"default:true;index"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
 
 type AppConfig struct {

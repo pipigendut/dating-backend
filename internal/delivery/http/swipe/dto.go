@@ -20,6 +20,15 @@ type MatchResponse struct {
 type IncomingLikeResponse struct {
 	User          user.UserResponse `json:"user"`
 	IsCrush       bool              `json:"is_crush"`
-	PriorityScore int               `json:"priority_score"`
+	RankingScore  float64           `json:"ranking_score"`
 	SwipeTime     string            `json:"swipe_time"`
+}
+
+type SentLikeResponse struct {
+	User      user.UserResponse `json:"user"`
+	CreatedAt string            `json:"created_at"`
+}
+
+type UnlikeRequest struct {
+	TargetUserID uuid.UUID `json:"target_user_id" binding:"required"`
 }

@@ -29,7 +29,16 @@ func Migrate(db *gorm.DB) error {
 		&entities.Swipe{},
 		&entities.Match{},
 		&entities.UserImpression{},
+		&entities.UserBoost{},
 		&entities.AppConfig{},
+		&entities.Unmatch{},
+
+		// Chat System
+		&entities.Conversation{},
+		&entities.ConversationParticipant{},
+		&entities.Message{},
+		&entities.MessageRead{},
+		&entities.UserPresence{},
 	)
 	if err != nil {
 		return err
@@ -43,11 +52,18 @@ func Migrate(db *gorm.DB) error {
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_photos_user_id_sort ON photos(user_id, sort_order)")
 
 	// ERD Optimizations
-	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_swipe ON swipes(swiper_id, swiped_id)")
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_swipe_received ON swipes(swiped_id, direction)")
-	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_match ON matches(LEAST(user1_id, user2_id), GREATEST(user1_id, user2_id))")
+	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_swipe ON swipes(swiper_id, swiped_id) WHERE deleted_at IS NULL")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_swipe_received ON swipes(swiped_id, direction) WHERE deleted_at IS NULL")
+	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_user_pair ON matches(user_low_id, user_high_id)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_user_discovery ON users(status, gender_id, relationship_type_id)")
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_photos_user_id_sort ON photos(user_id, sort_order)")
+
+	// Chat System Optimizations
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_messages_conversation_id_created ON messages(conversation_id, created_at DESC)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_participants_user_id ON conversation_participants(user_id)")
+	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_participant ON conversation_participants(conversation_id, user_id)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_message_reads_msg_user ON message_reads(message_id, user_id)")
+	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_unmatch ON unmatches(user_id, target_user_id)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_unmatch_match_id ON unmatches(match_id)")
 
 	return nil
 }

@@ -323,6 +323,213 @@
                 }
             }
         },
+        "/chat/conversations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of all active conversations for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "List user conversations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/chat.ConversationResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/conversations/match/{target_user_id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get or create a 1:1 conversation between matched users",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Initialize conversation with a match",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Target User ID",
+                        "name": "target_user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/chat.ConversationResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/conversations/{id}/messages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get paginated message history for a specific conversation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Get conversation messages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Conversation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/chat.MessageResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/upload-url": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generate a presigned S3/Oracle URL for uploading chat attachments",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Get presigned upload URL for chat media",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Conversation ID",
+                        "name": "conversation_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/chat.ChatUploadURLResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/master/genders": {
             "get": {
                 "description": "Returns a list of all active gender options for user profiling.",
@@ -996,6 +1203,113 @@
                 }
             }
         },
+        "chat.ChatUploadURLResponse": {
+            "type": "object",
+            "properties": {
+                "file_key": {
+                    "type": "string"
+                },
+                "upload_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "chat.ConversationResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_message": {
+                    "$ref": "#/definitions/chat.MessageResponse"
+                },
+                "participants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/chat.ParticipantResponse"
+                    }
+                },
+                "unread_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "chat.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "conversation_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_read": {
+                    "type": "boolean"
+                },
+                "metadata": {
+                    "$ref": "#/definitions/entities.MessageMetadata"
+                },
+                "sender_id": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/entities.MessageType"
+                }
+            }
+        },
+        "chat.ParticipantResponse": {
+            "type": "object",
+            "properties": {
+                "full_name": {
+                    "type": "string"
+                },
+                "is_online": {
+                    "type": "boolean"
+                },
+                "photo_url": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.MessageMetadata": {
+            "type": "object",
+            "properties": {
+                "gif_provider": {
+                    "type": "string"
+                },
+                "image_height": {
+                    "type": "integer"
+                },
+                "image_width": {
+                    "type": "integer"
+                }
+            }
+        },
+        "entities.MessageType": {
+            "type": "string",
+            "enum": [
+                "text",
+                "image",
+                "gif"
+            ],
+            "x-enum-varnames": [
+                "MessageTypeText",
+                "MessageTypeImage",
+                "MessageTypeGif"
+            ]
+        },
         "entities.UserStatus": {
             "type": "string",
             "enum": [
@@ -1047,8 +1361,8 @@
                 "is_crush": {
                     "type": "boolean"
                 },
-                "priority_score": {
-                    "type": "integer"
+                "ranking_score": {
+                    "type": "number"
                 },
                 "swipe_time": {
                     "type": "string"
@@ -1066,6 +1380,9 @@
                 },
                 "match_id": {
                     "type": "string"
+                },
+                "matched_user": {
+                    "$ref": "#/definitions/user.UserResponse"
                 }
             }
         },

@@ -75,14 +75,20 @@ func (r *userRepo) Update(user *entities.User) error {
 			return err
 		}
 
-		// Hard delete omitted photos manually instead of detaching them
-		var photoIDs []string
+		// 3. Reset is_main for all photos of this user to handle single-main-photo logic safely
+		if err := tx.Model(&entities.Photo{}).Where("user_id = ?", user.ID).Update("is_main", false).Error; err != nil {
+			return err
+		}
+
+		// 4. Handle Deletions: Get current IDs from request
+		var photoIDs []uuid.UUID
 		for _, p := range user.Photos {
-			if p.ID.String() != "" && p.ID.String() != "00000000-0000-0000-0000-000000000000" {
-				photoIDs = append(photoIDs, p.ID.String())
+			if p.ID != uuid.Nil {
+				photoIDs = append(photoIDs, p.ID)
 			}
 		}
 
+		// Delete photos stored in DB for this user but NOT in the current request list
 		if len(photoIDs) > 0 {
 			if err := tx.Unscoped().Where("user_id = ? AND id NOT IN ?", user.ID, photoIDs).Delete(&entities.Photo{}).Error; err != nil {
 				return err
@@ -93,8 +99,13 @@ func (r *userRepo) Update(user *entities.User) error {
 			}
 		}
 
-		if err := tx.Model(user).Association("Photos").Replace(user.Photos); err != nil {
-			return err
+		// 5. UPSERT photos from the request
+		for i := range user.Photos {
+			user.Photos[i].UserID = user.ID
+			// Save performs UPSERT: Updates if ID exists, Creates otherwise
+			if err := tx.Save(&user.Photos[i]).Error; err != nil {
+				return err
+			}
 		}
 
 		return nil

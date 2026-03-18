@@ -30,6 +30,19 @@ func (u *StorageUsecase) GetUploadURL(ctx context.Context, userID uuid.UUID) (st
 	return url, fileKey, nil
 }
 
+func (u *StorageUsecase) GetChatUploadURL(ctx context.Context, conversationID uuid.UUID) (string, string, error) {
+	fileID := uuid.New().String()
+	fileKey := fmt.Sprintf("chat/conversations/%s/%s.jpg", conversationID.String(), fileID)
+
+	// Presigned URL for 10 minutes
+	url, err := u.storage.GeneratePresignedPutURL(ctx, fileKey, 10*time.Minute)
+	if err != nil {
+		return "", "", err
+	}
+
+	return url, fileKey, nil
+}
+
 func (u *StorageUsecase) GetUploadURLPublic(ctx context.Context, clientID string) (string, string, error) {
 	fileID := uuid.New().String()
 	fileKey := fmt.Sprintf("users/%s/profile/%s.jpg", clientID, fileID)

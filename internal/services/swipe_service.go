@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/entities"
+	"github.com/pipigendut/dating-backend/internal/repository"
 	"gorm.io/gorm"
 )
 
@@ -14,19 +15,31 @@ type SwipeService interface {
 	GetSwipeCandidates(ctx context.Context, userID uuid.UUID, limit int) ([]entities.User, error)
 	CreateSwipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, *entities.User, error)
 	GetIncomingLikes(ctx context.Context, userID uuid.UUID) ([]IncomingLike, error)
+	GetLikesSent(ctx context.Context, userID uuid.UUID) ([]SentLike, error)
+	UnlikeUser(ctx context.Context, swiperID, swipedID uuid.UUID) error
 	UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*entities.User, error)
 	RecordImpressions(ctx context.Context, viewerID uuid.UUID, shownUserIDs []uuid.UUID) error
+	UnmatchUser(ctx context.Context, userID, targetUserID uuid.UUID) error
+}
+
+type SentLike struct {
+	User      entities.User
+	CreatedAt time.Time
 }
 
 type swipeService struct {
-	db     *gorm.DB
-	config ConfigService
+	db        *gorm.DB
+	config    ConfigService
+	chat      ChatService
+	swipeRepo repository.SwipeRepository
 }
 
-func NewSwipeService(db *gorm.DB, config ConfigService) SwipeService {
+func NewSwipeService(db *gorm.DB, config ConfigService, chat ChatService, swipeRepo repository.SwipeRepository) SwipeService {
 	return &swipeService{
-		db:     db,
-		config: config,
+		db:        db,
+		config:    config,
+		chat:      chat,
+		swipeRepo: swipeRepo,
 	}
 }
 
@@ -43,13 +56,46 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 
 	var candidates []entities.User
 
-	// The PostgreSQL Query
+	// 1. Get user's gender interests
+	var interestedGenderIDs []uuid.UUID
+	if err := s.db.WithContext(ctx).Table("user_interested_genders").
+		Where("user_id = ?", userID).
+		Pluck("gender_id", &interestedGenderIDs).Error; err != nil {
+		return nil, fmt.Errorf("failed to get user interests: %w", err)
+	}
+
+	// 1.1 Support "Everyone" by expanding the list
+	// e0000000-0000-0000-0000-000000000003 is "everyone"
+	everyoneID := uuid.MustParse("e0000000-0000-0000-0000-000000000003")
+	isEveryone := false
+	for _, id := range interestedGenderIDs {
+		if id == everyoneID {
+			isEveryone = true
+			break
+		}
+	}
+
+	if isEveryone {
+		// If interested in everyone, just get all active genders
+		var allGenderIDs []uuid.UUID
+		if err := s.db.WithContext(ctx).Table("master_genders").
+			Where("is_active = true").
+			Pluck("id", &allGenderIDs).Error; err == nil {
+			interestedGenderIDs = allGenderIDs
+		}
+	}
+
+	// 2. The PostgreSQL Query
 	query := `
 		WITH recent_impressions AS (
 			SELECT shown_user_id, MAX(shown_at) as last_shown
 			FROM user_impressions
 			WHERE viewer_id = ?
 			GROUP BY shown_user_id
+		),
+		recent_unmatches AS (
+			SELECT target_user_id, id FROM unmatches
+			WHERE user_id = ?
 		),
 		scored_users AS (
 			SELECT 
@@ -60,24 +106,28 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 					-- Premium Score
 					CASE WHEN u.is_premium = true THEN ? ELSE 0 END +
 					-- Boost Score
-					CASE WHEN u.boost_until > NOW() THEN ? ELSE 0 END
+					CASE WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.is_active = true AND ub.expired_at > NOW()) THEN ? ELSE 0 END -
+					-- Unmatch Penalty
+					CASE WHEN ru.id IS NOT NULL THEN 1000 ELSE 0 END
 				) as raw_score,
 				ri.last_shown
 			FROM users u
 			LEFT JOIN recent_impressions ri ON ri.shown_user_id = u.id
+			LEFT JOIN recent_unmatches ru ON ru.target_user_id = u.id
 			WHERE u.id != ?
 			AND u.status = 'active'
+			AND u.gender_id IN (?)
 			-- Exclude already swiped
 			AND NOT EXISTS (
 				SELECT 1 FROM swipes s 
-				WHERE s.swiper_id = ? AND s.swiped_id = u.id
+				WHERE s.swiper_id = ? AND s.swiped_id = u.id AND s.deleted_at IS NULL
 			)
 			-- Cooldown Rules: only show if last_shown is NULL or older than their specific cooldown
 			AND (
 				ri.last_shown IS NULL OR 
 				NOW() - ri.last_shown > (
 					CASE 
-						WHEN u.boost_until > NOW() THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
+						WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.is_active = true AND ub.expired_at > NOW()) THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
 						WHEN u.is_premium = true THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
 						ELSE CAST(? AS FLOAT) * INTERVAL '1 minute'
 					END
@@ -92,10 +142,12 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 	err := s.db.WithContext(ctx).Raw(
 		query,
 		userID,                   // recent_impressions viewer_id
+		userID,                   // recent_unmatches user_id
 		premiumScore, boostScore, // scores
-		userID,   // u.id != ?
-		userID,   // swipes.swiper_id = ?
-		cdBoost,  // cooldowns
+		userID,              // u.id != ?
+		interestedGenderIDs, // u.gender_id IN (?)
+		userID,              // swipes.swiper_id = ?
+		cdBoost,             // cooldowns
 		cdPremium,
 		cdFree,
 		scoreWeight, // weights
@@ -150,20 +202,25 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var swiper entities.User
-		if err := tx.Select("is_premium", "boost_until", "last_active_at").Where("id = ?", swiperID).First(&swiper).Error; err != nil {
+		if err := tx.Select("is_premium", "last_active_at").Where("id = ?", swiperID).First(&swiper).Error; err != nil {
 			return fmt.Errorf("swiper not found: %w", err)
 		}
 
-		// 1. Calculate Priority Score & Handle CRUSH limits
-		priorityScore := 0
+		// 1. Calculate Ranking Score & Handle CRUSH limits
+		var rankingScore float64
 		if direction == entities.SwipeDirectionLike || direction == entities.SwipeDirectionCrush {
 			// Premium Score
 			if swiper.IsPremium {
-				priorityScore += s.config.GetInt("premium_score", 50)
+				rankingScore += float64(s.config.GetInt("premium_score", 50))
 			}
 			// Boost Score
-			if swiper.BoostUntil != nil && swiper.BoostUntil.After(time.Now()) {
-				priorityScore += s.config.GetInt("boost_score", 200)
+			var activeBoost int64
+			tx.Model(&entities.UserBoost{}).
+				Where("user_id = ? AND is_active = true AND expired_at > NOW()", swiperID).
+				Count(&activeBoost)
+			
+			if activeBoost > 0 {
+				rankingScore += float64(s.config.GetInt("boost_score", 200))
 			}
 
 			if direction == entities.SwipeDirectionCrush {
@@ -183,17 +240,17 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 					return fmt.Errorf("daily crush limit reached (limit: %d)", limit)
 				}
 
-				priorityScore += s.config.GetInt("crush_score_bonus", 500)
+				rankingScore += float64(s.config.GetInt("crush_score_bonus", 500))
 			}
 		}
 
 		// 2. Insert Swipe Record
 		swipe := entities.Swipe{
-			ID:            uuid.New(),
-			SwiperID:      swiperID,
-			SwipedID:      swipedID,
-			Direction:     direction,
-			PriorityScore: priorityScore,
+			ID:           uuid.New(),
+			SwiperID:     swiperID,
+			SwipedID:     swipedID,
+			Direction:    direction,
+			RankingScore: rankingScore,
 		}
 		if err := tx.Create(&swipe).Error; err != nil {
 			return err
@@ -206,15 +263,31 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 			
 			if err == nil {
 				// Mutual Like exists! Create a Match
+				// Enforce deterministic pair: lowID < highID
+				userLowID, userHighID := swiperID, swipedID
+				if userLowID.String() > userHighID.String() {
+					userLowID, userHighID = swipedID, swiperID
+				}
+
 				newMatch := entities.Match{
-					ID:      uuid.New(),
-					User1ID: swiperID,
-					User2ID: swipedID, // Order could be normalized but keeping it simple
+					ID:         uuid.New(),
+					UserLowID:  userLowID,
+					UserHighID: userHighID,
 				}
 				if err := tx.Create(&newMatch).Error; err != nil {
 					return err
 				}
 				match = &newMatch
+
+				// 4. Auto-create Chat Conversation
+				// We do this inside the transaction or immediately after.
+				// For robustness, ensure conversation exists.
+				_, err = s.chat.GetOrCreateConversation(ctx, swiperID, swipedID)
+				if err != nil {
+					// We might not want to fail the whole swipe if chat creation fails, 
+					// but for now let's be strict.
+					return fmt.Errorf("failed to create chat conversation: %w", err)
+				}
 
 				// Fetch matched user details for the response
 				var u entities.User
@@ -233,25 +306,25 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 }
 
 type IncomingLike struct {
-	User          entities.User
-	IsCrush       bool
-	PriorityScore int
-	CreatedAt     time.Time
+	User         entities.User
+	IsCrush      bool
+	RankingScore float64
+	CreatedAt    time.Time
 }
 
 func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID) ([]IncomingLike, error) {
 	var results []struct {
 		entities.User
-		RawDirection     string    `gorm:"column:direction"`
-		RawPriorityScore int       `gorm:"column:priority_score"`
-		RawCreatedAt     time.Time `gorm:"column:swipe_time"`
+		RawDirection    string    `gorm:"column:direction"`
+		RawRankingScore float64   `gorm:"column:ranking_score"`
+		RawCreatedAt    time.Time `gorm:"column:swipe_time"`
 	}
 
 	query := `
 		SELECT 
 			u.*,
 			s.direction,
-			s.priority_score,
+			s.ranking_score,
 			s.created_at as swipe_time
 		FROM swipes s
 		JOIN users u ON u.id = s.swiper_id
@@ -262,7 +335,7 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID) (
 			SELECT 1 FROM swipes my_swipe 
 			WHERE my_swipe.swiper_id = ? AND my_swipe.swiped_id = s.swiper_id
 		)
-		ORDER BY s.priority_score DESC, s.created_at DESC
+		ORDER BY s.ranking_score DESC, s.created_at DESC
 		LIMIT 100
 	`
 
@@ -302,10 +375,10 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID) (
 	for _, u := range fullUsers {
 		idx := orderMap[u.ID]
 		incomingLikes[idx] = IncomingLike{
-			User:          u,
-			IsCrush:       results[idx].RawDirection == string(entities.SwipeDirectionCrush),
-			PriorityScore: results[idx].RawPriorityScore,
-			CreatedAt:     results[idx].RawCreatedAt,
+			User:         u,
+			IsCrush:      results[idx].RawDirection == string(entities.SwipeDirectionCrush),
+			RankingScore: results[idx].RawRankingScore,
+			CreatedAt:    results[idx].RawCreatedAt,
 		}
 	}
 
@@ -355,10 +428,12 @@ func (s *swipeService) UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*en
 
 		// 4. If it was a LIKE or CRUSH, check if a Match exists and delete it
 		if lastSwipe.Direction == entities.SwipeDirectionLike || lastSwipe.Direction == entities.SwipeDirectionCrush {
-			// Find match looking at permutations since it sorts LEAST/GREATEST but we query both just in case
-			err := tx.Where("(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",
-				lastSwipe.SwiperID, lastSwipe.SwipedID,
-				lastSwipe.SwipedID, lastSwipe.SwiperID).
+			userLowID, userHighID := lastSwipe.SwiperID, lastSwipe.SwipedID
+			if userLowID.String() > userHighID.String() {
+				userLowID, userHighID = lastSwipe.SwipedID, lastSwipe.SwiperID
+			}
+
+			err := tx.Where("user_low_id = ? AND user_high_id = ?", userLowID, userHighID).
 				Delete(&entities.Match{}).Error
 			
 			if err != nil && err != gorm.ErrRecordNotFound {
@@ -379,6 +454,53 @@ func (s *swipeService) UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*en
 	return undoneUser, err
 }
 
+func (s *swipeService) GetLikesSent(ctx context.Context, userID uuid.UUID) ([]SentLike, error) {
+	swipes, err := s.swipeRepo.GetLikesSent(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(swipes) == 0 {
+		return []SentLike{}, nil
+	}
+
+	var userIDs []uuid.UUID
+	for _, sw := range swipes {
+		userIDs = append(userIDs, sw.SwipedID)
+	}
+
+	var users []entities.User
+	err = s.db.WithContext(ctx).
+		Preload("Photos").
+		Preload("Gender").
+		Where("id IN ?", userIDs).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	userMap := make(map[uuid.UUID]entities.User)
+	for _, u := range users {
+		userMap[u.ID] = u
+	}
+
+	var results []SentLike
+	for _, sw := range swipes {
+		if u, ok := userMap[sw.SwipedID]; ok {
+			results = append(results, SentLike{
+				User:      u,
+				CreatedAt: sw.CreatedAt,
+			})
+		}
+	}
+
+	return results, nil
+}
+
+func (s *swipeService) UnlikeUser(ctx context.Context, swiperID, swipedID uuid.UUID) error {
+	return s.swipeRepo.UnlikeUser(ctx, swiperID, swipedID)
+}
+
 func (s *swipeService) RecordImpressions(ctx context.Context, viewerID uuid.UUID, shownUserIDs []uuid.UUID) error {
 	if len(shownUserIDs) == 0 {
 		return nil
@@ -397,4 +519,24 @@ func (s *swipeService) RecordImpressions(ctx context.Context, viewerID uuid.UUID
 
 	// Batch insert impressions
 	return s.db.WithContext(ctx).Create(&impressions).Error
+}
+
+func (s *swipeService) UnmatchUser(ctx context.Context, userID, targetUserID uuid.UUID) error {
+	// 1. Find the match
+	match, err := s.swipeRepo.GetMatch(ctx, userID, targetUserID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return fmt.Errorf("no match found between these users")
+		}
+		return err
+	}
+
+	// 2. Find the conversation (should exist if matched)
+	conv, err := s.chat.GetOrCreateConversation(ctx, userID, targetUserID)
+	if err != nil {
+		return fmt.Errorf("could not find conversation: %w", err)
+	}
+
+	// 3. Process unmatch in transaction
+	return s.swipeRepo.UnmatchUser(ctx, userID, targetUserID, match.ID, conv.ID)
 }

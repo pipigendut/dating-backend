@@ -288,6 +288,12 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		return "", "", nil, err
 	}
 
+	// 4. Fetch full user to ensure all relations (master data) are preloaded for response
+	fullUser, err := u.repo.GetWithRelations(newUser.ID)
+	if err == nil {
+		newUser = fullUser
+	}
+
 	u.formatUserPhotos(newUser)
 	token, refresh, err := u.generateTokensAndDevice(newUser.ID, dto.Device)
 	return token, refresh, newUser, err
@@ -462,6 +468,12 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	err = u.repo.CreateWithRelations(user)
 	if err != nil {
 		return "", "", nil, err
+	}
+
+	// 3. Fetch full user to ensure all relations (master data) are preloaded for response
+	fullUser, err := u.repo.GetWithRelations(user.ID)
+	if err == nil {
+		user = fullUser
 	}
 
 	u.formatUserPhotos(user)
