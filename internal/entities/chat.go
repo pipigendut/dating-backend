@@ -11,6 +11,7 @@ type Conversation struct {
 	ID            uuid.UUID      `gorm:"primaryKey;type:uuid"`
 	LastMessageID *uuid.UUID     `gorm:"type:uuid;index"`
 	LastMessageAt time.Time      `gorm:"index"`
+	VisibleAt     time.Time      `gorm:"index"` // When this conversation becomes visible
 	CreatedAt     time.Time      `gorm:"autoCreateTime;index"`
 	DeletedAt     gorm.DeletedAt `gorm:"index"`
 

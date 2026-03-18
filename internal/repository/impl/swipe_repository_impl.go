@@ -79,7 +79,7 @@ func (r *swipeRepository) GetLikesSent(ctx context.Context, userID uuid.UUID) ([
 	// Find users current user liked but not yet matched
 	err := r.db.WithContext(ctx).
 		Where("swiper_id = ? AND direction IN ?", userID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
-		Where("NOT EXISTS (SELECT 1 FROM matches m WHERE (m.user_low_id = ? AND m.user_high_id = swipes.swiped_id) OR (m.user_low_id = swipes.swiped_id AND m.user_high_id = ?))", userID, userID).
+		Where("NOT EXISTS (SELECT 1 FROM matches m WHERE ((m.user_low_id = ? AND m.user_high_id = swipes.swiped_id) OR (m.user_low_id = swipes.swiped_id AND m.user_high_id = ?)) AND m.visible_at <= NOW())", userID, userID).
 		Order("created_at DESC").
 		Find(&swipes).Error
 	return swipes, err

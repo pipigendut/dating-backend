@@ -13,7 +13,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/services"
 )
 
-func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, storageUC storageUsecase, authMiddleware gin.HandlerFunc) {
+func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, storageUC storageUsecase, authMiddleware gin.HandlerFunc, anticheatMiddleware gin.HandlerFunc) {
 	handler := &SwipeHandler{
 		swipeService: swipeSvc,
 		storageUC:    storageUC,
@@ -23,7 +23,14 @@ func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, storage
 	swipeGroup.Use(authMiddleware)
 	{
 		swipeGroup.GET("/candidates", handler.GetCandidates)
-		swipeGroup.POST("/", handler.Swipe)
+		
+		// Apply anti-cheat only to create swipe if provided
+		if anticheatMiddleware != nil {
+			swipeGroup.POST("/", anticheatMiddleware, handler.Swipe)
+		} else {
+			swipeGroup.POST("/", handler.Swipe)
+		}
+		
 		swipeGroup.GET("/likes", handler.GetIncomingLikes)
 		swipeGroup.GET("/likes/sent", handler.GetLikesSent)
 		swipeGroup.POST("/undo", handler.UndoSwipe)
@@ -102,10 +109,11 @@ func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body SwipeRequest true "Swipe action details"
-// @Success      200  {object}  response.BaseResponse{data=MatchResponse} "Swipe recorded successfully, returns match status"
-// @Failure      400  {object}  response.BaseResponse "Invalid request"
-// @Failure      500  {object}  response.BaseResponse "Internal server error"
-// @Router       /swipe [post]
+// @Success      200      {object}  response.BaseResponse{data=MatchResponse} "Swipe handled"
+// @Failure      400      {object}  response.BaseResponse "Invalid request"
+// @Failure      429      {object}  response.BaseResponse "Too many requests"
+// @Failure      500      {object}  response.BaseResponse "Internal server error"
+// @Router       /swipe/ [post]
 func (h *SwipeHandler) Swipe(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 

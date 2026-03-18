@@ -102,6 +102,8 @@ func SeedMasterData(db *gorm.DB) error {
 			{Key: "cooldown_boost_minutes", Value: "3"},
 			{Key: "score_weight", Value: "0.7"},
 			{Key: "random_weight", Value: "0.3"},
+			{Key: "delay_free_minutes", Value: "60"},
+			{Key: "delay_premium_minutes", Value: "10"},
 		}
 
 		for _, c := range configs {
@@ -109,6 +111,122 @@ func SeedMasterData(db *gorm.DB) error {
 				Columns:   []clause.Column{{Name: "key"}},
 				DoUpdates: clause.AssignmentColumns([]string{"value"}),
 			}).Create(&c).Error; err != nil {
+				return err
+			}
+		}
+
+		// 6. Seed Subscription Plans
+		plusID := uuid.MustParse("d0000000-0000-0000-0000-000000000001")
+		premiumID := uuid.MustParse("d0000000-0000-0000-0000-000000000002")
+		ultimateID := uuid.MustParse("d0000000-0000-0000-0000-000000000003")
+
+		plans := []entities.SubscriptionPlan{
+			{ID: plusID, Name: "Plus", IsActive: true},
+			{ID: premiumID, Name: "Premium", IsActive: true},
+			{ID: ultimateID, Name: "Ultimate", IsActive: true},
+		}
+
+		for _, p := range plans {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "id"}},
+				DoUpdates: clause.AssignmentColumns([]string{"name", "is_active"}),
+			}).Create(&p).Error; err != nil {
+				return err
+			}
+		}
+
+		// 7. Seed Subscription Plan Features
+		featureList := []struct {
+			id           string
+			planID       uuid.UUID
+			featureKey   string
+			isActive     bool
+			category     string
+			icon         string
+			displayTitle string
+			isConsumable bool
+			amount       int
+		}{
+			{"f0000000-0000-0000-0000-000000000001", plusID, "hide_ads", true, "Take Control", "ShieldOff", "Hide Ads", false, 0},
+			{"f0000000-0000-0000-0000-000000000003", plusID, "unlimited_likes", true, "Match+", "Heart", "Unlimited Likes", false, 0},
+
+			{"f0000000-0000-0000-0000-000000000004", premiumID, "hide_ads", true, "Take Control", "ShieldOff", "Hide Ads", false, 0},
+			{"f0000000-0000-0000-0000-000000000005", premiumID, "see_likes", true, "Match+", "Eye", "See Who Likes You", false, 0},
+			{"f0000000-0000-0000-0000-000000000006", premiumID, "priority_likes", true, "Match+", "Star", "Priority Likes", false, 0},
+			{"f0000000-0000-0000-0000-000000000007", premiumID, "unlimited_likes", true, "Match+", "Heart", "Unlimited Likes", false, 0},
+			{"f0000000-0000-0000-0000-000000000013", premiumID, "monthly_boost", true, "Take Control", "Zap", "1 free boost per month", true, 1},
+
+			{"f0000000-0000-0000-0000-000000000008", ultimateID, "hide_ads", true, "Take Control", "ShieldOff", "Hide Ads", false, 0},
+			{"f0000000-0000-0000-0000-000000000009", ultimateID, "see_likes", true, "Match+", "Eye", "See Who Likes You", false, 0},
+			{"f0000000-0000-0000-0000-000000000010", ultimateID, "priority_likes", true, "Match+", "Star", "Priority Likes", false, 0},
+			{"f0000000-0000-0000-0000-000000000011", ultimateID, "unlimited_likes", true, "Match+", "Heart", "Unlimited Likes", false, 0},
+			{"f0000000-0000-0000-0000-000000000012", ultimateID, "passport_mode", true, "Take Control", "Globe", "Passport Mode", false, 0},
+			{"f0000000-0000-0000-0000-000000000014", ultimateID, "monthly_boost", true, "Take Control", "Zap", "1 free boost per month", true, 1},
+			{"f0000000-0000-0000-0000-000000000015", ultimateID, "monthly_crush", true, "Match+", "Crown", "5 free crushes per week", true, 5},
+		}
+
+		for _, f := range featureList {
+			feat := entities.SubscriptionPlanFeature{
+				ID:           uuid.MustParse(f.id),
+				PlanID:       f.planID,
+				FeatureKey:   f.featureKey,
+				IsActive:     f.isActive,
+				Category:     f.category,
+				Icon:         f.icon,
+				DisplayTitle: f.displayTitle,
+				IsConsumable: f.isConsumable,
+				Amount:       f.amount,
+			}
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "id"}},
+				DoUpdates: clause.AssignmentColumns([]string{"is_active", "category", "icon", "display_title", "is_consumable", "amount"}),
+			}).Create(&feat).Error; err != nil {
+				return err
+			}
+		}
+
+		// 8. Seed Subscription Prices
+		priceList := []entities.SubscriptionPrice{
+			// Plus
+			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000001"), PlanID: plusID, DurationType: "monthly", Price: 9.99, Currency: "USD", ExternalSlug: "plus_1m"},
+			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000002"), PlanID: plusID, DurationType: "yearly", Price: 59.99, Currency: "USD", ExternalSlug: "plus_1y"},
+			
+			// Premium
+			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000003"), PlanID: premiumID, DurationType: "monthly", Price: 19.99, Currency: "USD", ExternalSlug: "premium_1m"},
+			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000004"), PlanID: premiumID, DurationType: "yearly", Price: 119.99, Currency: "USD", ExternalSlug: "premium_1y"},
+			
+			// Ultimate
+			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000005"), PlanID: ultimateID, DurationType: "monthly", Price: 29.99, Currency: "USD", ExternalSlug: "ultimate_1m"},
+			{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000006"), PlanID: ultimateID, DurationType: "yearly", Price: 179.99, Currency: "USD", ExternalSlug: "ultimate_1y"},
+		}
+
+		for _, pr := range priceList {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "id"}},
+				DoUpdates: clause.AssignmentColumns([]string{"price", "currency", "external_slug"}),
+			}).Create(&pr).Error; err != nil {
+				return err
+			}
+		}
+
+		// 9. Seed Consumable Packets
+		consumables := []entities.ConsumableItem{
+			// Boosts
+			{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000001"), ItemType: "boost", Amount: 1, Price: 89000, Currency: "IDR", ExternalSlug: "boost_1"},
+			{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002"), ItemType: "boost", Amount: 5, Price: 249000, Currency: "IDR", ExternalSlug: "boost_5"},
+			{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000003"), ItemType: "boost", Amount: 15, Price: 499000, Currency: "IDR", ExternalSlug: "boost_15"},
+
+			// Crushes
+			{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000004"), ItemType: "crush", Amount: 3, Price: 49000, Currency: "IDR", ExternalSlug: "crush_3"},
+			{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000005"), ItemType: "crush", Amount: 15, Price: 149000, Currency: "IDR", ExternalSlug: "crush_15"},
+			{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000006"), ItemType: "crush", Amount: 30, Price: 249000, Currency: "IDR", ExternalSlug: "crush_30"},
+		}
+
+		for _, ci := range consumables {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "id"}},
+				DoUpdates: clause.AssignmentColumns([]string{"amount", "price", "currency", "external_slug"}),
+			}).Create(&ci).Error; err != nil {
 				return err
 			}
 		}

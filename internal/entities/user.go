@@ -32,6 +32,7 @@ type User struct {
 	IsPremium          bool       `gorm:"default:false"`
 	LastActiveAt       time.Time  `gorm:"index"`
 	Status             UserStatus `gorm:"index"`
+	SwipeCountToday    int        `gorm:"default:0"`
 	CreatedAt          time.Time  `gorm:"autoCreateTime"`
 	UpdatedAt          time.Time  `gorm:"autoUpdateTime"`
 
@@ -42,6 +43,8 @@ type User struct {
 	AuthProviders    []AuthProvider          `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	Devices          []Device                `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	RefreshTokens    []RefreshToken          `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Subscriptions    []UserSubscription      `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Consumables      []UserConsumable        `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 
 	// Many-to-Many Associations via pivot tables
 	InterestedGenders []MasterGender   `gorm:"many2many:user_interested_genders;joinForeignKey:user_id;joinReferences:gender_id;constraint:OnDelete:CASCADE"`
@@ -168,11 +171,13 @@ type Swipe struct {
 	ID           uuid.UUID      `gorm:"primaryKey;type:uuid"`
 	SwiperID     uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_swiper_swiped;index:idx_swiper_direction;index"`
 	SwipedID     uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_swiper_swiped;index:idx_swiped_direction;index"`
-	Direction    SwipeDirection `gorm:"type:varchar(20);index;index:idx_swiper_direction;index:idx_swiped_direction"`
-	IsBoosted    bool           `gorm:"default:false;index"`
-	RankingScore float64        `gorm:"index"` // Algorithm-based score for ranking
-	CreatedAt    time.Time      `gorm:"autoCreateTime;index"`
-	DeletedAt    gorm.DeletedAt `gorm:"index"`
+	Direction     SwipeDirection `gorm:"type:varchar(20);index;index:idx_swiper_direction;index:idx_swiped_direction"`
+	IsBoosted     bool           `gorm:"default:false;index"`
+	RankingScore  float64        `gorm:"index"` // Algorithm-based score for ranking
+	PriorityScore int            `gorm:"default:0;index"`
+	ProcessedAt   *time.Time     `gorm:"index"` // For anti-fast match delay
+	CreatedAt     time.Time      `gorm:"autoCreateTime;index"`
+	DeletedAt     gorm.DeletedAt `gorm:"index"`
 }
 
 type Match struct {
@@ -180,6 +185,7 @@ type Match struct {
 	// Use deterministic IDs: UserLowID always < UserHighID to prevent duplicates
 	UserLowID  uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_user_pair;index"`
 	UserHighID uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_user_pair;index"`
+	VisibleAt  time.Time      `gorm:"index"` // When this match becomes visible to users
 	CreatedAt  time.Time      `gorm:"autoCreateTime;index"`
 	DeletedAt  gorm.DeletedAt `gorm:"index"`
 }
@@ -209,6 +215,81 @@ type UserBoost struct {
 }
 
 type AppConfig struct {
-	Key   string `gorm:"primaryKey"`
-	Value string
+	Key         string    `gorm:"primaryKey"`
+	Value       string    `gorm:"type:jsonb"`
+	Description string
+	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
+}
+
+// Monetization Entities
+
+type SubscriptionPlan struct {
+	ID        uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	Name      string    `gorm:"uniqueIndex;not null" json:"name"`
+	IsActive  bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	Features []SubscriptionPlanFeature `gorm:"foreignKey:PlanID;constraint:OnDelete:CASCADE" json:"features"`
+	Prices   []SubscriptionPrice        `gorm:"foreignKey:PlanID;constraint:OnDelete:CASCADE" json:"prices"`
+}
+
+type SubscriptionPrice struct {
+	ID           uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	PlanID       uuid.UUID `gorm:"type:uuid;index;not null" json:"plan_id"`
+	DurationType string    `gorm:"index;not null" json:"duration_type"` // weekly, monthly, quarterly, yearly
+	Price        float64   `gorm:"not null" json:"price"`
+	Currency     string    `gorm:"type:varchar(10);default:'USD'" json:"currency"`
+	ExternalSlug string    `gorm:"uniqueIndex" json:"external_slug"` // For App Store / Play Store Product ID
+}
+
+type SubscriptionPlanFeature struct {
+	ID           uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	PlanID       uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_plan_feature;not null" json:"plan_id"`
+	FeatureKey   string    `gorm:"uniqueIndex:idx_plan_feature;not null" json:"feature_key"`
+	IsActive     bool      `gorm:"default:true" json:"is_active"`
+	Category     string    `gorm:"type:varchar(50);default:'General'" json:"category"`
+	Icon         string    `json:"icon"`
+	DisplayTitle string    `json:"display_title"`
+	IsConsumable bool      `gorm:"default:false" json:"is_consumable"`
+	Amount       int       `gorm:"default:0" json:"amount"`
+}
+
+type UserSubscription struct {
+	ID        uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid;index;not null" json:"user_id"`
+	PlanID    uuid.UUID `gorm:"type:uuid;index;not null" json:"plan_id"`
+	StartedAt time.Time `gorm:"index" json:"started_at"`
+	ExpiredAt time.Time `gorm:"index" json:"expired_at"`
+	IsActive  bool      `gorm:"default:true;index" json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+
+	Plan *SubscriptionPlan `gorm:"foreignKey:PlanID" json:"plan,omitempty"`
+}
+
+type UserConsumable struct {
+	ID        uuid.UUID  `gorm:"primaryKey;type:uuid" json:"id"`
+	UserID    uuid.UUID  `gorm:"type:uuid;index;not null" json:"user_id"`
+	Type      string     `gorm:"index;not null" json:"type"` // boost, crush
+	Remaining int        `gorm:"default:0" json:"remaining"`
+	ExpiredAt *time.Time `gorm:"index" json:"expired_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+type ConsumableItem struct {
+	ID           uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	ItemType     string    `gorm:"index;not null" json:"item_type"` // boost, crush
+	Amount       int       `gorm:"not null" json:"amount"`
+	Price        float64   `gorm:"not null" json:"price"`
+	Currency     string    `gorm:"type:varchar(10);default:'USD'" json:"currency"`
+	ExternalSlug string    `gorm:"uniqueIndex" json:"external_slug"`
+}
+
+func (Swipe) TableName() string {
+	return "swipes"
+}
+
+func (Match) TableName() string {
+	return "matches"
 }

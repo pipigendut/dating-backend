@@ -33,6 +33,14 @@ func Migrate(db *gorm.DB) error {
 		&entities.AppConfig{},
 		&entities.Unmatch{},
 
+		// Monetization
+		&entities.SubscriptionPlan{},
+		&entities.SubscriptionPlanFeature{},
+		&entities.SubscriptionPrice{},
+		&entities.UserSubscription{},
+		&entities.UserConsumable{},
+		&entities.ConsumableItem{},
+
 		// Chat System
 		&entities.Conversation{},
 		&entities.ConversationParticipant{},
@@ -64,6 +72,9 @@ func Migrate(db *gorm.DB) error {
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_message_reads_msg_user ON message_reads(message_id, user_id)")
 	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_unmatch ON unmatches(user_id, target_user_id)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_unmatch_match_id ON unmatches(match_id)")
+
+	// Cleanup legacy columns
+	db.Exec("ALTER TABLE subscription_plan_features DROP COLUMN IF EXISTS value")
 
 	return nil
 }

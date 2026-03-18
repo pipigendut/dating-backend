@@ -25,7 +25,7 @@ type ChatService interface {
 	GetConversations(ctx context.Context, userID uuid.UUID) ([]entities.Conversation, error)
 	GetUnreadCount(ctx context.Context, conversationID, userID uuid.UUID) (int, error)
 	GetMessages(ctx context.Context, conversationID uuid.UUID, limit, offset int) ([]entities.Message, error)
-	GetOrCreateConversation(ctx context.Context, user1ID, user2ID uuid.UUID) (*entities.Conversation, error)
+	GetOrCreateConversation(ctx context.Context, user1ID, user2ID uuid.UUID, visibleAt time.Time) (*entities.Conversation, error)
 }
 
 type chatService struct {
@@ -138,15 +138,18 @@ func (s *chatService) GetMessages(ctx context.Context, conversationID uuid.UUID,
 	return s.repo.GetConversationMessages(ctx, conversationID, limit, offset)
 }
 
-func (s *chatService) GetOrCreateConversation(ctx context.Context, user1ID, user2ID uuid.UUID) (*entities.Conversation, error) {
+func (s *chatService) GetOrCreateConversation(ctx context.Context, user1ID, user2ID uuid.UUID, visibleAt time.Time) (*entities.Conversation, error) {
 	conv, err := s.repo.GetConversationBetweenUsers(ctx, user1ID, user2ID)
 	if err == nil {
+		// If it exists but is not yet visible, maybe update its visibility if the new match is sooner?
+		// For now, let's just return existing.
 		return conv, nil
 	}
 
 	// Create new 1:1 conversation
 	newConv := &entities.Conversation{
-		ID: uuid.New(),
+		ID:        uuid.New(),
+		VisibleAt: visibleAt,
 		Participants: []entities.ConversationParticipant{
 			{ID: uuid.New(), UserID: user1ID},
 			{ID: uuid.New(), UserID: user2ID},

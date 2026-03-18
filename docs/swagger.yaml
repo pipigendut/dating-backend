@@ -215,6 +215,10 @@ definitions:
         type: string
       last_message:
         $ref: '#/definitions/chat.MessageResponse'
+      other_user:
+        allOf:
+        - $ref: '#/definitions/chat.ParticipantPreviewResponse'
+        description: User Preview for Chat List
       participants:
         items:
           $ref: '#/definitions/chat.ParticipantResponse'
@@ -240,6 +244,19 @@ definitions:
         type: string
       type:
         $ref: '#/definitions/entities.MessageType'
+    type: object
+  chat.ParticipantPreviewResponse:
+    properties:
+      age:
+        type: integer
+      full_name:
+        type: string
+      id:
+        type: string
+      is_online:
+        type: boolean
+      profile_picture:
+        type: string
     type: object
   chat.ParticipantResponse:
     properties:
@@ -293,6 +310,15 @@ definitions:
         example: Travel
         type: string
     type: object
+  monetization.PurchaseRequest:
+    properties:
+      item_id:
+        type: string
+      plan_id:
+        type: string
+      price_id:
+        type: string
+    type: object
   response.BaseResponse:
     properties:
       data: {}
@@ -324,6 +350,13 @@ definitions:
       matched_user:
         $ref: '#/definitions/user.UserResponse'
     type: object
+  swipe.SentLikeResponse:
+    properties:
+      created_at:
+        type: string
+      user:
+        $ref: '#/definitions/user.UserResponse'
+    type: object
   swipe.SwipeRequest:
     properties:
       direction:
@@ -337,6 +370,13 @@ definitions:
     required:
     - direction
     - swiped_id
+    type: object
+  swipe.UnlikeRequest:
+    properties:
+      target_user_id:
+        type: string
+    required:
+    - target_user_id
     type: object
   user.PhotoResponse:
     properties:
@@ -823,7 +863,76 @@ paths:
       summary: Get all active relationship types
       tags:
       - master
-  /swipe:
+  /monetization/consumables:
+    get:
+      description: Get a list of all buyable consumable packets (boosts, crushes)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: List all consumable items
+      tags:
+      - Monetization
+  /monetization/plans:
+    get:
+      description: Get a list of all available subscription plans with prices and
+        features
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: List all subscription plans
+      tags:
+      - Monetization
+  /monetization/purchase/consumable:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Purchase Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/monetization.PurchaseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: Purchase a consumable item
+      tags:
+      - Monetization
+  /monetization/purchase/plan:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Purchase Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/monetization.PurchaseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: Purchase a subscription plan
+      tags:
+      - Monetization
+  /swipe/:
     post:
       consumes:
       - application/json
@@ -840,7 +949,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Swipe recorded successfully, returns match status
+          description: Swipe handled
           schema:
             allOf:
             - $ref: '#/definitions/response.BaseResponse'
@@ -850,6 +959,10 @@ paths:
               type: object
         "400":
           description: Invalid request
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "429":
+          description: Too many requests
           schema:
             $ref: '#/definitions/response.BaseResponse'
         "500":
@@ -920,6 +1033,35 @@ paths:
       summary: Get list of incoming likes and crushes
       tags:
       - swipe
+  /swipe/likes/sent:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a list of users the current user has liked or crushed on,
+        but who have not yet matched back.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of sent likes
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/swipe.SentLikeResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Get list of sent likes
+      tags:
+      - swipe
   /swipe/undo:
     post:
       consumes:
@@ -950,6 +1092,70 @@ paths:
       security:
       - BearerAuth: []
       summary: Undo the last swipe action
+      tags:
+      - swipe
+  /swipe/unlike:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a like (or crush) swipe before a mutual match has occurred.
+      parameters:
+      - description: Target user to unlike
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/swipe.UnlikeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully unliked
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "400":
+          description: Invalid request or already matched
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Unlike a user
+      tags:
+      - swipe
+  /swipe/unmatch/{target_user_id}:
+    post:
+      consumes:
+      - application/json
+      description: Soft deletes the match and conversation, and applies a ranking
+        penalty for future discovery.
+      parameters:
+      - description: Target User ID to unmatch
+        in: path
+        name: target_user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully unmatched
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "400":
+          description: Invalid ID or no match exists
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Unmatch a user
       tags:
       - swipe
 securityDefinitions:

@@ -47,7 +47,7 @@ func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.U
 			return db.Order("messages.created_at DESC").Limit(1)
 		}).
 		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").
-		Where("cp.user_id = ?", userID).
+		Where("cp.user_id = ? AND conversations.visible_at <= ?", userID, time.Now()).
 		Order("conversations.last_message_at DESC").
 		Find(&convs).Error
 	return convs, err

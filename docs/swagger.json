@@ -694,7 +694,113 @@
                 }
             }
         },
-        "/swipe": {
+        "/monetization/consumables": {
+            "get": {
+                "description": "Get a list of all buyable consumable packets (boosts, crushes)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monetization"
+                ],
+                "summary": "List all consumable items",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/monetization/plans": {
+            "get": {
+                "description": "Get a list of all available subscription plans with prices and features",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monetization"
+                ],
+                "summary": "List all subscription plans",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/monetization/purchase/consumable": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monetization"
+                ],
+                "summary": "Purchase a consumable item",
+                "parameters": [
+                    {
+                        "description": "Purchase Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/monetization.PurchaseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/monetization/purchase/plan": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monetization"
+                ],
+                "summary": "Purchase a subscription plan",
+                "parameters": [
+                    {
+                        "description": "Purchase Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/monetization.PurchaseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/swipe/": {
             "post": {
                 "security": [
                     {
@@ -725,7 +831,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Swipe recorded successfully, returns match status",
+                        "description": "Swipe handled",
                         "schema": {
                             "allOf": [
                                 {
@@ -744,6 +850,12 @@
                     },
                     "400": {
                         "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
                         "schema": {
                             "$ref": "#/definitions/response.BaseResponse"
                         }
@@ -855,6 +967,55 @@
                 }
             }
         },
+        "/swipe/likes/sent": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches a list of users the current user has liked or crushed on, but who have not yet matched back.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "swipe"
+                ],
+                "summary": "Get list of sent likes",
+                "responses": {
+                    "200": {
+                        "description": "List of sent likes",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/swipe.SentLikeResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/swipe/undo": {
             "post": {
                 "security": [
@@ -894,6 +1055,106 @@
                     },
                     "400": {
                         "description": "No swipe history or daily limit reached",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/swipe/unlike": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a like (or crush) swipe before a mutual match has occurred.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "swipe"
+                ],
+                "summary": "Unlike a user",
+                "parameters": [
+                    {
+                        "description": "Target user to unlike",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/swipe.UnlikeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully unliked",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or already matched",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/swipe/unmatch/{target_user_id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft deletes the match and conversation, and applies a ranking penalty for future discovery.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "swipe"
+                ],
+                "summary": "Unmatch a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Target User ID to unmatch",
+                        "name": "target_user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully unmatched",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID or no match exists",
                         "schema": {
                             "$ref": "#/definitions/response.BaseResponse"
                         }
@@ -1226,6 +1487,14 @@
                 "last_message": {
                     "$ref": "#/definitions/chat.MessageResponse"
                 },
+                "other_user": {
+                    "description": "User Preview for Chat List",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/chat.ParticipantPreviewResponse"
+                        }
+                    ]
+                },
                 "participants": {
                     "type": "array",
                     "items": {
@@ -1263,6 +1532,26 @@
                 },
                 "type": {
                     "$ref": "#/definitions/entities.MessageType"
+                }
+            }
+        },
+        "chat.ParticipantPreviewResponse": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_online": {
+                    "type": "boolean"
+                },
+                "profile_picture": {
+                    "type": "string"
                 }
             }
         },
@@ -1340,6 +1629,20 @@
                 }
             }
         },
+        "monetization.PurchaseRequest": {
+            "type": "object",
+            "properties": {
+                "item_id": {
+                    "type": "string"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "price_id": {
+                    "type": "string"
+                }
+            }
+        },
         "response.BaseResponse": {
             "type": "object",
             "properties": {
@@ -1386,6 +1689,17 @@
                 }
             }
         },
+        "swipe.SentLikeResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/user.UserResponse"
+                }
+            }
+        },
         "swipe.SwipeRequest": {
             "type": "object",
             "required": [
@@ -1402,6 +1716,17 @@
                     ]
                 },
                 "swiped_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "swipe.UnlikeRequest": {
+            "type": "object",
+            "required": [
+                "target_user_id"
+            ],
+            "properties": {
+                "target_user_id": {
                     "type": "string"
                 }
             }

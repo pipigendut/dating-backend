@@ -3,6 +3,7 @@ package chat
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -114,7 +115,7 @@ func (h *ChatHandler) GetOrCreateMatchConversation(c *gin.Context) {
 		return
 	}
 
-	conv, err := h.chatService.GetOrCreateConversation(c.Request.Context(), userID, targetUserID)
+	conv, err := h.chatService.GetOrCreateConversation(c.Request.Context(), userID, targetUserID, time.Now())
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to manage conversation", err.Error())
 		return

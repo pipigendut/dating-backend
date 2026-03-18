@@ -10,6 +10,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/chat"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/master"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/monetization"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/swipe"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/delivery/ws"
@@ -142,7 +143,10 @@ func main() {
 	chatSvc := services.NewChatService(chatRepo, kafkaProducer)
 
 	swipeRepo := impl.NewSwipeRepository(db)
-	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, swipeRepo)
+	subscriptionRepo := impl.NewSubscriptionRepository(db)
+
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo)
+	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, subscriptionService, swipeRepo)
 
 	// 2.1 Kafka Consumer
 	chatConsumer := kafka.NewConsumer(kafkaBrokers, "chat-group", "chat.messages", chatRepo, wsManager)
@@ -156,15 +160,18 @@ func main() {
 
 	// Middleware setup
 	authMiddleware := middleware.AuthMiddleware()
+	var anticheatMiddleware gin.HandlerFunc
 	if redisClient != nil {
 		_ = middleware.NewCacheMiddleware(redisClient)
-		// Can use cacheMiddleware.Cache(time.Minute) on routes
+		acm := middleware.NewAntiCheatMiddleware(redisClient)
+		anticheatMiddleware = acm.RateLimitSwipe()
 	}
 
 	user.NewUserHandler(v1, userUC, storageUC, authMiddleware)
 	auth.NewAuthHandler(v1, authUC)
 	master.NewMasterHandler(v1, masterUC)
-	swipe.NewSwipeHandler(v1, swipeSvc, storageUC, authMiddleware)
+	monetization.NewMonetizationHandler(v1, subscriptionService)
+	swipe.NewSwipeHandler(v1, swipeSvc, storageUC, authMiddleware, anticheatMiddleware)
 	chat.NewChatHandler(v1, chatSvc, storageUC, authMiddleware)
 
 	// WebSocket Route
