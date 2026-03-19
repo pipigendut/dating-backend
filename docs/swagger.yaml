@@ -354,6 +354,8 @@ definitions:
     properties:
       created_at:
         type: string
+      expires_at:
+        type: string
       user:
         $ref: '#/definitions/user.UserResponse'
     type: object
@@ -1022,6 +1024,50 @@ paths:
       - application/json
       description: Fetches a weighted-random list of active users that the current
         user hasn't swiped on yet, applying cooldowns and priority scoring.
+      parameters:
+      - description: Search distance in km (default 50)
+        in: query
+        name: distance
+        type: integer
+      - description: Minimum age
+        in: query
+        name: min_age
+        type: integer
+      - description: Maximum age
+        in: query
+        name: max_age
+        type: integer
+      - collectionFormat: csv
+        description: Filter by genders (UUIDs)
+        in: query
+        items:
+          type: string
+        name: genders
+        type: array
+      - collectionFormat: csv
+        description: Filter by interests (UUIDs)
+        in: query
+        items:
+          type: string
+        name: interests
+        type: array
+      - collectionFormat: csv
+        description: Filter by relationship types (UUIDs)
+        in: query
+        items:
+          type: string
+        name: relationship_types
+        type: array
+      - description: User latitude
+        format: float64
+        in: query
+        name: latitude
+        type: number
+      - description: User longitude
+        format: float64
+        in: query
+        name: longitude
+        type: number
       produces:
       - application/json
       responses:

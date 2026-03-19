@@ -76,7 +76,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		HeightCM:        req.HeightCM,
 		Bio:             req.Bio,
 		InterestedIn:    req.InterestedIn,
-		LookingFor:      req.LookingFor,
+		RelationshipType: req.RelationshipType,
 		LocationCity:    req.LocationCity,
 		LocationCountry: req.LocationCountry,
 		Latitude:        req.Latitude,
@@ -100,7 +100,13 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, nil)
+	updatedUser, err := h.usecase.GetProfile(userID.String())
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to fetch updated profile", err.Error())
+		return
+	}
+
+	response.OK(c, ToUserResponse(updatedUser))
 }
 
 func (h *UserHandler) DeleteAccount(c *gin.Context) {

@@ -20,7 +20,7 @@ type UpdateProfileRequest struct {
 	HeightCM        *int            `json:"height_cm"`
 	Bio             *string         `json:"bio"`
 	InterestedIn    *string         `json:"interested_in"`
-	LookingFor      *string         `json:"looking_for"`
+	RelationshipType *string         `json:"relationship_type"`
 	LocationCity    *string         `json:"location_city"`
 	LocationCountry *string         `json:"location_country"`
 	Latitude        *float64        `json:"latitude"`

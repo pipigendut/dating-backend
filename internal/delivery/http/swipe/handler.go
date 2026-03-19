@@ -68,13 +68,39 @@ func (h *SwipeHandler) resolvePhotoURLs(u *entities.User) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
+// @Param        distance  query  int  false  "Search distance in km (default 50)"
+// @Param        min_age   query  int  false  "Minimum age"
+// @Param        max_age   query  int  false  "Maximum age"
+// @Param        genders   query  []string  false  "Filter by genders (UUIDs)"
+// @Param        interests query  []string  false  "Filter by interests (UUIDs)"
+// @Param        relationship_types query []string false "Filter by relationship types (UUIDs)"
+// @Param        latitude  query  float64  false  "User latitude"
+// @Param        longitude query  float64  false  "User longitude"
 // @Success      200  {object}  response.BaseResponse{data=[]user.UserResponse} "List of swipe candidates"
 // @Failure      500  {object}  response.BaseResponse "Internal server error"
 // @Router       /swipe/candidates [get]
 func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 
-	candidates, err := h.swipeService.GetSwipeCandidates(c.Request.Context(), userID, 10)
+	var filter SwipeCandidatesFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid filter parameters", err.Error())
+		return
+	}
+
+	// Map DTO to Service Filter
+	svcFilter := services.SwipeFilter{
+		Distance:          filter.Distance,
+		MinAge:            filter.MinAge,
+		MaxAge:            filter.MaxAge,
+		Genders:           filter.Genders,
+		Interests:         filter.Interests,
+		RelationshipTypes: filter.RelationshipTypes,
+		Latitude:          filter.Latitude,
+		Longitude:         filter.Longitude,
+	}
+
+	candidates, err := h.swipeService.GetSwipeCandidates(c.Request.Context(), userID, svcFilter, 10)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get swipe candidates", err.Error())
 		return

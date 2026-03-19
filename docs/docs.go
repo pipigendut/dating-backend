@@ -965,6 +965,70 @@ const docTemplate = `{
                     "swipe"
                 ],
                 "summary": "Get list of users for swipe discovery",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Search distance in km (default 50)",
+                        "name": "distance",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Minimum age",
+                        "name": "min_age",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum age",
+                        "name": "max_age",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Filter by genders (UUIDs)",
+                        "name": "genders",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Filter by interests (UUIDs)",
+                        "name": "interests",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Filter by relationship types (UUIDs)",
+                        "name": "relationship_types",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "format": "float64",
+                        "description": "User latitude",
+                        "name": "latitude",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "format": "float64",
+                        "description": "User longitude",
+                        "name": "longitude",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of swipe candidates",
@@ -1771,6 +1835,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
+                    "type": "string"
+                },
+                "expires_at": {
                     "type": "string"
                 },
                 "user": {

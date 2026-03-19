@@ -94,7 +94,10 @@ func Migrate(db *gorm.DB) error {
 	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_swipe ON swipes(swiper_id, swiped_id) WHERE deleted_at IS NULL")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_swipe_received ON swipes(swiped_id, direction) WHERE deleted_at IS NULL")
 	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_user_pair ON matches(user_low_id, user_high_id)")
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_user_discovery ON users(status, gender_id, relationship_type_id)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_user_discovery ON users(status, gender_id, age)")
+
+	// Update age for existing users if still 0
+	db.Exec("UPDATE users SET age = EXTRACT(YEAR FROM AGE(date_of_birth)) WHERE age = 0 AND date_of_birth IS NOT NULL")
 
 	// Chat System Optimizations
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_messages_conversation_id_created ON messages(conversation_id, created_at DESC)")
@@ -110,6 +113,10 @@ func Migrate(db *gorm.DB) error {
 
 	// Cleanup legacy columns
 	db.Exec("ALTER TABLE subscription_plan_features DROP COLUMN IF EXISTS value")
+	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP WITH TIME ZONE")
+
+	// Cleanup illegal genders (Everyone is not a gender, Other is being removed as per request)
+	db.Exec("DELETE FROM master_genders WHERE code NOT IN ('male', 'female')")
 
 	return nil
 }

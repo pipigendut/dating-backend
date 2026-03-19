@@ -88,7 +88,7 @@ func (r *userRepo) Update(user *entities.User) error {
 		for i := range user.Photos {
 			user.Photos[i].UserID = user.ID
 			// Save performs UPSERT: Updates if ID exists, Creates otherwise
-			if err := tx.Save(&user.Photos[i]).Error; err != nil {
+			if err := tx.Omit("CreatedAt").Save(&user.Photos[i]).Error; err != nil {
 				return err
 			}
 		}

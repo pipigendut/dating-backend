@@ -33,3 +33,14 @@ type SentLikeResponse struct {
 type UnlikeRequest struct {
 	TargetUserID uuid.UUID `json:"target_user_id" binding:"required"`
 }
+
+type SwipeCandidatesFilter struct {
+	Distance          *int        `json:"distance" form:"distance"`
+	MinAge            *int        `json:"min_age" form:"min_age"`
+	MaxAge            *int        `json:"max_age" form:"max_age"`
+	Genders           []uuid.UUID `json:"genders" form:"genders"`
+	Interests         []uuid.UUID `json:"interests" form:"interests"`
+	RelationshipTypes []uuid.UUID `json:"relationship_types" form:"relationship_types"`
+	Latitude          *float64    `json:"latitude" form:"latitude"`
+	Longitude         *float64    `json:"longitude" form:"longitude"`
+}

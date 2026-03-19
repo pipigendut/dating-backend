@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type UserStatus string
@@ -31,7 +32,9 @@ type User struct {
 	IsPremium          bool       `gorm:"default:false"`
 	LastActiveAt       time.Time  `gorm:"index"`
 	Status             UserStatus `gorm:"index"`
+	Age                int        `gorm:"index"`
 	SwipeCountToday    int        `gorm:"default:0"`
+	VerifiedAt         *time.Time `gorm:"index"`
 
 	// Associations
 	Gender           *MasterGender           `gorm:"foreignKey:GenderID"`
@@ -59,6 +62,18 @@ func (u *User) GetMainPhotoProfile() *Photo {
 		}
 	}
 	return &u.Photos[0]
+}
+
+func (u *User) BeforeSave(tx *gorm.DB) (err error) {
+	if !u.DateOfBirth.IsZero() {
+		now := time.Now()
+		age := now.Year() - u.DateOfBirth.Year()
+		if now.Month() < u.DateOfBirth.Month() || (now.Month() == u.DateOfBirth.Month() && now.Day() < u.DateOfBirth.Day()) {
+			age--
+		}
+		u.Age = age
+	}
+	return
 }
 
 type AuthProvider struct {

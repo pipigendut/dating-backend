@@ -19,7 +19,7 @@ type UpdateProfileRequest struct {
 	HeightCM        *int
 	Bio             *string
 	InterestedIn    *string
-	LookingFor      *string
+	RelationshipType *string
 	LocationCity    *string
 	LocationCountry *string
 	Latitude        *float64
@@ -79,11 +79,11 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 		}
 	}
 
-	if data.LookingFor != nil {
-		if *data.LookingFor == "" {
+	if data.RelationshipType != nil {
+		if *data.RelationshipType == "" {
 			user.RelationshipTypeID = nil
 		} else {
-			uid, err := uuid.Parse(*data.LookingFor)
+			uid, err := uuid.Parse(*data.RelationshipType)
 			if err != nil {
 				return errors.NewBadRequest("invalid relationship type id format")
 			}
@@ -95,12 +95,17 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 		if *data.InterestedIn == "" {
 			user.InterestedGenders = nil
 		} else {
-			uid, err := uuid.Parse(*data.InterestedIn)
-			if err == nil {
-				m := entities.MasterGender{}
-				m.ID = uid
-				user.InterestedGenders = []entities.MasterGender{m}
+			parts := strings.Split(*data.InterestedIn, ",")
+			var newGenders []entities.MasterGender
+			for _, p := range parts {
+				p = strings.TrimSpace(p)
+				if uid, err := uuid.Parse(p); err == nil {
+					m := entities.MasterGender{}
+					m.ID = uid
+					newGenders = append(newGenders, m)
+				}
 			}
+			user.InterestedGenders = newGenders
 		}
 	}
 

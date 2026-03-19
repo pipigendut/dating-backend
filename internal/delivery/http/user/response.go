@@ -26,6 +26,8 @@ type UserResponse struct {
 	LocationCountry    string                      `json:"location_country,omitempty"`
 	Latitude           *float64                    `json:"latitude,omitempty"`
 	Longitude          *float64                    `json:"longitude,omitempty"`
+	Age                int                         `json:"age"`
+	VerifiedAt         *time.Time                  `json:"verified_at,omitempty"`
 	CreatedAt          time.Time                   `json:"created_at" example:"2023-01-01T00:00:00Z"`
 }
 
@@ -48,6 +50,8 @@ func ToUserResponse(u *entities.User) UserResponse {
 		LocationCountry: u.LocationCountry,
 		Latitude:        u.Latitude,
 		Longitude:       u.Longitude,
+		Age:             u.Age,
+		VerifiedAt:      u.VerifiedAt,
 		CreatedAt:       u.CreatedAt,
 	}
 

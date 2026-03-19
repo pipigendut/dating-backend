@@ -13,7 +13,7 @@ import (
 )
 
 type SwipeService interface {
-	GetSwipeCandidates(ctx context.Context, userID uuid.UUID, limit int) ([]entities.User, error)
+	GetSwipeCandidates(ctx context.Context, userID uuid.UUID, filter SwipeFilter, limit int) ([]entities.User, error)
 	CreateSwipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, *entities.User, error)
 	GetIncomingLikes(ctx context.Context, userID uuid.UUID) ([]IncomingLike, error)
 	GetLikesSent(ctx context.Context, userID uuid.UUID) ([]SentLike, error)
@@ -21,6 +21,17 @@ type SwipeService interface {
 	UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*entities.User, error)
 	RecordImpressions(ctx context.Context, viewerID uuid.UUID, shownUserIDs []uuid.UUID) error
 	UnmatchUser(ctx context.Context, userID, targetUserID uuid.UUID) error
+}
+
+type SwipeFilter struct {
+	Distance          *int
+	MinAge            *int
+	MaxAge            *int
+	Genders           []uuid.UUID
+	Interests         []uuid.UUID
+	RelationshipTypes []uuid.UUID
+	Latitude          *float64
+	Longitude         *float64
 }
 
 type SentLike struct {
@@ -48,7 +59,7 @@ func NewSwipeService(db *gorm.DB, config ConfigService, chat ChatService, subscr
 }
 
 // GetSwipeCandidates implements the Tinder-like weighted random matchmaking query
-func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID, limit int) ([]entities.User, error) {
+func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID, filter SwipeFilter, limit int) ([]entities.User, error) {
 	// 1. Get configurations from fast in-memory cache
 	premiumScore := s.config.GetInt("premium_score", 50)
 	boostScore := s.config.GetInt("boost_score", 200)
@@ -57,41 +68,38 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 	cdBoost := s.config.GetInt("swipe_impression_cooldown_boost", 3)
 	scoreWeight := s.config.GetFloat("score_weight", 0.7)
 	randomWeight := s.config.GetFloat("random_weight", 0.3)
-	dislikeRecycleMinutes := s.config.GetInt("dislike_recycle_minutes", 43200)
+	dislikeRecycleMinutes := s.config.GetInt("dislike_recycle_minutes", 4320)
+
+	// 1. Prepare dynamic filters (Genders)
+	searchGenders := filter.Genders
+	if len(searchGenders) == 0 {
+		// Use user's interested genders as default
+		if err := s.db.WithContext(ctx).Table("user_interested_genders").
+			Where("user_id = ?", userID).
+			Pluck("gender_id", &searchGenders).Error; err != nil {
+			return nil, fmt.Errorf("failed to get user interests: %w", err)
+		}
+	}
+
+	// Final fallback: if no filters and no profile preferences, show all active genders
+	if len(searchGenders) == 0 {
+		if err := s.db.WithContext(ctx).Table("master_genders").
+			Where("is_active = true").
+			Pluck("id", &searchGenders).Error; err != nil {
+			return nil, fmt.Errorf("failed to get fallback genders: %w", err)
+		}
+	}
+
+	// Default distance
+	searchDistance := 50.0
+	if filter.Distance != nil {
+		searchDistance = float64(*filter.Distance)
+	}
 
 	var candidates []entities.User
 
-	// 1. Get user's gender interests
-	var interestedGenderIDs []uuid.UUID
-	if err := s.db.WithContext(ctx).Table("user_interested_genders").
-		Where("user_id = ?", userID).
-		Pluck("gender_id", &interestedGenderIDs).Error; err != nil {
-		return nil, fmt.Errorf("failed to get user interests: %w", err)
-	}
-
-	// 1.1 Support "Everyone" by expanding the list
-	// e0000000-0000-0000-0000-000000000003 is "everyone"
-	everyoneID := uuid.MustParse("e0000000-0000-0000-0000-000000000003")
-	isEveryone := false
-	for _, id := range interestedGenderIDs {
-		if id == everyoneID {
-			isEveryone = true
-			break
-		}
-	}
-
-	if isEveryone {
-		// If interested in everyone, just get all active genders
-		var allGenderIDs []uuid.UUID
-		if err := s.db.WithContext(ctx).Table("master_genders").
-			Where("is_active = true").
-			Pluck("id", &allGenderIDs).Error; err == nil {
-			interestedGenderIDs = allGenderIDs
-		}
-	}
-
-	// 2. The PostgreSQL Query
-	query := `
+	// 2. The PostgreSQL Query - Dynamically built to avoid NULL issues
+	queryBase := `
 		WITH recent_impressions AS (
 			SELECT shown_user_id, MAX(shown_at) as last_shown
 			FROM user_impressions
@@ -121,49 +129,83 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 			LEFT JOIN recent_unmatches ru ON ru.target_user_id = u.id
 			WHERE u.id != ?
 			AND u.status = 'active'
-			AND u.gender_id IN (?)
-			-- Exclude already swiped (Likes/Crushes are permanent, Dislikes recycle after X days)
-			AND NOT EXISTS (
-				SELECT 1 FROM swipes s 
-				WHERE s.swiper_id = ? AND s.swiped_id = u.id AND s.deleted_at IS NULL
-				AND (
-					s.direction IN ('LIKE', 'CRUSH')
-					OR s.updated_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 minute')
-				)
-			)
-			-- Cooldown Rules: only show if last_shown is NULL or older than their specific cooldown
-			AND (
-				ri.last_shown IS NULL OR 
-				NOW() - ri.last_shown > (
-					CASE 
-						WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.is_active = true AND ub.expired_at > NOW()) THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
-						WHEN u.is_premium = true THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
-						ELSE CAST(? AS FLOAT) * INTERVAL '1 minute'
-					END
-				)
-			)
+	`
+	args := []interface{}{
+		userID, userID, premiumScore, boostScore, userID,
+	}
+
+	// Dynamic Filters
+	whereClauses := ""
+	if len(searchGenders) > 0 {
+		whereClauses += " AND u.gender_id IN (?)"
+		args = append(args, searchGenders)
+	}
+
+	if filter.MinAge != nil {
+		whereClauses += " AND u.age >= ?"
+		args = append(args, *filter.MinAge)
+	}
+	if filter.MaxAge != nil {
+		whereClauses += " AND u.age <= ?"
+		args = append(args, *filter.MaxAge)
+	}
+
+	if len(filter.Interests) > 0 {
+		whereClauses += " AND EXISTS (SELECT 1 FROM user_interests ui WHERE ui.user_id = u.id AND ui.interest_id IN (?))"
+		args = append(args, filter.Interests)
+	}
+
+	if len(filter.RelationshipTypes) > 0 {
+		whereClauses += " AND u.relationship_type_id IN (?)"
+		args = append(args, filter.RelationshipTypes)
+	}
+
+	// Distance Filter (Haversine)
+	if filter.Latitude != nil && filter.Longitude != nil {
+		whereClauses += ` AND (
+			u.latitude IS NOT NULL AND u.longitude IS NOT NULL AND
+			(6371 * acos(
+				least(1.0, cos(radians(?)) * cos(radians(u.latitude)) * 
+				cos(radians(u.longitude) - radians(?)) + 
+				sin(radians(?)) * sin(radians(u.latitude)))
+			)) <= ?
+		)`
+		args = append(args, *filter.Latitude, *filter.Longitude, *filter.Latitude, searchDistance)
+	}
+
+	// Exclude swiped
+	whereClauses += ` AND NOT EXISTS (
+		SELECT 1 FROM swipes s 
+		WHERE s.swiper_id = ? AND s.swiped_id = u.id AND s.deleted_at IS NULL
+		AND (
+			s.direction IN ('LIKE', 'CRUSH')
+			OR s.updated_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 minute')
+		)
+	)`
+	args = append(args, userID, float64(dislikeRecycleMinutes))
+
+	// Cooldown Rules
+	whereClauses += ` AND (
+		ri.last_shown IS NULL OR 
+		NOW() - ri.last_shown > (
+			CASE 
+				WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.is_active = true AND ub.expired_at > NOW()) THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
+				WHEN u.is_premium = true THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
+				ELSE CAST(? AS FLOAT) * INTERVAL '1 minute'
+			END
+		)
+	)`
+	args = append(args, float64(cdBoost), float64(cdPremium), float64(cdFree))
+
+	finalQuery := queryBase + whereClauses + `
 		)
 		SELECT * FROM scored_users
 		ORDER BY (raw_score * ?) + (RANDOM() * 100 * ?) DESC
 		LIMIT ?
 	`
+	args = append(args, scoreWeight, randomWeight, limit)
 
-	err := s.db.WithContext(ctx).Raw(
-		query,
-		userID,                   // recent_impressions viewer_id
-		userID,                   // recent_unmatches user_id
-		premiumScore, boostScore, // scores
-		userID,                // u.id != ?
-		interestedGenderIDs,   // u.gender_id IN (?)
-		userID,                // swipes.swiper_id = ?
-		dislikeRecycleMinutes, // dislike recycling
-		cdBoost,               // cooldowns
-		cdPremium,
-		cdFree,
-		scoreWeight, // weights
-		randomWeight,
-		limit,
-	).Scan(&candidates).Error
+	err := s.db.WithContext(ctx).Raw(finalQuery, args...).Scan(&candidates).Error
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get swipe candidates: %w", err)
