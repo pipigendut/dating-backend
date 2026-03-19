@@ -122,7 +122,6 @@ func (u *AuthUsecase) generateTokensAndDevice(userID uuid.UUID, dto DeviceDTO) (
 	device, err := u.sessionRepo.GetDeviceByDeviceIDAndUserID(deviceID, userID)
 	if err != nil {
 		device = &entities.Device{
-			ID:          uuid.New(),
 			UserID:      userID,
 			DeviceID:    deviceID,
 			DeviceName:  dto.DeviceName,
@@ -156,7 +155,6 @@ func (u *AuthUsecase) generateTokensAndDevice(userID uuid.UUID, dto DeviceDTO) (
 
 	// Save RefreshToken
 	rf := &entities.RefreshToken{
-		ID:        uuid.New(),
 		UserID:    userID,
 		DeviceID:  device.ID,
 		TokenHash: hashedToken,
@@ -233,11 +231,8 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 	}
 
 	newUser := &entities.User{
-		ID:              userID,
 		Email:           &dto.Email,
 		Status:          status,
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
 		FullName:        dto.FullName,
 		DateOfBirth:     dob,
 		HeightCM:        getInt(dto.HeightCM),
@@ -248,6 +243,7 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		Longitude:       dto.Longitude,
 		GenderID:        parseUUIDPtr(dto.Gender),
 	}
+	newUser.ID = userID
 
 	if relIDs := parseCommaSeparatedUUIDs(dto.LookingFor); len(relIDs) > 0 {
 		newUser.RelationshipTypeID = &relIDs[0]
@@ -260,33 +256,27 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 	if dto.Photos != nil && len(*dto.Photos) > 0 {
 		for i, p := range *dto.Photos {
 			newUser.Photos = append(newUser.Photos, entities.Photo{
-				ID:        uuid.New(),
 				UserID:    userID,
 				URL:       p.URL,
 				IsMain:    p.IsMain,
 				SortOrder: i,
-				CreatedAt: time.Now(),
 			})
 		}
 	} else if dto.ProfilePicture != "" {
 		newUser.Photos = []entities.Photo{
 			{
-				ID:        uuid.New(),
 				UserID:    userID,
 				URL:       dto.ProfilePicture,
 				IsMain:    true,
-				CreatedAt: time.Now(),
 			},
 		}
 	}
 
 	newUser.AuthProviders = []entities.AuthProvider{
 		{
-			ID:             uuid.New(),
 			UserID:         userID,
 			Provider:       "google",
 			ProviderUserID: dto.GoogleID,
-			CreatedAt:      time.Now(),
 		},
 	}
 
@@ -380,7 +370,9 @@ func parseStringArrayToUUIDs(arr *[]string) []uuid.UUID {
 func toMasterGenders(ids []uuid.UUID) []entities.MasterGender {
 	var res []entities.MasterGender
 	for _, id := range ids {
-		res = append(res, entities.MasterGender{ID: id})
+		m := entities.MasterGender{}
+		m.ID = id
+		res = append(res, m)
 	}
 	return res
 }
@@ -388,7 +380,9 @@ func toMasterGenders(ids []uuid.UUID) []entities.MasterGender {
 func toMasterInterests(ids []uuid.UUID) []entities.MasterInterest {
 	var res []entities.MasterInterest
 	for _, id := range ids {
-		res = append(res, entities.MasterInterest{ID: id})
+		m := entities.MasterInterest{}
+		m.ID = id
+		res = append(res, m)
 	}
 	return res
 }
@@ -396,7 +390,9 @@ func toMasterInterests(ids []uuid.UUID) []entities.MasterInterest {
 func toMasterLanguages(ids []uuid.UUID) []entities.MasterLanguage {
 	var res []entities.MasterLanguage
 	for _, id := range ids {
-		res = append(res, entities.MasterLanguage{ID: id})
+		m := entities.MasterLanguage{}
+		m.ID = id
+		res = append(res, m)
 	}
 	return res
 }
@@ -435,11 +431,9 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	}
 
 	user := &entities.User{
-		ID:              userID,
 		Email:           &dto.Email,
 		PasswordHash:    &hashedPassword,
 		Status:          status,
-		CreatedAt:       time.Now(),
 		FullName:        dto.FullName,
 		DateOfBirth:     dob,
 		HeightCM:        getInt(dto.HeightCM),
@@ -450,6 +444,7 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 		Longitude:       dto.Longitude,
 		GenderID:        parseUUIDPtr(dto.Gender),
 	}
+	user.ID = userID
 
 	if relIDs := parseCommaSeparatedUUIDs(dto.LookingFor); len(relIDs) > 0 {
 		user.RelationshipTypeID = &relIDs[0]
@@ -462,12 +457,10 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	if dto.Photos != nil && len(*dto.Photos) > 0 {
 		for i, p := range *dto.Photos {
 			user.Photos = append(user.Photos, entities.Photo{
-				ID:        uuid.New(),
 				UserID:    userID,
 				URL:       p.URL,
 				IsMain:    p.IsMain,
 				SortOrder: i,
-				CreatedAt: time.Now(),
 			})
 		}
 	}

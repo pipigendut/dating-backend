@@ -27,6 +27,7 @@ type IncomingLikeResponse struct {
 type SentLikeResponse struct {
 	User      user.UserResponse `json:"user"`
 	CreatedAt string            `json:"created_at"`
+	ExpiresAt string            `json:"expires_at"`
 }
 
 type UnlikeRequest struct {

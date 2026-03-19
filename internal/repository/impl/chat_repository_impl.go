@@ -107,7 +107,6 @@ func (r *chatRepository) MarkMessagesAsRead(ctx context.Context, conversationID,
 
 	// 2. Also keep MessageRead for audit if needed, but primary check is above
 	read := entities.MessageRead{
-		ID:             uuid.New(),
 		MessageID:      messageID,
 		UserID:         userID,
 		ConversationID: conversationID,

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type UserStatus string
@@ -16,7 +15,7 @@ const (
 )
 
 type User struct {
-	ID                 uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	Email              *string   `gorm:"uniqueIndex"`
 	PasswordHash       *string
 	FullName           string
@@ -33,8 +32,6 @@ type User struct {
 	LastActiveAt       time.Time  `gorm:"index"`
 	Status             UserStatus `gorm:"index"`
 	SwipeCountToday    int        `gorm:"default:0"`
-	CreatedAt          time.Time  `gorm:"autoCreateTime"`
-	UpdatedAt          time.Time  `gorm:"autoUpdateTime"`
 
 	// Associations
 	Gender           *MasterGender           `gorm:"foreignKey:GenderID"`
@@ -65,24 +62,22 @@ func (u *User) GetMainPhotoProfile() *Photo {
 }
 
 type AuthProvider struct {
-	ID             uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	UserID         uuid.UUID `gorm:"type:uuid;index"`
 	Provider       string    `gorm:"uniqueIndex:idx_provider_user"`
 	ProviderUserID string    `gorm:"uniqueIndex:idx_provider_user"`
-	CreatedAt      time.Time `gorm:"autoCreateTime"`
 }
 
 type Photo struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	UserID    uuid.UUID `gorm:"type:uuid;index"`
 	URL       string
 	IsMain    bool
 	SortOrder int
-	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
 
 type Device struct {
-	ID          uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	UserID      uuid.UUID `gorm:"type:uuid;index;uniqueIndex:idx_device_user"`
 	DeviceID    string    `gorm:"uniqueIndex:idx_device_user"`
 	DeviceName  string
@@ -93,24 +88,21 @@ type Device struct {
 	LastIP      string
 	LastLogin   time.Time
 	IsActive    bool
-	CreatedAt   time.Time `gorm:"autoCreateTime"`
-	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
 }
 
 type RefreshToken struct {
-	ID        uuid.UUID  `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	UserID    uuid.UUID  `gorm:"type:uuid;index"`
 	DeviceID  uuid.UUID  `gorm:"type:uuid;index"`
 	TokenHash string     `gorm:"uniqueIndex"`
 	ExpiresAt time.Time  `gorm:"index"`
 	RevokedAt *time.Time `gorm:"index"`
-	CreatedAt time.Time  `gorm:"autoCreateTime"`
 }
 
 // Master Tables
 
 type MasterGender struct {
-	ID       uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	Code     string    `gorm:"uniqueIndex"`
 	Name     string
 	Icon     string
@@ -118,7 +110,7 @@ type MasterGender struct {
 }
 
 type MasterRelationshipType struct {
-	ID       uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	Code     string    `gorm:"uniqueIndex"`
 	Name     string
 	Icon     string
@@ -126,14 +118,14 @@ type MasterRelationshipType struct {
 }
 
 type MasterInterest struct {
-	ID       uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	Name     string
 	Icon     string
 	IsActive bool `gorm:"default:true"`
 }
 
 type MasterLanguage struct {
-	ID       uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	Code     string    `gorm:"uniqueIndex"`
 	Name     string
 	Icon     string
@@ -168,7 +160,7 @@ const (
 )
 
 type Swipe struct {
-	ID           uuid.UUID      `gorm:"primaryKey;type:uuid"`
+	SoftDeleteModel
 	SwiperID     uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_swiper_swiped;index:idx_swiper_direction;index"`
 	SwipedID     uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_swiper_swiped;index:idx_swiped_direction;index"`
 	Direction     SwipeDirection `gorm:"type:varchar(20);index;index:idx_swiper_direction;index:idx_swiped_direction"`
@@ -176,66 +168,57 @@ type Swipe struct {
 	RankingScore  float64        `gorm:"index"` // Algorithm-based score for ranking
 	PriorityScore int            `gorm:"default:0;index"`
 	ProcessedAt   *time.Time     `gorm:"index"` // For anti-fast match delay
-	CreatedAt     time.Time      `gorm:"autoCreateTime;index"`
-	DeletedAt     gorm.DeletedAt `gorm:"index"`
 }
 
 type Match struct {
-	ID        uuid.UUID      `gorm:"primaryKey;type:uuid"`
+	SoftDeleteModel
 	// Use deterministic IDs: UserLowID always < UserHighID to prevent duplicates
 	UserLowID  uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_user_pair;index"`
 	UserHighID uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_user_pair;index"`
 	VisibleAt  time.Time      `gorm:"index"` // When this match becomes visible to users
-	CreatedAt  time.Time      `gorm:"autoCreateTime;index"`
-	DeletedAt  gorm.DeletedAt `gorm:"index"`
 }
 
 type Unmatch struct {
-	ID           uuid.UUID `gorm:"primaryKey;type:uuid"`
+	SoftDeleteModel
 	UserID       uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_target;index;not null"`
 	TargetUserID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_target;index;not null"`
 	MatchID      uuid.UUID `gorm:"type:uuid;index;not null"`
-	CreatedAt    time.Time `gorm:"autoCreateTime;index"`
 }
 
 type UserImpression struct {
-	ID          uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	ViewerID    uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_viewer_shown;index"`
 	ShownUserID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_viewer_shown;index"`
-	ShownAt     time.Time `gorm:"autoCreateTime;index"`
 }
 
 type UserBoost struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid"`
+	BaseModel
 	UserID    uuid.UUID `gorm:"type:uuid;index;not null"`
 	StartedAt time.Time `gorm:"index"`
 	ExpiredAt time.Time `gorm:"index"`
 	IsActive  bool      `gorm:"default:true;index"`
-	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
 
 type AppConfig struct {
-	Key         string    `gorm:"primaryKey"`
+	BaseModel
+	Key         string    `gorm:"uniqueIndex"`
 	Value       string    `gorm:"type:jsonb"`
 	Description string
-	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
 }
 
 // Monetization Entities
 
 type SubscriptionPlan struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	BaseModel
 	Name      string    `gorm:"uniqueIndex;not null" json:"name"`
 	IsActive  bool      `gorm:"default:true" json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
 
 	Features []SubscriptionPlanFeature `gorm:"foreignKey:PlanID;constraint:OnDelete:CASCADE" json:"features"`
 	Prices   []SubscriptionPrice        `gorm:"foreignKey:PlanID;constraint:OnDelete:CASCADE" json:"prices"`
 }
 
 type SubscriptionPrice struct {
-	ID           uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	BaseModel
 	PlanID       uuid.UUID `gorm:"type:uuid;index;not null" json:"plan_id"`
 	DurationType string    `gorm:"index;not null" json:"duration_type"` // weekly, monthly, quarterly, yearly
 	Price        float64   `gorm:"not null" json:"price"`
@@ -244,7 +227,7 @@ type SubscriptionPrice struct {
 }
 
 type SubscriptionPlanFeature struct {
-	ID           uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	BaseModel
 	PlanID       uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_plan_feature;not null" json:"plan_id"`
 	FeatureKey   string    `gorm:"uniqueIndex:idx_plan_feature;not null" json:"feature_key"`
 	IsActive     bool      `gorm:"default:true" json:"is_active"`
@@ -256,29 +239,26 @@ type SubscriptionPlanFeature struct {
 }
 
 type UserSubscription struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	SoftDeleteModel
 	UserID    uuid.UUID `gorm:"type:uuid;index;not null" json:"user_id"`
 	PlanID    uuid.UUID `gorm:"type:uuid;index;not null" json:"plan_id"`
 	StartedAt time.Time `gorm:"index" json:"started_at"`
 	ExpiredAt time.Time `gorm:"index" json:"expired_at"`
 	IsActive  bool      `gorm:"default:true;index" json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
 
 	Plan *SubscriptionPlan `gorm:"foreignKey:PlanID" json:"plan,omitempty"`
 }
 
 type UserConsumable struct {
-	ID        uuid.UUID  `gorm:"primaryKey;type:uuid" json:"id"`
+	BaseModel
 	UserID    uuid.UUID  `gorm:"type:uuid;index;not null" json:"user_id"`
 	Type      string     `gorm:"index;not null" json:"type"` // boost, crush
 	Remaining int        `gorm:"default:0" json:"remaining"`
 	ExpiredAt *time.Time `gorm:"index" json:"expired_at"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 type ConsumableItem struct {
-	ID           uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
+	BaseModel
 	ItemType     string    `gorm:"index;not null" json:"item_type"` // boost, crush
 	Amount       int       `gorm:"not null" json:"amount"`
 	Price        float64   `gorm:"not null" json:"price"`

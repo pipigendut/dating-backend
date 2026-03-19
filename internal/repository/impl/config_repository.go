@@ -7,6 +7,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/repository"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type configRepository struct {
@@ -34,7 +35,10 @@ func (r *configRepository) Get(ctx context.Context, key string) (*entities.AppCo
 
 func (r *configRepository) Set(ctx context.Context, key, value string) error {
 	config := entities.AppConfig{Key: key, Value: value}
-	return r.db.WithContext(ctx).Save(&config).Error
+	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
+	}).Create(&config).Error
 }
 func (r *configRepository) DeleteAll(ctx context.Context) error {
 	return r.db.WithContext(ctx).Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&entities.AppConfig{}).Error

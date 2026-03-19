@@ -7,6 +7,37 @@ import (
 
 // AutoMigrate and apply optimized indexes
 func Migrate(db *gorm.DB) error {
+	// Manual pre-migration steps for refactored entities
+	// Drop legacy primary keys that are not 'id' (from BaseModel)
+	tablesToFix := map[string]string{
+		"app_configs":                "key",
+		"master_genders":             "code",
+		"master_relationship_types": "code",
+		"master_languages":          "code",
+		"master_interests":          "name",
+	}
+
+	for table, legacyPK := range tablesToFix {
+		// Drop the PK constraint if it's named like 'table_pkey' or if legacyPK is part of it
+		db.Exec(`
+			DO $$ 
+			BEGIN 
+				IF EXISTS (
+					SELECT 1 
+					FROM information_schema.table_constraints tc
+					JOIN information_schema.key_column_usage kcu 
+					  ON tc.constraint_name = kcu.constraint_name 
+					 AND tc.table_name = kcu.table_name
+					WHERE tc.table_name = '` + table + `' 
+					  AND tc.constraint_type = 'PRIMARY KEY'
+					  AND kcu.column_name = '` + legacyPK + `'
+				) THEN
+					ALTER TABLE ` + table + ` DROP CONSTRAINT IF EXISTS ` + table + `_pkey CASCADE;
+				END IF;
+			END $$;
+		`)
+	}
+
 	err := db.AutoMigrate(
 		&entities.User{},
 		&entities.Photo{},

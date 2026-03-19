@@ -97,7 +97,9 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 		} else {
 			uid, err := uuid.Parse(*data.InterestedIn)
 			if err == nil {
-				user.InterestedGenders = []entities.MasterGender{{ID: uid}}
+				m := entities.MasterGender{}
+				m.ID = uid
+				user.InterestedGenders = []entities.MasterGender{m}
 			}
 		}
 	}
@@ -136,7 +138,9 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 		for _, rawID := range *data.Interests {
 			uid, err := uuid.Parse(rawID)
 			if err == nil {
-				newInterests = append(newInterests, entities.MasterInterest{ID: uid})
+				m := entities.MasterInterest{}
+				m.ID = uid
+				newInterests = append(newInterests, m)
 			}
 		}
 		user.Interests = newInterests
@@ -147,7 +151,9 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 		for _, rawID := range *data.Languages {
 			uid, err := uuid.Parse(rawID)
 			if err == nil {
-				newLanguages = append(newLanguages, entities.MasterLanguage{ID: uid})
+				m := entities.MasterLanguage{}
+				m.ID = uid
+				newLanguages = append(newLanguages, m)
 			}
 		}
 		user.Languages = newLanguages
@@ -170,14 +176,14 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 			}
 
 			newPhotoIDs[pid] = true
-			newPhotos = append(newPhotos, entities.Photo{
-				ID:        pid,
+			p := entities.Photo{
 				UserID:    userID,
 				URL:       stripPublicURL(p.URL),
 				IsMain:    p.IsMain,
 				SortOrder: i,
-				CreatedAt: time.Now(),
-			})
+			}
+			p.ID = pid
+			newPhotos = append(newPhotos, p)
 		}
 
 		// Find deleted photos to remove from S3 and DB

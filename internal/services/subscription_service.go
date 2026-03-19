@@ -117,7 +117,6 @@ func (s *subscriptionService) PurchaseConsumable(ctx context.Context, userID uui
 	}
 
 	con := &entities.UserConsumable{
-		ID:        uuid.New(),
 		UserID:    userID,
 		Type:      item.ItemType,
 		Remaining: item.Amount,
@@ -137,7 +136,6 @@ func (s *subscriptionService) PurchasePlan(ctx context.Context, userID uuid.UUID
 
 	// Create new subscription (simplified for demo: 30 days for any plan purchase)
 	sub := &entities.UserSubscription{
-		ID:        uuid.New(),
 		UserID:    userID,
 		PlanID:    plan.ID,
 		StartedAt: time.Now(),

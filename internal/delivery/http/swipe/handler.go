@@ -269,6 +269,7 @@ func (h *SwipeHandler) GetLikesSent(c *gin.Context) {
 		respLikes = append(respLikes, SentLikeResponse{
 			User:      userResp,
 			CreatedAt: like.CreatedAt.Format(time.RFC3339),
+			ExpiresAt: like.ExpiresAt.Format(time.RFC3339),
 		})
 	}
 

@@ -147,18 +147,18 @@ func (s *chatService) GetOrCreateConversation(ctx context.Context, user1ID, user
 	}
 
 	// Create new 1:1 conversation
-	newConv := &entities.Conversation{
-		ID:        uuid.New(),
+	newConv := entities.Conversation{
 		VisibleAt: visibleAt,
 		Participants: []entities.ConversationParticipant{
-			{ID: uuid.New(), UserID: user1ID},
-			{ID: uuid.New(), UserID: user2ID},
+			{UserID: user1ID},
+			{UserID: user2ID},
 		},
 	}
+	newConv.ID = uuid.New()
 
-	if err := s.repo.CreateConversation(ctx, newConv); err != nil {
+	if err := s.repo.CreateConversation(ctx, &newConv); err != nil {
 		return nil, err
 	}
 
-	return newConv, nil
+	return &newConv, nil
 }

@@ -26,6 +26,7 @@ type SwipeService interface {
 type SentLike struct {
 	User      entities.User
 	CreatedAt time.Time
+	ExpiresAt time.Time
 }
 
 type swipeService struct {
@@ -127,7 +128,7 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 				WHERE s.swiper_id = ? AND s.swiped_id = u.id AND s.deleted_at IS NULL
 				AND (
 					s.direction IN ('LIKE', 'CRUSH')
-					OR s.created_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 minute')
+					OR s.updated_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 minute')
 				)
 			)
 			-- Cooldown Rules: only show if last_shown is NULL or older than their specific cooldown
@@ -288,7 +289,6 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 
 		// 3. Insert or Update Swipe Record (Upsert to handle soft-deleted duplicates)
 		swipe := entities.Swipe{
-			ID:            uuid.New(),
 			SwiperID:      swiperID,
 			SwipedID:      swipedID,
 			Direction:     direction,
@@ -304,6 +304,7 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 				"priority_score": priorityScore,
 				"deleted_at":     nil,
 				"created_at":     time.Now(),
+				"updated_at":     time.Now(),
 			}),
 		}).Create(&swipe).Error; err != nil {
 			return err
@@ -329,7 +330,6 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 				}
 
 				newMatch := entities.Match{
-					ID:         uuid.New(),
 					UserLowID:  userLowID,
 					UserHighID: userHighID,
 					VisibleAt:  time.Now().Add(time.Duration(delayMinutes) * time.Minute),
@@ -531,6 +531,9 @@ func (s *swipeService) GetLikesSent(ctx context.Context, userID uuid.UUID) ([]Se
 		return []SentLike{}, nil
 	}
 
+	expiryHours := s.config.GetInt("like_expiry_hours", 168)
+	expiryDuration := time.Duration(expiryHours) * time.Hour
+
 	var userIDs []uuid.UUID
 	for _, sw := range swipes {
 		userIDs = append(userIDs, sw.SwipedID)
@@ -557,6 +560,7 @@ func (s *swipeService) GetLikesSent(ctx context.Context, userID uuid.UUID) ([]Se
 			results = append(results, SentLike{
 				User:      u,
 				CreatedAt: sw.CreatedAt,
+				ExpiresAt: sw.UpdatedAt.Add(expiryDuration),
 			})
 		}
 	}
@@ -574,13 +578,10 @@ func (s *swipeService) RecordImpressions(ctx context.Context, viewerID uuid.UUID
 	}
 
 	impressions := make([]entities.UserImpression, 0, len(shownUserIDs))
-	now := time.Now()
 	for _, uid := range shownUserIDs {
 		impressions = append(impressions, entities.UserImpression{
-			ID:          uuid.New(),
 			ViewerID:    viewerID,
 			ShownUserID: uid,
-			ShownAt:     now,
 		})
 	}
 

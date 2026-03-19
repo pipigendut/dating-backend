@@ -63,25 +63,25 @@ func (c *Consumer) handleEvent(ctx context.Context, envelope events.EventEnvelop
 		
 		// 1. Persist to DB
 		msg := &entities.Message{
-			ID:             event.MessageID,
 			ConversationID: event.ConversationID,
 			SenderID:       event.SenderID,
 			Type:           entities.MessageType(event.MessageType),
 			Content:        event.Content,
-			CreatedAt:      envelope.Timestamp,
 			Metadata: entities.MessageMetadata{
 				GifProvider: event.Metadata.GifProvider,
 				ImageWidth:  event.Metadata.ImageWidth,
 				ImageHeight: event.Metadata.ImageHeight,
 			},
 		}
+		msg.ID = event.MessageID
+		msg.CreatedAt = envelope.Timestamp
 		if err := c.repo.CreateMessage(ctx, msg); err != nil {
 			log.Printf("[CHAT] Failed to persist message: %v", err)
 			return
 		}
 
 		// 2. Update Conversation Last Message for efficient listing/sorting
-		if err := c.repo.UpdateConversationLastMessage(ctx, event.ConversationID, msg.ID, msg.CreatedAt); err != nil {
+		if err := c.repo.UpdateConversationLastMessage(ctx, event.ConversationID, msg.ID, msg.BaseModel.CreatedAt); err != nil {
 			log.Printf("[CHAT] Failed to update conversation last message: %v", err)
 		}
 

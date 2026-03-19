@@ -1,8 +1,6 @@
 package impl
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/repository"
@@ -17,19 +15,6 @@ func NewUserRepo(db *gorm.DB) repository.UserRepository {
 	return &userRepo{db: db}
 }
 
-// GORM specific models to keep entity clean from tags
-type userModel struct {
-	ID           uuid.UUID `gorm:"primaryKey;type:uuid"`
-	Email        *string   `gorm:"uniqueIndex"`
-	PasswordHash *string
-	Status       string
-	CreatedAt    int64 `gorm:"autoCreateTime"`
-	UpdatedAt    int64 `gorm:"autoUpdateTime"`
-}
-
-func (m userModel) TableName() string {
-	return "users"
-}
 
 func (r *userRepo) Create(user *entities.User) error {
 	// Map entity to model here if needed, or use tags if standard enough
@@ -130,11 +115,9 @@ func (r *userRepo) GetByProvider(provider, providerUserID string) (*entities.Use
 
 func (r *userRepo) LinkProvider(userID uuid.UUID, provider, providerUserID string) error {
 	authProvider := entities.AuthProvider{
-		ID:             uuid.New(),
 		UserID:         userID,
 		Provider:       provider,
 		ProviderUserID: providerUserID,
-		CreatedAt:      time.Now(),
 	}
 	return r.db.Create(&authProvider).Error
 }
@@ -169,7 +152,8 @@ func (r *userRepo) CreateWithRelations(user *entities.User) error {
 }
 
 func (r *userRepo) Delete(id uuid.UUID) error {
-	user := entities.User{ID: id}
+	user := entities.User{}
+	user.ID = id
 	return r.db.Select("Photos", "AuthProviders", "Devices", "RefreshTokens", "InterestedGenders", "Interests", "Languages").Delete(&user).Error
 }
 

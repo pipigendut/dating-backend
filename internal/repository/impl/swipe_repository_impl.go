@@ -62,7 +62,6 @@ func (r *swipeRepository) UnmatchUser(ctx context.Context, userID, targetUserID 
 
 		// 3. Insert into unmatches table
 		unmatch := entities.Unmatch{
-			ID:           uuid.New(),
 			UserID:       userID,
 			TargetUserID: targetUserID,
 			MatchID:      matchID,
@@ -80,7 +79,7 @@ func (r *swipeRepository) GetLikesSent(ctx context.Context, userID uuid.UUID) ([
 	err := r.db.WithContext(ctx).
 		Where("swiper_id = ? AND direction IN ?", userID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
 		Where("NOT EXISTS (SELECT 1 FROM matches m WHERE ((m.user_low_id = ? AND m.user_high_id = swipes.swiped_id) OR (m.user_low_id = swipes.swiped_id AND m.user_high_id = ?)) AND m.visible_at <= NOW())", userID, userID).
-		Order("created_at DESC").
+		Order("updated_at DESC").
 		Find(&swipes).Error
 	return swipes, err
 }
