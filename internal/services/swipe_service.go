@@ -32,6 +32,8 @@ type SwipeFilter struct {
 	RelationshipTypes []uuid.UUID
 	Latitude          *float64
 	Longitude         *float64
+	MinHeight         *int
+	MaxHeight         *int
 }
 
 type SentLike struct {
@@ -71,8 +73,10 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 	dislikeRecycleMinutes := s.config.GetInt("dislike_recycle_minutes", 4320)
 
 	// 1. Prepare dynamic filters (Genders)
-	searchGenders := filter.Genders
-	if len(searchGenders) == 0 {
+	var searchGenders []uuid.UUID
+	if len(filter.Genders) > 0 {
+		searchGenders = filter.Genders
+	} else {
 		// Use user's interested genders as default
 		if err := s.db.WithContext(ctx).Table("user_interested_genders").
 			Where("user_id = ?", userID).
@@ -148,6 +152,14 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 	if filter.MaxAge != nil {
 		whereClauses += " AND u.age <= ?"
 		args = append(args, *filter.MaxAge)
+	}
+	if filter.MinHeight != nil {
+		whereClauses += " AND u.height_cm >= ?"
+		args = append(args, *filter.MinHeight)
+	}
+	if filter.MaxHeight != nil {
+		whereClauses += " AND u.height_cm <= ?"
+		args = append(args, *filter.MaxHeight)
 	}
 
 	if len(filter.Interests) > 0 {

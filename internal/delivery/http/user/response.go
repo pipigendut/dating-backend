@@ -29,6 +29,7 @@ type UserResponse struct {
 	Age                int                         `json:"age"`
 	VerifiedAt         *time.Time                  `json:"verified_at,omitempty"`
 	CreatedAt          time.Time                   `json:"created_at" example:"2023-01-01T00:00:00Z"`
+	UpdatedAt          time.Time                   `json:"updated_at" example:"2023-01-01T00:00:00Z"`
 }
 
 type PhotoResponse struct {
@@ -53,6 +54,7 @@ func ToUserResponse(u *entities.User) UserResponse {
 		Age:             u.Age,
 		VerifiedAt:      u.VerifiedAt,
 		CreatedAt:       u.CreatedAt,
+		UpdatedAt:       u.UpdatedAt,
 	}
 
 	if u.Gender != nil {

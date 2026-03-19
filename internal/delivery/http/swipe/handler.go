@@ -93,11 +93,13 @@ func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 		Distance:          filter.Distance,
 		MinAge:            filter.MinAge,
 		MaxAge:            filter.MaxAge,
-		Genders:           filter.Genders,
-		Interests:         filter.Interests,
-		RelationshipTypes: filter.RelationshipTypes,
+		Genders:           h.parseUUIDs(filter.Genders),
+		Interests:         h.parseUUIDs(filter.Interests),
+		RelationshipTypes: h.parseUUIDs(filter.RelationshipTypes),
 		Latitude:          filter.Latitude,
 		Longitude:         filter.Longitude,
+		MinHeight:         filter.MinHeight,
+		MaxHeight:         filter.MaxHeight,
 	}
 
 	candidates, err := h.swipeService.GetSwipeCandidates(c.Request.Context(), userID, svcFilter, 10)
@@ -329,4 +331,14 @@ func (h *SwipeHandler) Unlike(c *gin.Context) {
 	}
 
 	response.OK(c, nil)
+}
+
+func (h *SwipeHandler) parseUUIDs(strs []string) []uuid.UUID {
+	var uuids []uuid.UUID
+	for _, s := range strs {
+		if u, err := uuid.Parse(s); err == nil {
+			uuids = append(uuids, u)
+		}
+	}
+	return uuids
 }
