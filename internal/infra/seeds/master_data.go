@@ -148,14 +148,12 @@ func SeedMasterData(db *gorm.DB) error {
 		}{
 			{"f0000000-0000-0000-0000-000000000001", plusID, "hide_ads", true, "Take Control", "ShieldOff", "Hide Ads", false, 0},
 			{"f0000000-0000-0000-0000-000000000003", plusID, "unlimited_likes", true, "Match+", "Heart", "Unlimited Likes", false, 0},
-			{"f0000000-0000-0000-0000-100000000001", plusID, "undo_swipe", true, "Take Control", "RotateCcw", "Undo swipe", false, 0},
 
 			{"f0000000-0000-0000-0000-000000000004", premiumID, "hide_ads", true, "Take Control", "ShieldOff", "Hide Ads", false, 0},
 			{"f0000000-0000-0000-0000-000000000005", premiumID, "see_likes", true, "Match+", "Eye", "See Who Likes You", false, 0},
 			{"f0000000-0000-0000-0000-000000000006", premiumID, "priority_likes", true, "Match+", "Star", "Priority Likes", false, 0},
 			{"f0000000-0000-0000-0000-000000000007", premiumID, "unlimited_likes", true, "Match+", "Heart", "Unlimited Likes", false, 0},
 			{"f0000000-0000-0000-0000-100000000002", premiumID, "undo_swipe", true, "Take Control", "RotateCcw", "Undo swipe", false, 0},
-
 			{"f0000000-0000-0000-0000-000000000013", premiumID, "monthly_boost", true, "Take Control", "Zap", "1 free boost per month", true, 1},
 
 			{"f0000000-0000-0000-0000-000000000008", ultimateID, "hide_ads", true, "Take Control", "ShieldOff", "Hide Ads", false, 0},
