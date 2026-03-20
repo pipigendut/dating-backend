@@ -15,8 +15,8 @@ import (
 type SwipeService interface {
 	GetSwipeCandidates(ctx context.Context, userID uuid.UUID, filter SwipeFilter, limit int) ([]entities.User, error)
 	CreateSwipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, *entities.User, error)
-	GetIncomingLikes(ctx context.Context, userID uuid.UUID) ([]IncomingLike, error)
-	GetLikesSent(ctx context.Context, userID uuid.UUID) ([]SentLike, error)
+	GetIncomingLikes(ctx context.Context, userID uuid.UUID, limit, offset int) ([]IncomingLike, error)
+	GetLikesSent(ctx context.Context, userID uuid.UUID, limit, offset int) ([]SentLike, error)
 	UnlikeUser(ctx context.Context, swiperID, swipedID uuid.UUID) error
 	UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*entities.User, error)
 	RecordImpressions(ctx context.Context, viewerID uuid.UUID, shownUserIDs []uuid.UUID) error
@@ -423,7 +423,7 @@ type IncomingLike struct {
 	CreatedAt    time.Time
 }
 
-func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID) ([]IncomingLike, error) {
+func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID, limit, offset int) ([]IncomingLike, error) {
 	var results []struct {
 		entities.User
 		RawDirection    string    `gorm:"column:direction"`
@@ -463,10 +463,10 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID) (
 			WHERE my_swipe.swiper_id = ? AND my_swipe.swiped_id = s.swiper_id
 		)
 		ORDER BY s.ranking_score DESC, s.created_at DESC
-		LIMIT 100
+		LIMIT ? OFFSET ?
 	`
 
-	err := s.db.WithContext(ctx).Raw(query, userID, userID, userID).Scan(&results).Error
+	err := s.db.WithContext(ctx).Raw(query, userID, userID, userID, limit, offset).Scan(&results).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get incoming likes: %w", err)
 	}
@@ -575,8 +575,8 @@ func (s *swipeService) UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*en
 	return undoneUser, err
 }
 
-func (s *swipeService) GetLikesSent(ctx context.Context, userID uuid.UUID) ([]SentLike, error) {
-	swipes, err := s.swipeRepo.GetLikesSent(ctx, userID)
+func (s *swipeService) GetLikesSent(ctx context.Context, userID uuid.UUID, limit, offset int) ([]SentLike, error) {
+	swipes, err := s.swipeRepo.GetLikesSent(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

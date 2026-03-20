@@ -73,13 +73,14 @@ func (r *swipeRepository) UnmatchUser(ctx context.Context, userID, targetUserID 
 		return nil
 	})
 }
-func (r *swipeRepository) GetLikesSent(ctx context.Context, userID uuid.UUID) ([]entities.Swipe, error) {
+func (r *swipeRepository) GetLikesSent(ctx context.Context, userID uuid.UUID, limit, offset int) ([]entities.Swipe, error) {
 	var swipes []entities.Swipe
 	// Find users current user liked but not yet matched
 	err := r.db.WithContext(ctx).
 		Where("swiper_id = ? AND direction IN ?", userID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
 		Where("NOT EXISTS (SELECT 1 FROM matches m WHERE ((m.user_low_id = ? AND m.user_high_id = swipes.swiped_id) OR (m.user_low_id = swipes.swiped_id AND m.user_high_id = ?)) AND m.visible_at <= NOW())", userID, userID).
 		Order("updated_at DESC").
+		Limit(limit).Offset(offset).
 		Find(&swipes).Error
 	return swipes, err
 }

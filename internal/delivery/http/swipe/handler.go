@@ -188,7 +188,17 @@ func (h *SwipeHandler) Swipe(c *gin.Context) {
 func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 
-	likes, err := h.swipeService.GetIncomingLikes(c.Request.Context(), userID)
+	var filter PaginationFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid pagination parameters", err.Error())
+		return
+	}
+
+	if filter.Limit <= 0 {
+		filter.Limit = 20
+	}
+
+	likes, err := h.swipeService.GetIncomingLikes(c.Request.Context(), userID, filter.Limit, filter.Offset)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get incoming likes", err.Error())
 		return
@@ -282,7 +292,17 @@ func (h *SwipeHandler) Unmatch(c *gin.Context) {
 func (h *SwipeHandler) GetLikesSent(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 
-	likes, err := h.swipeService.GetLikesSent(c.Request.Context(), userID)
+	var filter PaginationFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid pagination parameters", err.Error())
+		return
+	}
+
+	if filter.Limit <= 0 {
+		filter.Limit = 20
+	}
+
+	likes, err := h.swipeService.GetLikesSent(c.Request.Context(), userID, filter.Limit, filter.Offset)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get sent likes", err.Error())
 		return
@@ -331,6 +351,11 @@ func (h *SwipeHandler) Unlike(c *gin.Context) {
 	}
 
 	response.OK(c, nil)
+}
+
+type PaginationFilter struct {
+	Limit  int `form:"limit"`
+	Offset int `form:"offset"`
 }
 
 func (h *SwipeHandler) parseUUIDs(strs []string) []uuid.UUID {
