@@ -8,6 +8,19 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/master"
 )
 
+type UserSubscriptionResponse struct {
+	PlanID    uuid.UUID `json:"plan_id"`
+	PlanName  string    `json:"plan_name,omitempty"`
+	StartedAt time.Time `json:"started_at"`
+	ExpiredAt time.Time `json:"expired_at"`
+	IsActive  bool      `json:"is_active"`
+}
+
+type ConsumableItemResponse struct {
+	ItemType string `json:"item_type"` // boost, crush
+	Amount   int    `json:"amount"`
+}
+
 type UserResponse struct {
 	ID                 uuid.UUID                   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Email              *string                     `json:"email,omitempty" example:"user@example.com"`
@@ -18,10 +31,10 @@ type UserResponse struct {
 	HeightCM           int                         `json:"height_cm"`
 	Gender             *master.MasterItemResponse  `json:"gender,omitempty"`
 	RelationshipType   *master.MasterItemResponse  `json:"relationship_type,omitempty"`
-	InterestedGenders  []master.MasterItemResponse `json:"interested_genders,omitempty"`
-	Interests          []master.MasterItemResponse `json:"interests,omitempty"`
-	Languages          []master.MasterItemResponse `json:"languages,omitempty"`
-	Photos             []PhotoResponse             `json:"photos,omitempty"`
+	InterestedGenders  []master.MasterItemResponse `json:"interested_genders"`
+	Interests          []master.MasterItemResponse `json:"interests"`
+	Languages          []master.MasterItemResponse `json:"languages"`
+	Photos             []PhotoResponse             `json:"photos"`
 	LocationCity       string                      `json:"location_city,omitempty"`
 	LocationCountry    string                      `json:"location_country,omitempty"`
 	Latitude           *float64                    `json:"latitude,omitempty"`
@@ -30,6 +43,8 @@ type UserResponse struct {
 	VerifiedAt         *time.Time                  `json:"verified_at,omitempty"`
 	CreatedAt          time.Time                   `json:"created_at" example:"2023-01-01T00:00:00Z"`
 	UpdatedAt          time.Time                   `json:"updated_at" example:"2023-01-01T00:00:00Z"`
+	Subscription       *UserSubscriptionResponse   `json:"subscription,omitempty"`
+	Consumables        []ConsumableItemResponse    `json:"consumables"`
 }
 
 type PhotoResponse struct {
@@ -40,21 +55,26 @@ type PhotoResponse struct {
 
 func ToUserResponse(u *entities.User) UserResponse {
 	resp := UserResponse{
-		ID:              u.ID,
-		Email:           u.Email,
-		Status:          u.Status,
-		FullName:        u.FullName,
-		DateOfBirth:     u.DateOfBirth,
-		Bio:             u.Bio,
-		HeightCM:        u.HeightCM,
-		LocationCity:    u.LocationCity,
-		LocationCountry: u.LocationCountry,
-		Latitude:        u.Latitude,
-		Longitude:       u.Longitude,
-		Age:             u.Age,
-		VerifiedAt:      u.VerifiedAt,
-		CreatedAt:       u.CreatedAt,
-		UpdatedAt:       u.UpdatedAt,
+		ID:                u.ID,
+		Email:             u.Email,
+		Status:            u.Status,
+		FullName:          u.FullName,
+		DateOfBirth:       u.DateOfBirth,
+		Bio:               u.Bio,
+		HeightCM:          u.HeightCM,
+		LocationCity:      u.LocationCity,
+		LocationCountry:   u.LocationCountry,
+		Latitude:          u.Latitude,
+		Longitude:         u.Longitude,
+		Age:               u.Age,
+		VerifiedAt:        u.VerifiedAt,
+		CreatedAt:         u.CreatedAt,
+		UpdatedAt:         u.UpdatedAt,
+		InterestedGenders: make([]master.MasterItemResponse, 0),
+		Interests:         make([]master.MasterItemResponse, 0),
+		Languages:         make([]master.MasterItemResponse, 0),
+		Photos:            make([]PhotoResponse, 0),
+		Consumables:       make([]ConsumableItemResponse, 0),
 	}
 
 	if u.Gender != nil {
@@ -85,6 +105,30 @@ func ToUserResponse(u *entities.User) UserResponse {
 			URL:    p.URL,
 			IsMain: p.IsMain,
 		})
+	}
+
+	// Map single active subscription
+	if len(u.Subscriptions) > 0 {
+		sub := u.Subscriptions[0]
+		resp.Subscription = &UserSubscriptionResponse{
+			PlanID:    sub.PlanID,
+			StartedAt: sub.StartedAt,
+			ExpiredAt: sub.ExpiredAt,
+			IsActive:  sub.IsActive,
+		}
+		if sub.Plan != nil {
+			resp.Subscription.PlanName = sub.Plan.Name
+		}
+	}
+
+	// Map consumables
+	if len(u.Consumables) > 0 {
+		for _, cons := range u.Consumables {
+			resp.Consumables = append(resp.Consumables, ConsumableItemResponse{
+				ItemType: cons.ItemType,
+				Amount:   cons.Amount,
+			})
+		}
 	}
 
 	return resp

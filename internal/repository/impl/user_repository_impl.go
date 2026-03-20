@@ -28,17 +28,19 @@ func (r *userRepo) GetByID(id uuid.UUID) (*entities.User, error) {
 	err := r.db.First(&user, "id = ?", id).Error
 	return &user, err
 }
-
 func (r *userRepo) GetWithRelations(id uuid.UUID) (*entities.User, error) {
 	var user entities.User
-	// Explicit Preload only when needed
 	err := r.db.Preload("Photos").
 		Preload("Gender").
 		Preload("RelationshipType").
 		Preload("InterestedGenders").
 		Preload("Interests").
 		Preload("Languages").
+		Preload("Subscriptions", "is_active = ?", true).
+		Preload("Subscriptions.Plan").
+		Preload("Consumables").
 		First(&user, "id = ?", id).Error
+		
 	return &user, err
 }
 
@@ -49,47 +51,56 @@ func (r *userRepo) Update(user *entities.User) error {
 			return err
 		}
 
-		// Sync Many2Many manually
-		if err := tx.Model(user).Association("InterestedGenders").Replace(user.InterestedGenders); err != nil {
-			return err
-		}
-		if err := tx.Model(user).Association("Interests").Replace(user.Interests); err != nil {
-			return err
-		}
-		if err := tx.Model(user).Association("Languages").Replace(user.Languages); err != nil {
-			return err
-		}
-
-		// 3. Reset is_main for all photos of this user to handle single-main-photo logic safely
-		if err := tx.Model(&entities.Photo{}).Where("user_id = ?", user.ID).Update("is_main", false).Error; err != nil {
-			return err
-		}
-
-		// 4. Handle Deletions: Get current IDs from request
-		var photoIDs []uuid.UUID
-		for _, p := range user.Photos {
-			if p.ID != uuid.Nil {
-				photoIDs = append(photoIDs, p.ID)
-			}
-		}
-
-		// Delete photos stored in DB for this user but NOT in the current request list
-		if len(photoIDs) > 0 {
-			if err := tx.Unscoped().Where("user_id = ? AND id NOT IN ?", user.ID, photoIDs).Delete(&entities.Photo{}).Error; err != nil {
+		// Sync Many2Many manually only if provided
+		if user.InterestedGenders != nil {
+			if err := tx.Model(user).Association("InterestedGenders").Replace(user.InterestedGenders); err != nil {
 				return err
 			}
-		} else {
-			if err := tx.Unscoped().Where("user_id = ?", user.ID).Delete(&entities.Photo{}).Error; err != nil {
+		}
+		if user.Interests != nil {
+			if err := tx.Model(user).Association("Interests").Replace(user.Interests); err != nil {
+				return err
+			}
+		}
+		if user.Languages != nil {
+			if err := tx.Model(user).Association("Languages").Replace(user.Languages); err != nil {
 				return err
 			}
 		}
 
-		// 5. UPSERT photos from the request
-		for i := range user.Photos {
-			user.Photos[i].UserID = user.ID
-			// Save performs UPSERT: Updates if ID exists, Creates otherwise
-			if err := tx.Omit("CreatedAt").Save(&user.Photos[i]).Error; err != nil {
+		// Sync Photos only if provided
+		if user.Photos != nil {
+			// 3. Reset is_main for all photos of this user to handle single-main-photo logic safely
+			if err := tx.Model(&entities.Photo{}).Where("user_id = ?", user.ID).Update("is_main", false).Error; err != nil {
 				return err
+			}
+
+			// 4. Handle Deletions: Get current IDs from request
+			var photoIDs []uuid.UUID
+			for _, p := range user.Photos {
+				if p.ID != uuid.Nil {
+					photoIDs = append(photoIDs, p.ID)
+				}
+			}
+
+			// Delete photos stored in DB for this user but NOT in the current request list
+			if len(photoIDs) > 0 {
+				if err := tx.Unscoped().Where("user_id = ? AND id NOT IN ?", user.ID, photoIDs).Delete(&entities.Photo{}).Error; err != nil {
+					return err
+				}
+			} else {
+				if err := tx.Unscoped().Where("user_id = ?", user.ID).Delete(&entities.Photo{}).Error; err != nil {
+					return err
+				}
+			}
+
+			// 5. UPSERT photos from the request
+			for i := range user.Photos {
+				user.Photos[i].UserID = user.ID
+				// Save performs UPSERT: Updates if ID exists, Creates otherwise
+				if err := tx.Omit("CreatedAt").Save(&user.Photos[i]).Error; err != nil {
+					return err
+				}
 			}
 		}
 
@@ -149,6 +160,10 @@ func (r *userRepo) CreateWithRelations(user *entities.User) error {
 
 		return nil
 	})
+}
+
+func (r *userRepo) UpdatePremiumStatus(id uuid.UUID, isPremium bool) error {
+	return r.db.Model(&entities.User{}).Where("id = ?", id).Update("is_premium", isPremium).Error
 }
 
 func (r *userRepo) Delete(id uuid.UUID) error {

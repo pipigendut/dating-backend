@@ -26,5 +26,5 @@ func (m *BaseModel) BeforeCreate(tx *gorm.DB) error {
 // SoftDeleteModel extends BaseModel with soft delete capability.
 type SoftDeleteModel struct {
 	BaseModel
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty" swaggertype:"string" format:"date-time"`
 }

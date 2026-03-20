@@ -24,6 +24,27 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/configs": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Get all configs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/configs/reload": {
             "post": {
                 "security": [
@@ -72,6 +93,120 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/consumables/boost": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Simulate adding a boost package to user",
+                "parameters": [
+                    {
+                        "description": "Boost Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_delivery_http_admin.AdminConsumableRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/consumables/crush": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Simulate adding a crush package to user",
+                "parameters": [
+                    {
+                        "description": "Crush Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_delivery_http_admin.AdminConsumableRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/subscribe": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Simulate user subscription to a plan",
+                "parameters": [
+                    {
+                        "description": "Subscribe Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_delivery_http_admin.AdminSubscribeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/check-email": {
             "post": {
                 "description": "Checks if the provided email is already registered in the system.",
@@ -92,7 +227,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.CheckEmailRequest"
+                            "$ref": "#/definitions/internal_delivery_http_auth.CheckEmailRequest"
                         }
                     }
                 ],
@@ -102,13 +237,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.CheckEmailResponse"
+                                            "$ref": "#/definitions/internal_delivery_http_auth.CheckEmailResponse"
                                         }
                                     }
                                 }
@@ -118,7 +253,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -144,7 +279,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.GoogleLoginRequest"
+                            "$ref": "#/definitions/internal_delivery_http_auth.GoogleLoginRequest"
                         }
                     }
                 ],
@@ -154,13 +289,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.AuthResponse"
+                                            "$ref": "#/definitions/internal_delivery_http_auth.AuthResponse"
                                         }
                                     }
                                 }
@@ -170,7 +305,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -196,7 +331,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.LoginEmailRequest"
+                            "$ref": "#/definitions/internal_delivery_http_auth.LoginEmailRequest"
                         }
                     }
                 ],
@@ -206,13 +341,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.AuthResponse"
+                                            "$ref": "#/definitions/internal_delivery_http_auth.AuthResponse"
                                         }
                                     }
                                 }
@@ -222,7 +357,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -253,7 +388,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.LogoutRequest"
+                            "$ref": "#/definitions/internal_delivery_http_auth.LogoutRequest"
                         }
                     }
                 ],
@@ -261,13 +396,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -293,7 +428,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RefreshTokenRequest"
+                            "$ref": "#/definitions/internal_delivery_http_auth.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -303,13 +438,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.TokenResponse"
+                                            "$ref": "#/definitions/internal_delivery_http_auth.TokenResponse"
                                         }
                                     }
                                 }
@@ -319,7 +454,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -345,7 +480,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RegisterEmailRequest"
+                            "$ref": "#/definitions/internal_delivery_http_auth.RegisterEmailRequest"
                         }
                     }
                 ],
@@ -355,13 +490,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.AuthResponse"
+                                            "$ref": "#/definitions/internal_delivery_http_auth.AuthResponse"
                                         }
                                     }
                                 }
@@ -371,7 +506,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -401,7 +536,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -409,7 +544,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/chat.ConversationResponse"
+                                                "$ref": "#/definitions/internal_delivery_http_chat.ConversationResponse"
                                             }
                                         }
                                     }
@@ -453,13 +588,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/chat.ConversationResponse"
+                                            "$ref": "#/definitions/internal_delivery_http_chat.ConversationResponse"
                                         }
                                     }
                                 }
@@ -516,7 +651,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -524,7 +659,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/chat.MessageResponse"
+                                                "$ref": "#/definitions/internal_delivery_http_chat.MessageResponse"
                                             }
                                         }
                                     }
@@ -568,13 +703,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/chat.ChatUploadURLResponse"
+                                            "$ref": "#/definitions/internal_delivery_http_chat.ChatUploadURLResponse"
                                         }
                                     }
                                 }
@@ -600,7 +735,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -608,7 +743,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/master.MasterItemResponse"
+                                                "$ref": "#/definitions/internal_delivery_http_master.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -619,7 +754,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -641,7 +776,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -649,7 +784,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/master.MasterItemResponse"
+                                                "$ref": "#/definitions/internal_delivery_http_master.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -660,7 +795,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -682,7 +817,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -690,7 +825,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/master.MasterItemResponse"
+                                                "$ref": "#/definitions/internal_delivery_http_master.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -701,7 +836,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -723,7 +858,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -731,7 +866,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/master.MasterItemResponse"
+                                                "$ref": "#/definitions/internal_delivery_http_master.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -742,7 +877,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -762,7 +897,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -782,7 +917,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -807,7 +942,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/monetization.PurchaseRequest"
+                            "$ref": "#/definitions/internal_delivery_http_monetization.PurchaseRequest"
                         }
                     }
                 ],
@@ -815,7 +950,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -840,7 +975,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/monetization.PurchaseRequest"
+                            "$ref": "#/definitions/internal_delivery_http_monetization.PurchaseRequest"
                         }
                     }
                 ],
@@ -848,7 +983,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -872,7 +1007,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -903,7 +1038,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swipe.SwipeRequest"
+                            "$ref": "#/definitions/internal_delivery_http_swipe.SwipeRequest"
                         }
                     }
                 ],
@@ -913,13 +1048,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/swipe.MatchResponse"
+                                            "$ref": "#/definitions/internal_delivery_http_swipe.MatchResponse"
                                         }
                                     }
                                 }
@@ -929,19 +1064,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     },
                     "429": {
                         "description": "Too many requests",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1035,7 +1170,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1043,7 +1178,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/user.UserResponse"
+                                                "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
                                             }
                                         }
                                     }
@@ -1054,7 +1189,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1084,7 +1219,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1092,7 +1227,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/swipe.IncomingLikeResponse"
+                                                "$ref": "#/definitions/internal_delivery_http_swipe.IncomingLikeResponse"
                                             }
                                         }
                                     }
@@ -1103,7 +1238,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1133,7 +1268,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1141,7 +1276,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/swipe.SentLikeResponse"
+                                                "$ref": "#/definitions/internal_delivery_http_swipe.SentLikeResponse"
                                             }
                                         }
                                     }
@@ -1152,7 +1287,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1182,13 +1317,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/user.UserResponse"
+                                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
                                         }
                                     }
                                 }
@@ -1198,13 +1333,13 @@ const docTemplate = `{
                     "400": {
                         "description": "No swipe history or daily limit reached",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1235,7 +1370,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swipe.UnlikeRequest"
+                            "$ref": "#/definitions/internal_delivery_http_swipe.UnlikeRequest"
                         }
                     }
                 ],
@@ -1243,19 +1378,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully unliked",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request or already matched",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1292,19 +1427,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully unmatched",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid ID or no match exists",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1312,7 +1447,259 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "auth.AuthResponse": {
+        "github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse": {
+            "type": "object",
+            "properties": {
+                "icon": {
+                    "type": "string",
+                    "example": "✈️"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "bd0a597a-2d88-44e2-a0b4-eb416c1f2115"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Travel"
+                }
+            }
+        },
+        "github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "errors": {},
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                },
+                "status": {
+                    "type": "integer",
+                    "example": 200
+                }
+            }
+        },
+        "github_com_pipigendut_dating-backend_internal_delivery_http_user.ConsumableItemResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "item_type": {
+                    "description": "boost, crush",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pipigendut_dating-backend_internal_delivery_http_user.PhotoResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "is_main": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "url": {
+                    "type": "string",
+                    "example": "https://example.com/photo.jpg"
+                }
+            }
+        },
+        "github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "bio": {
+                    "type": "string",
+                    "example": "Avid hiker and coffee lover."
+                },
+                "consumables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.ConsumableItemResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "date_of_birth": {
+                    "type": "string",
+                    "example": "1995-01-01T00:00:00Z"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "full_name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "gender": {
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                },
+                "height_cm": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "interested_genders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                    }
+                },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                    }
+                },
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                    }
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "location_city": {
+                    "type": "string"
+                },
+                "location_country": {
+                    "type": "string"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "photos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.PhotoResponse"
+                    }
+                },
+                "relationship_type": {
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                },
+                "status": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_entities.UserStatus"
+                        }
+                    ],
+                    "example": "active"
+                },
+                "subscription": {
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserSubscriptionResponse"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pipigendut_dating-backend_internal_delivery_http_user.UserSubscriptionResponse": {
+            "type": "object",
+            "properties": {
+                "expired_at": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pipigendut_dating-backend_internal_entities.MessageMetadata": {
+            "type": "object",
+            "properties": {
+                "gif_provider": {
+                    "type": "string"
+                },
+                "image_height": {
+                    "type": "integer"
+                },
+                "image_width": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_pipigendut_dating-backend_internal_entities.MessageType": {
+            "type": "string",
+            "enum": [
+                "text",
+                "image",
+                "gif"
+            ],
+            "x-enum-varnames": [
+                "MessageTypeText",
+                "MessageTypeImage",
+                "MessageTypeGif"
+            ]
+        },
+        "github_com_pipigendut_dating-backend_internal_entities.UserStatus": {
+            "type": "string",
+            "enum": [
+                "onboarding",
+                "active",
+                "banned"
+            ],
+            "x-enum-varnames": [
+                "UserStatusOnboarding",
+                "UserStatusActive",
+                "UserStatusBanned"
+            ]
+        },
+        "internal_delivery_http_admin.AdminConsumableRequest": {
+            "type": "object",
+            "required": [
+                "package_id",
+                "user_id"
+            ],
+            "properties": {
+                "package_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_delivery_http_admin.AdminSubscribeRequest": {
+            "type": "object",
+            "required": [
+                "plan_id",
+                "user_id"
+            ],
+            "properties": {
+                "plan_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_delivery_http_auth.AuthResponse": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -1324,11 +1711,11 @@ const docTemplate = `{
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 },
                 "user": {
-                    "$ref": "#/definitions/user.UserResponse"
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
                 }
             }
         },
-        "auth.CheckEmailRequest": {
+        "internal_delivery_http_auth.CheckEmailRequest": {
             "type": "object",
             "required": [
                 "email"
@@ -1340,7 +1727,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.CheckEmailResponse": {
+        "internal_delivery_http_auth.CheckEmailResponse": {
             "type": "object",
             "properties": {
                 "exists": {
@@ -1349,7 +1736,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.DeviceRequest": {
+        "internal_delivery_http_auth.DeviceRequest": {
             "type": "object",
             "required": [
                 "device_id"
@@ -1375,7 +1762,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.GoogleLoginRequest": {
+        "internal_delivery_http_auth.GoogleLoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -1389,7 +1776,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "device": {
-                    "$ref": "#/definitions/auth.DeviceRequest"
+                    "$ref": "#/definitions/internal_delivery_http_auth.DeviceRequest"
                 },
                 "email": {
                     "type": "string",
@@ -1445,7 +1832,7 @@ const docTemplate = `{
                 "photos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/auth.PhotoRequest"
+                        "$ref": "#/definitions/internal_delivery_http_auth.PhotoRequest"
                     }
                 },
                 "profile_picture": {
@@ -1454,7 +1841,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.LoginEmailRequest": {
+        "internal_delivery_http_auth.LoginEmailRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -1462,7 +1849,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "device": {
-                    "$ref": "#/definitions/auth.DeviceRequest"
+                    "$ref": "#/definitions/internal_delivery_http_auth.DeviceRequest"
                 },
                 "email": {
                     "type": "string",
@@ -1474,7 +1861,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.LogoutRequest": {
+        "internal_delivery_http_auth.LogoutRequest": {
             "type": "object",
             "required": [
                 "device_id"
@@ -1485,7 +1872,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.PhotoRequest": {
+        "internal_delivery_http_auth.PhotoRequest": {
             "type": "object",
             "required": [
                 "url"
@@ -1499,7 +1886,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.RefreshTokenRequest": {
+        "internal_delivery_http_auth.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "device_id",
@@ -1514,7 +1901,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.RegisterEmailRequest": {
+        "internal_delivery_http_auth.RegisterEmailRequest": {
             "type": "object",
             "required": [
                 "date_of_birth",
@@ -1531,7 +1918,7 @@ const docTemplate = `{
                     "example": "1995-01-01"
                 },
                 "device": {
-                    "$ref": "#/definitions/auth.DeviceRequest"
+                    "$ref": "#/definitions/internal_delivery_http_auth.DeviceRequest"
                 },
                 "email": {
                     "type": "string",
@@ -1588,12 +1975,12 @@ const docTemplate = `{
                 "photos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/auth.PhotoRequest"
+                        "$ref": "#/definitions/internal_delivery_http_auth.PhotoRequest"
                     }
                 }
             }
         },
-        "auth.TokenResponse": {
+        "internal_delivery_http_auth.TokenResponse": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -1606,7 +1993,7 @@ const docTemplate = `{
                 }
             }
         },
-        "chat.ChatUploadURLResponse": {
+        "internal_delivery_http_chat.ChatUploadURLResponse": {
             "type": "object",
             "properties": {
                 "file_key": {
@@ -1617,7 +2004,7 @@ const docTemplate = `{
                 }
             }
         },
-        "chat.ConversationResponse": {
+        "internal_delivery_http_chat.ConversationResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1627,20 +2014,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "last_message": {
-                    "$ref": "#/definitions/chat.MessageResponse"
+                    "$ref": "#/definitions/internal_delivery_http_chat.MessageResponse"
                 },
                 "other_user": {
                     "description": "User Preview for Chat List",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/chat.ParticipantPreviewResponse"
+                            "$ref": "#/definitions/internal_delivery_http_chat.ParticipantPreviewResponse"
                         }
                     ]
                 },
                 "participants": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/chat.ParticipantResponse"
+                        "$ref": "#/definitions/internal_delivery_http_chat.ParticipantResponse"
                     }
                 },
                 "unread_count": {
@@ -1648,7 +2035,7 @@ const docTemplate = `{
                 }
             }
         },
-        "chat.MessageResponse": {
+        "internal_delivery_http_chat.MessageResponse": {
             "type": "object",
             "properties": {
                 "content": {
@@ -1667,17 +2054,17 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "metadata": {
-                    "$ref": "#/definitions/entities.MessageMetadata"
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_entities.MessageMetadata"
                 },
                 "sender_id": {
                     "type": "string"
                 },
                 "type": {
-                    "$ref": "#/definitions/entities.MessageType"
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_entities.MessageType"
                 }
             }
         },
-        "chat.ParticipantPreviewResponse": {
+        "internal_delivery_http_chat.ParticipantPreviewResponse": {
             "type": "object",
             "properties": {
                 "age": {
@@ -1697,7 +2084,7 @@ const docTemplate = `{
                 }
             }
         },
-        "chat.ParticipantResponse": {
+        "internal_delivery_http_chat.ParticipantResponse": {
             "type": "object",
             "properties": {
                 "full_name": {
@@ -1714,47 +2101,7 @@ const docTemplate = `{
                 }
             }
         },
-        "entities.MessageMetadata": {
-            "type": "object",
-            "properties": {
-                "gif_provider": {
-                    "type": "string"
-                },
-                "image_height": {
-                    "type": "integer"
-                },
-                "image_width": {
-                    "type": "integer"
-                }
-            }
-        },
-        "entities.MessageType": {
-            "type": "string",
-            "enum": [
-                "text",
-                "image",
-                "gif"
-            ],
-            "x-enum-varnames": [
-                "MessageTypeText",
-                "MessageTypeImage",
-                "MessageTypeGif"
-            ]
-        },
-        "entities.UserStatus": {
-            "type": "string",
-            "enum": [
-                "onboarding",
-                "active",
-                "banned"
-            ],
-            "x-enum-varnames": [
-                "UserStatusOnboarding",
-                "UserStatusActive",
-                "UserStatusBanned"
-            ]
-        },
-        "master.MasterItemResponse": {
+        "internal_delivery_http_master.MasterItemResponse": {
             "type": "object",
             "properties": {
                 "icon": {
@@ -1771,7 +2118,7 @@ const docTemplate = `{
                 }
             }
         },
-        "monetization.PurchaseRequest": {
+        "internal_delivery_http_monetization.PurchaseRequest": {
             "type": "object",
             "properties": {
                 "item_id": {
@@ -1785,22 +2132,7 @@ const docTemplate = `{
                 }
             }
         },
-        "response.BaseResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "errors": {},
-                "message": {
-                    "type": "string",
-                    "example": "Success"
-                },
-                "status": {
-                    "type": "integer",
-                    "example": 200
-                }
-            }
-        },
-        "swipe.IncomingLikeResponse": {
+        "internal_delivery_http_swipe.IncomingLikeResponse": {
             "type": "object",
             "properties": {
                 "is_crush": {
@@ -1813,11 +2145,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/user.UserResponse"
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
                 }
             }
         },
-        "swipe.MatchResponse": {
+        "internal_delivery_http_swipe.MatchResponse": {
             "type": "object",
             "properties": {
                 "is_match": {
@@ -1827,11 +2159,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "matched_user": {
-                    "$ref": "#/definitions/user.UserResponse"
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
                 }
             }
         },
-        "swipe.SentLikeResponse": {
+        "internal_delivery_http_swipe.SentLikeResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1841,11 +2173,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/user.UserResponse"
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
                 }
             }
         },
-        "swipe.SwipeRequest": {
+        "internal_delivery_http_swipe.SwipeRequest": {
             "type": "object",
             "required": [
                 "direction",
@@ -1865,7 +2197,7 @@ const docTemplate = `{
                 }
             }
         },
-        "swipe.UnlikeRequest": {
+        "internal_delivery_http_swipe.UnlikeRequest": {
             "type": "object",
             "required": [
                 "target_user_id"
@@ -1873,105 +2205,6 @@ const docTemplate = `{
             "properties": {
                 "target_user_id": {
                     "type": "string"
-                }
-            }
-        },
-        "user.PhotoResponse": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "is_main": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "url": {
-                    "type": "string",
-                    "example": "https://example.com/photo.jpg"
-                }
-            }
-        },
-        "user.UserResponse": {
-            "type": "object",
-            "properties": {
-                "bio": {
-                    "type": "string",
-                    "example": "Avid hiker and coffee lover."
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2023-01-01T00:00:00Z"
-                },
-                "date_of_birth": {
-                    "type": "string",
-                    "example": "1995-01-01T00:00:00Z"
-                },
-                "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                },
-                "full_name": {
-                    "type": "string",
-                    "example": "John Doe"
-                },
-                "gender": {
-                    "$ref": "#/definitions/master.MasterItemResponse"
-                },
-                "height_cm": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "interested_genders": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/master.MasterItemResponse"
-                    }
-                },
-                "interests": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/master.MasterItemResponse"
-                    }
-                },
-                "languages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/master.MasterItemResponse"
-                    }
-                },
-                "latitude": {
-                    "type": "number"
-                },
-                "location_city": {
-                    "type": "string"
-                },
-                "location_country": {
-                    "type": "string"
-                },
-                "longitude": {
-                    "type": "number"
-                },
-                "photos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/user.PhotoResponse"
-                    }
-                },
-                "relationship_type": {
-                    "$ref": "#/definitions/master.MasterItemResponse"
-                },
-                "status": {
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entities.UserStatus"
-                        }
-                    ],
-                    "example": "active"
                 }
             }
         }

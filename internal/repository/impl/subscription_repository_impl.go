@@ -2,12 +2,13 @@ package impl
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/repository"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"time"
 )
 
 type subscriptionRepository struct {
@@ -46,16 +47,38 @@ func (r *subscriptionRepository) GetPlanFeatures(ctx context.Context, planID uui
 func (r *subscriptionRepository) GetConsumables(ctx context.Context, userID uuid.UUID) ([]entities.UserConsumable, error) {
 	var consumables []entities.UserConsumable
 	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND (expired_at IS NULL OR expired_at > ?)", userID, time.Now()).
+		Preload("Package"). // Preload the package to get ItemType
+		Where("user_id = ? AND amount > 0", userID).
 		Find(&consumables).Error
 	return consumables, err
 }
 
 func (r *subscriptionRepository) UpdateConsumable(ctx context.Context, userID uuid.UUID, consumableType string, delta int) error {
-	return r.db.WithContext(ctx).
-		Model(&entities.UserConsumable{}).
-		Where("user_id = ? AND type = ?", userID, consumableType).
-		Update("remaining", gorm.Expr("remaining + ?", delta)).Error
+	// Delta < 0 means use consumable
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var cons entities.UserConsumable
+		err := tx.
+			Joins("JOIN consumable_packages ON user_consumables.consumable_package_id = consumable_packages.id").
+			Where("user_consumables.user_id = ? AND consumable_packages.item_type = ?", userID, consumableType).
+			First(&cons).Error
+
+		if err != nil {
+			return err
+		}
+
+		newAmount := cons.Amount + delta
+		if newAmount < 0 {
+			return gorm.ErrRecordNotFound // Insufficient balance
+		}
+
+		updates := map[string]interface{}{"amount": newAmount}
+		if delta < 0 {
+			now := time.Now()
+			updates["last_used_at"] = &now
+		}
+
+		return tx.Model(&cons).Updates(updates).Error
+	})
 }
 
 func (r *subscriptionRepository) CreateUserBoost(ctx context.Context, boost *entities.UserBoost) error {
@@ -64,64 +87,89 @@ func (r *subscriptionRepository) CreateUserBoost(ctx context.Context, boost *ent
 
 func (r *subscriptionRepository) GetActiveBoost(ctx context.Context, userID uuid.UUID) (*entities.UserBoost, error) {
 	var boost entities.UserBoost
+	now := time.Now()
 	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND is_active = true AND expired_at > ?", userID, time.Now()).
-		Order("expired_at DESC").
+		Where("user_id = ? AND is_active = ? AND started_at <= ? AND expired_at > ?", userID, true, now, now).
 		First(&boost).Error
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, nil
+			return nil, nil // No active boost
 		}
 		return nil, err
 	}
 	return &boost, nil
 }
 
+// Store / Monetization
+
 func (r *subscriptionRepository) GetAllPlans(ctx context.Context) ([]entities.SubscriptionPlan, error) {
 	var plans []entities.SubscriptionPlan
 	err := r.db.WithContext(ctx).
 		Preload("Features").
 		Preload("Prices").
-		Where("is_active = true").
+		Where("is_active = ?", true).
 		Find(&plans).Error
 	return plans, err
 }
 
-func (r *subscriptionRepository) GetConsumableItems(ctx context.Context) ([]entities.ConsumableItem, error) {
-	var items []entities.ConsumableItem
-	err := r.db.WithContext(ctx).Find(&items).Error
-	return items, err
-}
-
 func (r *subscriptionRepository) GetPlanByID(ctx context.Context, id uuid.UUID) (*entities.SubscriptionPlan, error) {
 	var plan entities.SubscriptionPlan
-	err := r.db.WithContext(ctx).Preload("Features").Preload("Prices").First(&plan, "id = ?", id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &plan, nil
+	err := r.db.WithContext(ctx).
+		Preload("Features").
+		Preload("Prices").
+		Where("id = ? AND is_active = ?", id, true).
+		First(&plan).Error
+	return &plan, err
 }
 
-func (r *subscriptionRepository) GetConsumableItemByID(ctx context.Context, id uuid.UUID) (*entities.ConsumableItem, error) {
-	var item entities.ConsumableItem
-	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &item, nil
+func (r *subscriptionRepository) GetConsumablePackages(ctx context.Context) ([]entities.ConsumablePackage, error) {
+	var packages []entities.ConsumablePackage
+	err := r.db.WithContext(ctx).
+		Where("is_active = ?", true).
+		Find(&packages).Error
+	return packages, err
+}
+
+func (r *subscriptionRepository) GetConsumablePackageByID(ctx context.Context, id uuid.UUID) (*entities.ConsumablePackage, error) {
+	var pkg entities.ConsumablePackage
+	err := r.db.WithContext(ctx).
+		Where("id = ? AND is_active = ?", id, true).
+		First(&pkg).Error
+	return &pkg, err
 }
 
 func (r *subscriptionRepository) CreateUserSubscription(ctx context.Context, sub *entities.UserSubscription) error {
-	return r.db.WithContext(ctx).Create(sub).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Single query UPSERT using OnConflict. 
+		// If user_id exists, we ONLY update the plan_id (preserving expired_at).
+		return tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"plan_id", "is_active", "updated_at"}),
+		}).Create(sub).Error
+	})
 }
 
-func (r *subscriptionRepository) UpsertUserConsumable(ctx context.Context, con *entities.UserConsumable) error {
-	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "user_id"}, {Name: "type"}},
-		DoUpdates: clause.Assignments(map[string]interface{}{
-			"remaining":  gorm.Expr("user_consumables.remaining + ?", con.Remaining),
-			"updated_at": time.Now(),
-		}),
-	}).Create(con).Error
+func (r *subscriptionRepository) AddUserConsumablePackage(ctx context.Context, userID, packageID uuid.UUID) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var pkg entities.ConsumablePackage
+		if err := tx.First(&pkg, "id = ?", packageID).Error; err != nil {
+			return err
+		}
+
+		cons := entities.UserConsumable{
+			UserID:   userID,
+			ItemType: pkg.ItemType,
+			Amount:   pkg.Amount,
+		}
+
+		// Atomic Upsert: If (userID, itemType) exists, increment amount.
+		return tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "user_id"}, {Name: "item_type"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{
+				"amount":     gorm.Expr("user_consumables.amount + ?", pkg.Amount),
+				"updated_at": time.Now(),
+			}),
+		}).Create(&cons).Error
+	})
 }

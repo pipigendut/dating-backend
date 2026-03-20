@@ -94,14 +94,15 @@ func SeedMasterData(db *gorm.DB) error {
 			{Key: "crush_score_bonus", Value: "500"},
 			{Key: "swipe_impression_cooldown_premium", Value: "10"},
 			{Key: "swipe_impression_cooldown_free", Value: "1"},
-			{Key: "swipe_impression_cooldown_boost", Value: "3"},
-			{Key: "score_weight", Value: "0.7"},
-			{Key: "random_weight", Value: "0.3"},
-			{Key: "incoming_like_delay_free", Value: "60"},
-			{Key: "incoming_like_delay_premium", Value: "10"},
-			{Key: "dislike_recycle_minutes", Value: "4320"}, // 3 days default
-			{Key: "max_limit_likes_free", Value: "50"},
-			{Key: "like_expiry_hours", Value: "72"}, // 3 days default
+			{Key: "swipe_impression_cooldown_boost", Value: `"3"`},
+			{Key: "score_weight", Value: `"0.7"`},
+			{Key: "random_weight", Value: `"0.3"`},
+			{Key: "incoming_like_delay_free", Value: `"60"`},
+			{Key: "incoming_like_delay_premium", Value: `"10"`},
+			{Key: "dislike_recycle_minutes", Value: `"4320"`}, // 3 days default
+			{Key: "max_limit_likes_free", Value: `"50"`},
+			{Key: "like_expiry_hours", Value: `"72"`}, // 3 days default
+			{Key: "whitelist_emails", Value: `["akbar.maulana090895@gmail.com"]`},
 		}
 
 		for _, c := range configs {
@@ -212,22 +213,22 @@ func SeedMasterData(db *gorm.DB) error {
 		}
 
 		// 9. Seed Consumable Packets
-		consumables := []entities.ConsumableItem{
+		consumables := []entities.ConsumablePackage{
 			// Boosts
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000001")}, ItemType: "boost", Amount: 1, Price: 89000, Currency: "IDR", ExternalSlug: "boost_1"},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002")}, ItemType: "boost", Amount: 5, Price: 249000, Currency: "IDR", ExternalSlug: "boost_5"},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000003")}, ItemType: "boost", Amount: 15, Price: 499000, Currency: "IDR", ExternalSlug: "boost_15"},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000001")}, Name: "1 Boost", ItemType: "boost", Amount: 1, Price: 89000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002")}, Name: "5 Boosts", ItemType: "boost", Amount: 5, Price: 249000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000003")}, Name: "15 Boosts", ItemType: "boost", Amount: 15, Price: 499000, IsActive: true},
 
 			// Crushes
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000004")}, ItemType: "crush", Amount: 3, Price: 49000, Currency: "IDR", ExternalSlug: "crush_3"},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000005")}, ItemType: "crush", Amount: 15, Price: 149000, Currency: "IDR", ExternalSlug: "crush_15"},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000006")}, ItemType: "crush", Amount: 30, Price: 249000, Currency: "IDR", ExternalSlug: "crush_30"},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000004")}, Name: "3 Crushes", ItemType: "crush", Amount: 3, Price: 49000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000005")}, Name: "15 Crushes", ItemType: "crush", Amount: 15, Price: 149000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000006")}, Name: "30 Crushes", ItemType: "crush", Amount: 30, Price: 249000, IsActive: true},
 		}
 
 		for _, ci := range consumables {
 			if err := tx.Clauses(clause.OnConflict{
 				Columns:   []clause.Column{{Name: "id"}},
-				DoUpdates: clause.AssignmentColumns([]string{"amount", "price", "currency", "external_slug", "updated_at"}),
+				DoUpdates: clause.AssignmentColumns([]string{"name", "item_type", "amount", "price", "is_active", "updated_at"}),
 			}).Create(&ci).Error; err != nil {
 				return err
 			}

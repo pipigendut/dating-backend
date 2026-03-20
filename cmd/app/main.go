@@ -148,6 +148,7 @@ func main() {
 
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo)
 	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, subscriptionService, swipeRepo)
+	adminSvc := services.NewAdminService(subscriptionRepo, userRepo)
 
 	// 2.1 Kafka Consumer
 	chatConsumer := kafka.NewConsumer(kafkaBrokers, "chat-group", "chat.messages", chatRepo, wsManager)
@@ -171,10 +172,10 @@ func main() {
 	user.NewUserHandler(v1, userUC, storageUC, authMiddleware)
 	auth.NewAuthHandler(v1, authUC)
 	master.NewMasterHandler(v1, masterUC)
-	monetization.NewMonetizationHandler(v1, subscriptionService, authMiddleware)
+	monetization.NewMonetizationHandler(v1, subscriptionService, userRepo, authMiddleware)
 	swipe.NewSwipeHandler(v1, swipeSvc, storageUC, authMiddleware, anticheatMiddleware)
 	chat.NewChatHandler(v1, chatSvc, storageUC, authMiddleware)
-	admin.NewAdminHandler(db, configSvc).RegisterRoutes(v1)
+	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo).RegisterRoutes(v1, authMiddleware)
 
 	// WebSocket Route
 	wsHandler := ws.NewHandler(wsManager, chatSvc)

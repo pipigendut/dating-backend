@@ -17,8 +17,8 @@ type SubscriptionRepository interface {
 	// Store / Monetization
 	GetAllPlans(ctx context.Context) ([]entities.SubscriptionPlan, error)
 	GetPlanByID(ctx context.Context, id uuid.UUID) (*entities.SubscriptionPlan, error)
-	GetConsumableItems(ctx context.Context) ([]entities.ConsumableItem, error)
-	GetConsumableItemByID(ctx context.Context, id uuid.UUID) (*entities.ConsumableItem, error)
+	GetConsumablePackages(ctx context.Context) ([]entities.ConsumablePackage, error)
+	GetConsumablePackageByID(ctx context.Context, id uuid.UUID) (*entities.ConsumablePackage, error)
 	CreateUserSubscription(ctx context.Context, sub *entities.UserSubscription) error
-	UpsertUserConsumable(ctx context.Context, con *entities.UserConsumable) error
+	AddUserConsumablePackage(ctx context.Context, userID, packageID uuid.UUID) error
 }

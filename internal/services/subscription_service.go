@@ -15,7 +15,7 @@ type SubscriptionService interface {
 	UseConsumable(ctx context.Context, userID uuid.UUID, consumableType string) (bool, error)
 	IsBoosted(ctx context.Context, userID uuid.UUID) (bool, error)
 	GetPlans(ctx context.Context) ([]entities.SubscriptionPlan, error)
-	GetConsumableItems(ctx context.Context) ([]entities.ConsumableItem, error)
+	GetConsumableItems(ctx context.Context) ([]entities.ConsumablePackage, error)
 	PurchaseConsumable(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) error
 	PurchasePlan(ctx context.Context, userID uuid.UUID, planID uuid.UUID, priceID uuid.UUID) error
 	GetStatus(ctx context.Context, userID uuid.UUID) (*MonetizationStatus, error)
@@ -63,32 +63,35 @@ func (s *subscriptionService) HasFeature(ctx context.Context, userID uuid.UUID, 
 }
 
 func (s *subscriptionService) GetConsumables(ctx context.Context, userID uuid.UUID) (map[string]int, error) {
-	consumables, err := s.repo.GetConsumables(ctx, userID)
-	if err != nil {
-		return nil, err
+	counts := map[string]int{
+		"boost": 0,
+		"crush": 0,
 	}
 
-	res := make(map[string]int)
-	for _, c := range consumables {
-		res[c.Type] = c.Remaining
+	consumables, err := s.repo.GetConsumables(ctx, userID)
+	if err != nil {
+		return counts, err
 	}
-	return res, nil
+
+	for _, cons := range consumables {
+		counts[cons.ItemType] += cons.Amount
+	}
+
+	return counts, nil
 }
 
 func (s *subscriptionService) UseConsumable(ctx context.Context, userID uuid.UUID, consumableType string) (bool, error) {
-	consumables, err := s.repo.GetConsumables(ctx, userID)
+	consumables, err := s.GetConsumables(ctx, userID)
 	if err != nil {
 		return false, err
 	}
 
-	for _, c := range consumables {
-		if c.Type == consumableType && c.Remaining > 0 {
-			err := s.repo.UpdateConsumable(ctx, userID, consumableType, -1)
-			if err != nil {
-				return false, err
-			}
-			return true, nil
+	if val, ok := consumables[consumableType]; ok && val > 0 {
+		err := s.repo.UpdateConsumable(ctx, userID, consumableType, -1)
+		if err != nil {
+			return false, err
 		}
+		return true, nil
 	}
 
 	return false, nil
@@ -106,23 +109,12 @@ func (s *subscriptionService) GetPlans(ctx context.Context) ([]entities.Subscrip
 	return s.repo.GetAllPlans(ctx)
 }
 
-func (s *subscriptionService) GetConsumableItems(ctx context.Context) ([]entities.ConsumableItem, error) {
-	return s.repo.GetConsumableItems(ctx)
+func (s *subscriptionService) GetConsumableItems(ctx context.Context) ([]entities.ConsumablePackage, error) {
+	return s.repo.GetConsumablePackages(ctx)
 }
 
 func (s *subscriptionService) PurchaseConsumable(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) error {
-	item, err := s.repo.GetConsumableItemByID(ctx, itemID)
-	if err != nil {
-		return err
-	}
-
-	con := &entities.UserConsumable{
-		UserID:    userID,
-		Type:      item.ItemType,
-		Remaining: item.Amount,
-	}
-
-	return s.repo.UpsertUserConsumable(ctx, con)
+	return s.repo.AddUserConsumablePackage(ctx, userID, itemID)
 }
 
 func (s *subscriptionService) PurchasePlan(ctx context.Context, userID uuid.UUID, planID uuid.UUID, priceID uuid.UUID) error {

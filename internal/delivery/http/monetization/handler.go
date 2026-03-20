@@ -6,16 +6,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
+	userDTO "github.com/pipigendut/dating-backend/internal/delivery/http/user"
+	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/internal/services"
 )
 
 type MonetizationHandler struct {
 	subService services.SubscriptionService
+	userRepo   repository.UserRepository
 }
 
-func NewMonetizationHandler(r *gin.RouterGroup, subService services.SubscriptionService, authMiddleware gin.HandlerFunc) {
+func NewMonetizationHandler(r *gin.RouterGroup, subService services.SubscriptionService, userRepo repository.UserRepository, authMiddleware gin.HandlerFunc) {
 	handler := &MonetizationHandler{
 		subService: subService,
+		userRepo:   userRepo,
 	}
 
 	monGroup := r.Group("/monetization")
@@ -88,7 +92,12 @@ func (h *MonetizationHandler) PurchaseConsumable(c *gin.Context) {
 		response.Error(c, http.StatusInternalServerError, "Failed to purchase consumable", err.Error())
 		return
 	}
-	response.OK(c, "Purchase successful")
+	updatedUser, err := h.userRepo.GetWithRelations(userID.(uuid.UUID))
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to get updated user", err.Error())
+		return
+	}
+	response.OK(c, userDTO.ToUserResponse(updatedUser))
 }
 
 // PurchasePlan godoc
@@ -112,7 +121,12 @@ func (h *MonetizationHandler) PurchasePlan(c *gin.Context) {
 		response.Error(c, http.StatusInternalServerError, "Failed to purchase plan", err.Error())
 		return
 	}
-	response.OK(c, "Subscription successful")
+	updatedUser, err := h.userRepo.GetWithRelations(userID.(uuid.UUID))
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to get updated user", err.Error())
+		return
+	}
+	response.OK(c, userDTO.ToUserResponse(updatedUser))
 }
 
 // GetStatus godoc

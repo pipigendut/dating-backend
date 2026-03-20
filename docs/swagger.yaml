@@ -1,6 +1,179 @@
 basePath: /api/v1
 definitions:
-  auth.AuthResponse:
+  github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse:
+    properties:
+      icon:
+        example: ✈️
+        type: string
+      id:
+        example: bd0a597a-2d88-44e2-a0b4-eb416c1f2115
+        type: string
+      name:
+        example: Travel
+        type: string
+    type: object
+  github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse:
+    properties:
+      data: {}
+      errors: {}
+      message:
+        example: Success
+        type: string
+      status:
+        example: 200
+        type: integer
+    type: object
+  github_com_pipigendut_dating-backend_internal_delivery_http_user.ConsumableItemResponse:
+    properties:
+      amount:
+        type: integer
+      item_type:
+        description: boost, crush
+        type: string
+    type: object
+  github_com_pipigendut_dating-backend_internal_delivery_http_user.PhotoResponse:
+    properties:
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      is_main:
+        example: true
+        type: boolean
+      url:
+        example: https://example.com/photo.jpg
+        type: string
+    type: object
+  github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse:
+    properties:
+      age:
+        type: integer
+      bio:
+        example: Avid hiker and coffee lover.
+        type: string
+      consumables:
+        items:
+          $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.ConsumableItemResponse'
+        type: array
+      created_at:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      date_of_birth:
+        example: "1995-01-01T00:00:00Z"
+        type: string
+      email:
+        example: user@example.com
+        type: string
+      full_name:
+        example: John Doe
+        type: string
+      gender:
+        $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse'
+      height_cm:
+        type: integer
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      interested_genders:
+        items:
+          $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse'
+        type: array
+      interests:
+        items:
+          $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse'
+        type: array
+      languages:
+        items:
+          $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse'
+        type: array
+      latitude:
+        type: number
+      location_city:
+        type: string
+      location_country:
+        type: string
+      longitude:
+        type: number
+      photos:
+        items:
+          $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.PhotoResponse'
+        type: array
+      relationship_type:
+        $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse'
+      status:
+        allOf:
+        - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_entities.UserStatus'
+        example: active
+      subscription:
+        $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserSubscriptionResponse'
+      updated_at:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      verified_at:
+        type: string
+    type: object
+  github_com_pipigendut_dating-backend_internal_delivery_http_user.UserSubscriptionResponse:
+    properties:
+      expired_at:
+        type: string
+      is_active:
+        type: boolean
+      plan_id:
+        type: string
+      plan_name:
+        type: string
+      started_at:
+        type: string
+    type: object
+  github_com_pipigendut_dating-backend_internal_entities.MessageMetadata:
+    properties:
+      gif_provider:
+        type: string
+      image_height:
+        type: integer
+      image_width:
+        type: integer
+    type: object
+  github_com_pipigendut_dating-backend_internal_entities.MessageType:
+    enum:
+    - text
+    - image
+    - gif
+    type: string
+    x-enum-varnames:
+    - MessageTypeText
+    - MessageTypeImage
+    - MessageTypeGif
+  github_com_pipigendut_dating-backend_internal_entities.UserStatus:
+    enum:
+    - onboarding
+    - active
+    - banned
+    type: string
+    x-enum-varnames:
+    - UserStatusOnboarding
+    - UserStatusActive
+    - UserStatusBanned
+  internal_delivery_http_admin.AdminConsumableRequest:
+    properties:
+      package_id:
+        type: string
+      user_id:
+        type: string
+    required:
+    - package_id
+    - user_id
+    type: object
+  internal_delivery_http_admin.AdminSubscribeRequest:
+    properties:
+      plan_id:
+        type: string
+      user_id:
+        type: string
+    required:
+    - plan_id
+    - user_id
+    type: object
+  internal_delivery_http_auth.AuthResponse:
     properties:
       refresh_token:
         example: abcdef123456...
@@ -9,9 +182,9 @@ definitions:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
       user:
-        $ref: '#/definitions/user.UserResponse'
+        $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse'
     type: object
-  auth.CheckEmailRequest:
+  internal_delivery_http_auth.CheckEmailRequest:
     properties:
       email:
         example: user@example.com
@@ -19,13 +192,13 @@ definitions:
     required:
     - email
     type: object
-  auth.CheckEmailResponse:
+  internal_delivery_http_auth.CheckEmailResponse:
     properties:
       exists:
         example: true
         type: boolean
     type: object
-  auth.DeviceRequest:
+  internal_delivery_http_auth.DeviceRequest:
     properties:
       app_version:
         type: string
@@ -42,14 +215,14 @@ definitions:
     required:
     - device_id
     type: object
-  auth.GoogleLoginRequest:
+  internal_delivery_http_auth.GoogleLoginRequest:
     properties:
       bio:
         type: string
       date_of_birth:
         type: string
       device:
-        $ref: '#/definitions/auth.DeviceRequest'
+        $ref: '#/definitions/internal_delivery_http_auth.DeviceRequest'
       email:
         example: user@example.com
         type: string
@@ -87,7 +260,7 @@ definitions:
         type: string
       photos:
         items:
-          $ref: '#/definitions/auth.PhotoRequest'
+          $ref: '#/definitions/internal_delivery_http_auth.PhotoRequest'
         type: array
       profile_picture:
         example: https://example.com/photo.jpg
@@ -96,10 +269,10 @@ definitions:
     - email
     - google_id
     type: object
-  auth.LoginEmailRequest:
+  internal_delivery_http_auth.LoginEmailRequest:
     properties:
       device:
-        $ref: '#/definitions/auth.DeviceRequest'
+        $ref: '#/definitions/internal_delivery_http_auth.DeviceRequest'
       email:
         example: user@example.com
         type: string
@@ -110,14 +283,14 @@ definitions:
     - email
     - password
     type: object
-  auth.LogoutRequest:
+  internal_delivery_http_auth.LogoutRequest:
     properties:
       device_id:
         type: string
     required:
     - device_id
     type: object
-  auth.PhotoRequest:
+  internal_delivery_http_auth.PhotoRequest:
     properties:
       is_main:
         type: boolean
@@ -126,7 +299,7 @@ definitions:
     required:
     - url
     type: object
-  auth.RefreshTokenRequest:
+  internal_delivery_http_auth.RefreshTokenRequest:
     properties:
       device_id:
         type: string
@@ -136,7 +309,7 @@ definitions:
     - device_id
     - refresh_token
     type: object
-  auth.RegisterEmailRequest:
+  internal_delivery_http_auth.RegisterEmailRequest:
     properties:
       bio:
         type: string
@@ -144,7 +317,7 @@ definitions:
         example: "1995-01-01"
         type: string
       device:
-        $ref: '#/definitions/auth.DeviceRequest'
+        $ref: '#/definitions/internal_delivery_http_auth.DeviceRequest'
       email:
         example: user@example.com
         type: string
@@ -183,7 +356,7 @@ definitions:
         type: string
       photos:
         items:
-          $ref: '#/definitions/auth.PhotoRequest'
+          $ref: '#/definitions/internal_delivery_http_auth.PhotoRequest'
         type: array
     required:
     - date_of_birth
@@ -191,7 +364,7 @@ definitions:
     - full_name
     - password
     type: object
-  auth.TokenResponse:
+  internal_delivery_http_auth.TokenResponse:
     properties:
       refresh_token:
         example: abcdef123456...
@@ -200,33 +373,33 @@ definitions:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
     type: object
-  chat.ChatUploadURLResponse:
+  internal_delivery_http_chat.ChatUploadURLResponse:
     properties:
       file_key:
         type: string
       upload_url:
         type: string
     type: object
-  chat.ConversationResponse:
+  internal_delivery_http_chat.ConversationResponse:
     properties:
       created_at:
         type: string
       id:
         type: string
       last_message:
-        $ref: '#/definitions/chat.MessageResponse'
+        $ref: '#/definitions/internal_delivery_http_chat.MessageResponse'
       other_user:
         allOf:
-        - $ref: '#/definitions/chat.ParticipantPreviewResponse'
+        - $ref: '#/definitions/internal_delivery_http_chat.ParticipantPreviewResponse'
         description: User Preview for Chat List
       participants:
         items:
-          $ref: '#/definitions/chat.ParticipantResponse'
+          $ref: '#/definitions/internal_delivery_http_chat.ParticipantResponse'
         type: array
       unread_count:
         type: integer
     type: object
-  chat.MessageResponse:
+  internal_delivery_http_chat.MessageResponse:
     properties:
       content:
         type: string
@@ -239,13 +412,13 @@ definitions:
       is_read:
         type: boolean
       metadata:
-        $ref: '#/definitions/entities.MessageMetadata'
+        $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_entities.MessageMetadata'
       sender_id:
         type: string
       type:
-        $ref: '#/definitions/entities.MessageType'
+        $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_entities.MessageType'
     type: object
-  chat.ParticipantPreviewResponse:
+  internal_delivery_http_chat.ParticipantPreviewResponse:
     properties:
       age:
         type: integer
@@ -258,7 +431,7 @@ definitions:
       profile_picture:
         type: string
     type: object
-  chat.ParticipantResponse:
+  internal_delivery_http_chat.ParticipantResponse:
     properties:
       full_name:
         type: string
@@ -269,36 +442,7 @@ definitions:
       user_id:
         type: string
     type: object
-  entities.MessageMetadata:
-    properties:
-      gif_provider:
-        type: string
-      image_height:
-        type: integer
-      image_width:
-        type: integer
-    type: object
-  entities.MessageType:
-    enum:
-    - text
-    - image
-    - gif
-    type: string
-    x-enum-varnames:
-    - MessageTypeText
-    - MessageTypeImage
-    - MessageTypeGif
-  entities.UserStatus:
-    enum:
-    - onboarding
-    - active
-    - banned
-    type: string
-    x-enum-varnames:
-    - UserStatusOnboarding
-    - UserStatusActive
-    - UserStatusBanned
-  master.MasterItemResponse:
+  internal_delivery_http_master.MasterItemResponse:
     properties:
       icon:
         example: ✈️
@@ -310,7 +454,7 @@ definitions:
         example: Travel
         type: string
     type: object
-  monetization.PurchaseRequest:
+  internal_delivery_http_monetization.PurchaseRequest:
     properties:
       item_id:
         type: string
@@ -319,18 +463,7 @@ definitions:
       price_id:
         type: string
     type: object
-  response.BaseResponse:
-    properties:
-      data: {}
-      errors: {}
-      message:
-        example: Success
-        type: string
-      status:
-        example: 200
-        type: integer
-    type: object
-  swipe.IncomingLikeResponse:
+  internal_delivery_http_swipe.IncomingLikeResponse:
     properties:
       is_crush:
         type: boolean
@@ -339,27 +472,27 @@ definitions:
       swipe_time:
         type: string
       user:
-        $ref: '#/definitions/user.UserResponse'
+        $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse'
     type: object
-  swipe.MatchResponse:
+  internal_delivery_http_swipe.MatchResponse:
     properties:
       is_match:
         type: boolean
       match_id:
         type: string
       matched_user:
-        $ref: '#/definitions/user.UserResponse'
+        $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse'
     type: object
-  swipe.SentLikeResponse:
+  internal_delivery_http_swipe.SentLikeResponse:
     properties:
       created_at:
         type: string
       expires_at:
         type: string
       user:
-        $ref: '#/definitions/user.UserResponse'
+        $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse'
     type: object
-  swipe.SwipeRequest:
+  internal_delivery_http_swipe.SwipeRequest:
     properties:
       direction:
         enum:
@@ -373,79 +506,12 @@ definitions:
     - direction
     - swiped_id
     type: object
-  swipe.UnlikeRequest:
+  internal_delivery_http_swipe.UnlikeRequest:
     properties:
       target_user_id:
         type: string
     required:
     - target_user_id
-    type: object
-  user.PhotoResponse:
-    properties:
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      is_main:
-        example: true
-        type: boolean
-      url:
-        example: https://example.com/photo.jpg
-        type: string
-    type: object
-  user.UserResponse:
-    properties:
-      bio:
-        example: Avid hiker and coffee lover.
-        type: string
-      created_at:
-        example: "2023-01-01T00:00:00Z"
-        type: string
-      date_of_birth:
-        example: "1995-01-01T00:00:00Z"
-        type: string
-      email:
-        example: user@example.com
-        type: string
-      full_name:
-        example: John Doe
-        type: string
-      gender:
-        $ref: '#/definitions/master.MasterItemResponse'
-      height_cm:
-        type: integer
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      interested_genders:
-        items:
-          $ref: '#/definitions/master.MasterItemResponse'
-        type: array
-      interests:
-        items:
-          $ref: '#/definitions/master.MasterItemResponse'
-        type: array
-      languages:
-        items:
-          $ref: '#/definitions/master.MasterItemResponse'
-        type: array
-      latitude:
-        type: number
-      location_city:
-        type: string
-      location_country:
-        type: string
-      longitude:
-        type: number
-      photos:
-        items:
-          $ref: '#/definitions/user.PhotoResponse'
-        type: array
-      relationship_type:
-        $ref: '#/definitions/master.MasterItemResponse'
-      status:
-        allOf:
-        - $ref: '#/definitions/entities.UserStatus'
-        example: active
     type: object
 host: localhost:8080
 info:
@@ -461,6 +527,18 @@ info:
   title: Dating App API
   version: "1.0"
 paths:
+  /admin/configs:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
+      security:
+      - Bearer: []
+      summary: Get all configs
+      tags:
+      - admin
   /admin/configs/reload:
     post:
       responses:
@@ -489,6 +567,75 @@ paths:
       summary: WIPE and Reset all configs to code defaults
       tags:
       - admin
+  /admin/consumables/boost:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Boost Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_delivery_http_admin.AdminConsumableRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse'
+      security:
+      - Bearer: []
+      summary: Simulate adding a boost package to user
+      tags:
+      - admin
+  /admin/consumables/crush:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Crush Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_delivery_http_admin.AdminConsumableRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse'
+      security:
+      - Bearer: []
+      summary: Simulate adding a crush package to user
+      tags:
+      - admin
+  /admin/subscribe:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Subscribe Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_delivery_http_admin.AdminSubscribeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse'
+      security:
+      - Bearer: []
+      summary: Simulate user subscription to a plan
+      tags:
+      - admin
   /auth/check-email:
     post:
       consumes:
@@ -500,7 +647,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.CheckEmailRequest'
+          $ref: '#/definitions/internal_delivery_http_auth.CheckEmailRequest'
       produces:
       - application/json
       responses:
@@ -508,15 +655,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.CheckEmailResponse'
+                  $ref: '#/definitions/internal_delivery_http_auth.CheckEmailResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Check if email exists
       tags:
       - auth
@@ -532,7 +679,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.GoogleLoginRequest'
+          $ref: '#/definitions/internal_delivery_http_auth.GoogleLoginRequest'
       produces:
       - application/json
       responses:
@@ -540,15 +687,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.AuthResponse'
+                  $ref: '#/definitions/internal_delivery_http_auth.AuthResponse'
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Google OAuth Login/Register
       tags:
       - auth
@@ -564,7 +711,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.LoginEmailRequest'
+          $ref: '#/definitions/internal_delivery_http_auth.LoginEmailRequest'
       produces:
       - application/json
       responses:
@@ -572,15 +719,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.AuthResponse'
+                  $ref: '#/definitions/internal_delivery_http_auth.AuthResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Login via Email
       tags:
       - auth
@@ -596,18 +743,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.LogoutRequest'
+          $ref: '#/definitions/internal_delivery_http_auth.LogoutRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Logout
@@ -625,7 +772,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.RefreshTokenRequest'
+          $ref: '#/definitions/internal_delivery_http_auth.RefreshTokenRequest'
       produces:
       - application/json
       responses:
@@ -633,15 +780,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.TokenResponse'
+                  $ref: '#/definitions/internal_delivery_http_auth.TokenResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Refresh Access Token
       tags:
       - auth
@@ -656,7 +803,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.RegisterEmailRequest'
+          $ref: '#/definitions/internal_delivery_http_auth.RegisterEmailRequest'
       produces:
       - application/json
       responses:
@@ -664,15 +811,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.AuthResponse'
+                  $ref: '#/definitions/internal_delivery_http_auth.AuthResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Register via Email
       tags:
       - auth
@@ -688,11 +835,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/chat.ConversationResponse'
+                    $ref: '#/definitions/internal_delivery_http_chat.ConversationResponse'
                   type: array
               type: object
       security:
@@ -728,11 +875,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/chat.MessageResponse'
+                    $ref: '#/definitions/internal_delivery_http_chat.MessageResponse'
                   type: array
               type: object
       security:
@@ -758,10 +905,10 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/chat.ConversationResponse'
+                  $ref: '#/definitions/internal_delivery_http_chat.ConversationResponse'
               type: object
       security:
       - BearerAuth: []
@@ -786,10 +933,10 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/chat.ChatUploadURLResponse'
+                  $ref: '#/definitions/internal_delivery_http_chat.ChatUploadURLResponse'
               type: object
       security:
       - BearerAuth: []
@@ -806,17 +953,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/master.MasterItemResponse'
+                    $ref: '#/definitions/internal_delivery_http_master.MasterItemResponse'
                   type: array
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Get all active genders
       tags:
       - master
@@ -830,17 +977,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/master.MasterItemResponse'
+                    $ref: '#/definitions/internal_delivery_http_master.MasterItemResponse'
                   type: array
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Get all active interests
       tags:
       - master
@@ -854,17 +1001,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/master.MasterItemResponse'
+                    $ref: '#/definitions/internal_delivery_http_master.MasterItemResponse'
                   type: array
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Get all active languages
       tags:
       - master
@@ -879,17 +1026,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/master.MasterItemResponse'
+                    $ref: '#/definitions/internal_delivery_http_master.MasterItemResponse'
                   type: array
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Get all active relationship types
       tags:
       - master
@@ -902,7 +1049,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: List all consumable items
       tags:
       - Monetization
@@ -916,7 +1063,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: List all subscription plans
       tags:
       - Monetization
@@ -930,14 +1077,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/monetization.PurchaseRequest'
+          $ref: '#/definitions/internal_delivery_http_monetization.PurchaseRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Purchase a consumable item
       tags:
       - Monetization
@@ -951,14 +1098,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/monetization.PurchaseRequest'
+          $ref: '#/definitions/internal_delivery_http_monetization.PurchaseRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       summary: Purchase a subscription plan
       tags:
       - Monetization
@@ -970,7 +1117,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get current user's subscription status and features
@@ -988,7 +1135,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/swipe.SwipeRequest'
+          $ref: '#/definitions/internal_delivery_http_swipe.SwipeRequest'
       produces:
       - application/json
       responses:
@@ -996,23 +1143,23 @@ paths:
           description: Swipe handled
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/swipe.MatchResponse'
+                  $ref: '#/definitions/internal_delivery_http_swipe.MatchResponse'
               type: object
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
         "429":
           description: Too many requests
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Record a swipe action (LIKE, CRUSH or DISLIKE)
@@ -1075,17 +1222,17 @@ paths:
           description: List of swipe candidates
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/user.UserResponse'
+                    $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse'
                   type: array
               type: object
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get list of users for swipe discovery
@@ -1105,17 +1252,17 @@ paths:
           description: List of incoming likes
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/swipe.IncomingLikeResponse'
+                    $ref: '#/definitions/internal_delivery_http_swipe.IncomingLikeResponse'
                   type: array
               type: object
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get list of incoming likes and crushes
@@ -1134,17 +1281,17 @@ paths:
           description: List of sent likes
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/swipe.SentLikeResponse'
+                    $ref: '#/definitions/internal_delivery_http_swipe.SentLikeResponse'
                   type: array
               type: object
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get list of sent likes
@@ -1164,19 +1311,19 @@ paths:
           description: Successfully reverted the swipe
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/user.UserResponse'
+                  $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse'
               type: object
         "400":
           description: No swipe history or daily limit reached
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Undo the last swipe action
@@ -1193,22 +1340,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/swipe.UnlikeRequest'
+          $ref: '#/definitions/internal_delivery_http_swipe.UnlikeRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Successfully unliked
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
         "400":
           description: Invalid request or already matched
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Unlike a user
@@ -1232,15 +1379,15 @@ paths:
         "200":
           description: Successfully unmatched
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
         "400":
           description: Invalid ID or no match exists
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse'
       security:
       - BearerAuth: []
       summary: Unmatch a user

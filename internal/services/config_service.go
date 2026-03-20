@@ -16,6 +16,7 @@ type ConfigService interface {
 	GetFloat(key string, defaultVal float64) float64
 	Set(ctx context.Context, key, value string) error
 	ResetDB(ctx context.Context) error
+	GetAllCached(ctx context.Context) map[string]string
 }
 
 type configService struct {
@@ -108,4 +109,15 @@ func (s *configService) Set(ctx context.Context, key, value string) error {
 
 func (s *configService) ResetDB(ctx context.Context) error {
 	return s.repo.DeleteAll(ctx)
+}
+
+func (s *configService) GetAllCached(ctx context.Context) map[string]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make(map[string]string)
+	for k, v := range s.configs {
+		result[k] = v
+	}
+	return result
 }

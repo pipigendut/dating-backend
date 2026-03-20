@@ -255,7 +255,7 @@ type SubscriptionPlanFeature struct {
 
 type UserSubscription struct {
 	SoftDeleteModel
-	UserID    uuid.UUID `gorm:"type:uuid;index;not null" json:"user_id"`
+	UserID    uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_subs;not null" json:"user_id"`
 	PlanID    uuid.UUID `gorm:"type:uuid;index;not null" json:"plan_id"`
 	StartedAt time.Time `gorm:"index" json:"started_at"`
 	ExpiredAt time.Time `gorm:"index" json:"expired_at"`
@@ -266,19 +266,19 @@ type UserSubscription struct {
 
 type UserConsumable struct {
 	BaseModel
-	UserID    uuid.UUID  `gorm:"type:uuid;index;not null" json:"user_id"`
-	Type      string     `gorm:"index;not null" json:"type"` // boost, crush
-	Remaining int        `gorm:"default:0" json:"remaining"`
-	ExpiredAt *time.Time `gorm:"index" json:"expired_at"`
+	UserID     uuid.UUID  `gorm:"type:uuid;uniqueIndex:idx_user_cons;not null" json:"user_id"`
+	ItemType   string     `gorm:"index;uniqueIndex:idx_user_cons;not null" json:"item_type"` // boost, crush
+	Amount     int        `gorm:"default:0" json:"amount"`
+	LastUsedAt *time.Time `gorm:"index" json:"last_used_at,omitempty"`
 }
 
-type ConsumableItem struct {
+type ConsumablePackage struct {
 	BaseModel
-	ItemType     string    `gorm:"index;not null" json:"item_type"` // boost, crush
-	Amount       int       `gorm:"not null" json:"amount"`
-	Price        float64   `gorm:"not null" json:"price"`
-	Currency     string    `gorm:"type:varchar(10);default:'USD'" json:"currency"`
-	ExternalSlug string    `gorm:"uniqueIndex" json:"external_slug"`
+	Name     string  `json:"name"`
+	ItemType string  `gorm:"index;not null" json:"item_type"` // boost, crush
+	Amount   int     `gorm:"not null" json:"amount"`
+	Price    float64 `gorm:"not null" json:"price"`
+	IsActive bool    `gorm:"default:true" json:"is_active"`
 }
 
 func (Swipe) TableName() string {

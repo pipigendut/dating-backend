@@ -14,6 +14,7 @@ type UserRepository interface {
 	GetByProvider(provider, providerUserID string) (*entities.User, error)
 	LinkProvider(userID uuid.UUID, provider, providerUserID string) error
 	CreateWithRelations(user *entities.User) error
+	UpdatePremiumStatus(userID uuid.UUID, isPremium bool) error
 	Delete(id uuid.UUID) error
 	DeletePhoto(photoID uuid.UUID) error
 }

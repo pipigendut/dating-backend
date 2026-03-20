@@ -38,6 +38,12 @@ func Migrate(db *gorm.DB) error {
 		`)
 	}
 
+	// 3. Subscription & Consumable Refactor
+	// Truncate to prevent unique constraint failures when applying the new idx_user_subs and idx_user_cons
+	db.Exec("TRUNCATE TABLE user_subscriptions CASCADE")
+	db.Exec("TRUNCATE TABLE user_consumables CASCADE")
+	db.Exec("DROP TABLE IF EXISTS consumable_items CASCADE")
+
 	err := db.AutoMigrate(
 		&entities.User{},
 		&entities.Photo{},
@@ -70,7 +76,7 @@ func Migrate(db *gorm.DB) error {
 		&entities.SubscriptionPrice{},
 		&entities.UserSubscription{},
 		&entities.UserConsumable{},
-		&entities.ConsumableItem{},
+		&entities.ConsumablePackage{},
 
 		// Chat System
 		&entities.Conversation{},
@@ -113,6 +119,17 @@ func Migrate(db *gorm.DB) error {
 
 	// Cleanup legacy columns
 	db.Exec("ALTER TABLE subscription_plan_features DROP COLUMN IF EXISTS value")
+	db.Exec("ALTER TABLE user_consumables DROP COLUMN IF EXISTS type")
+	db.Exec("ALTER TABLE user_consumables DROP COLUMN IF EXISTS remaining")
+	db.Exec("ALTER TABLE user_consumables DROP COLUMN IF EXISTS expired_at")
+
+	// Cleanup legacy columns in the renamed master table
+	db.Exec("ALTER TABLE consumable_packages DROP COLUMN IF EXISTS type")
+	db.Exec("ALTER TABLE consumable_packages DROP COLUMN IF EXISTS quantity")
+	db.Exec("ALTER TABLE consumable_packages DROP COLUMN IF EXISTS remaining")
+	db.Exec("ALTER TABLE consumable_packages DROP COLUMN IF EXISTS expired_at")
+	db.Exec("ALTER TABLE consumable_packages DROP COLUMN IF EXISTS currency")
+	db.Exec("ALTER TABLE consumable_packages DROP COLUMN IF EXISTS external_slug")
 	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP WITH TIME ZONE")
 
 	// Cleanup illegal genders (Everyone is not a gender, Other is being removed as per request)
