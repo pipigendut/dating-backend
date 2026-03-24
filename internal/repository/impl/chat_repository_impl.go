@@ -37,19 +37,27 @@ func (r *chatRepository) GetConversationByID(ctx context.Context, id uuid.UUID) 
 	return &conv, err
 }
 
-func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.UUID) ([]entities.Conversation, error) {
+func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.UUID, limit int, cursor *time.Time) ([]entities.Conversation, error) {
 	var convs []entities.Conversation
-	err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
+		Preload("Participants", "user_id != ?", userID).
 		Preload("Participants.User.Photos").
 		Preload("Participants.Presence").
-		// Preload only the last message for the summary
 		Preload("Messages", func(db *gorm.DB) *gorm.DB {
 			return db.Order("messages.created_at DESC").Limit(1)
 		}).
+		Table("conversations").
+		Select("conversations.*").
 		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").
 		Where("cp.user_id = ? AND conversations.visible_at <= ?", userID, time.Now()).
 		Order("conversations.last_message_at DESC").
-		Find(&convs).Error
+		Limit(limit)
+
+	if cursor != nil && !cursor.IsZero() {
+		query = query.Where("conversations.last_message_at < ?", cursor)
+	}
+
+	err := query.Find(&convs).Error
 	return convs, err
 }
 

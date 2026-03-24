@@ -77,8 +77,8 @@ INSERT INTO app_configs (key, value, description) VALUES
 ('crush_priority_score', '100', 'Priority score for crush swipes'),
 ('swipe_limit_free', '50', 'Daily swipe limit for free users'),
 ('swipe_limit_premium', '1000', 'Daily swipe limit for premium users'),
-('delay_free_minutes', '60', 'Delay in minutes before showing a like to free users'),
-('delay_premium_minutes', '10', 'Delay in minutes before showing a like to premium users');
+('incoming_like_delay_free', '60', 'Delay in minutes before showing an inbound like to free users'),
+('incoming_like_delay_premium', '10', 'Delay in minutes before showing an inbound like to premium users');
 
 -- 6. SWIPE EXTENSION
 -- ALTER TABLE swipes ADD COLUMN priority_score INTEGER DEFAULT 0;

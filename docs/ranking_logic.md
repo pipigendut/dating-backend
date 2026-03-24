@@ -38,18 +38,21 @@ VALUES (
 );
 ```
 
-## 3. Delay System (Anti-Fast Match)
+## 3. Incoming Like Discovery Delay
 
 ```sql
 SELECT s.*
 FROM swipes s
 JOIN users u ON s.swiper_id = u.id
-WHERE s.swiped_id = ? -- current user
+WHERE s.swiped_id = ? -- current user (receiver of like)
   AND s.direction IN ('LIKE', 'CRUSH')
-  AND s.created_at < NOW() - (
+  AND s.updated_at < NOW() - (
       SELECT INTERVAL '1 minute' * (value->>0)::INT 
       FROM app_configs 
-      WHERE key = (CASE WHEN u.is_premium THEN 'delay_premium_minutes' ELSE 'delay_free_minutes' END)
+      WHERE key = (CASE 
+          WHEN EXISTS (SELECT 1 FROM user_subscriptions us JOIN subscription_plan_features spf ON us.plan_id = spf.plan_id WHERE us.user_id = ? AND us.is_active = true AND us.expired_at > NOW() AND spf.feature_key = 'priority_likes') THEN 'incoming_like_delay_premium' 
+          ELSE 'incoming_like_delay_free' 
+      END)
   )
 ORDER BY s.priority_score DESC, s.created_at ASC;
 ```

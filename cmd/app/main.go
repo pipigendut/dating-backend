@@ -4,10 +4,11 @@ import (
 	"context"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/pipigendut/dating-backend/internal/chat/ws"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/admin"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/chat"
@@ -16,9 +17,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/monetization"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/swipe"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
-	"github.com/pipigendut/dating-backend/internal/delivery/ws"
 	"github.com/pipigendut/dating-backend/internal/infra"
-	"github.com/pipigendut/dating-backend/internal/infra/kafka"
 	"github.com/pipigendut/dating-backend/internal/infra/ml"
 	"github.com/pipigendut/dating-backend/internal/infra/seeds"
 	infraStorage "github.com/pipigendut/dating-backend/internal/infra/storage"
@@ -123,17 +122,13 @@ func main() {
 		defer mlProvider.Close()
 	}
 
-	// 1.7 Setup Kafka
-	kafkaBrokers := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
-	if os.Getenv("KAFKA_BROKERS") == "" {
-		kafkaBrokers = []string{"localhost:9092"}
+	// 1.8 Setup Redis Repository & WebSocket Hub
+	redisRepo := impl.NewRedisRepository(redisClient)
+	chatHub := ws.NewHub(redisRepo)
+	go chatHub.Run(context.Background())
+	if redisClient != nil {
+		go chatHub.ListenToRedisPubSub(context.Background(), redisClient)
 	}
-	kafkaProducer := kafka.NewProducer(kafkaBrokers)
-	defer kafkaProducer.Close()
-
-	// 1.8 Setup WebSocket Manager
-	wsManager := ws.NewManager()
-	go wsManager.Run()
 
 	// 2. Initialize Layers
 	userRepo := impl.NewUserRepo(db)
@@ -151,7 +146,7 @@ func main() {
 	verifyUC := usecases.NewVerificationService(userRepo, storageUC, mlProvider, redisClient, configSvc)
 
 	chatRepo := impl.NewChatRepository(db)
-	chatSvc := services.NewChatService(chatRepo, kafkaProducer)
+	chatSvc := services.NewChatService(chatRepo, redisRepo, chatHub)
 
 	swipeRepo := impl.NewSwipeRepository(db)
 	subscriptionRepo := impl.NewSubscriptionRepository(db)
@@ -160,10 +155,7 @@ func main() {
 	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, subscriptionService, swipeRepo)
 	adminSvc := services.NewAdminService(subscriptionRepo, userRepo)
 
-	// 2.1 Kafka Consumer
-	chatConsumer := kafka.NewConsumer(kafkaBrokers, "chat-group", "chat.messages", chatRepo, wsManager)
-	go chatConsumer.Start(context.Background())
-	defer chatConsumer.Close()
+
 
 	r := gin.Default()
 
@@ -188,8 +180,15 @@ func main() {
 	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo).RegisterRoutes(v1, authMiddleware)
 
 	// WebSocket Route
-	wsHandler := ws.NewHandler(wsManager, chatSvc)
-	v1.GET("/ws", wsHandler.HandleWebSocket)
+	v1.GET("/ws", func(c *gin.Context) {
+		userIDStr := c.Query("user_id") // In production, this should come from JWT middleware
+		userID, err := uuid.Parse(userIDStr)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "invalid user_id"})
+			return
+		}
+		ws.ServeWs(chatHub, chatSvc, c.Writer, c.Request, userID)
+	})
 
 	// Swagger route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

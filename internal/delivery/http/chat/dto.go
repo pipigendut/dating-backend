@@ -9,22 +9,22 @@ import (
 )
 
 type ConversationResponse struct {
-	ID           uuid.UUID            `json:"id"`
-	Participants []ParticipantResponse `json:"participants"`
-	LastMessage  *MessageResponse     `json:"last_message,omitempty"`
-	UnreadCount  int                  `json:"unread_count"`
-	CreatedAt    time.Time            `json:"created_at"`
-
-	// User Preview for Chat List
-	OtherUser *ParticipantPreviewResponse `json:"other_user,omitempty"`
+	ID          uuid.UUID                  `json:"id"`
+	User        ParticipantPreviewResponse `json:"user"`
+	LastMessage *MessageResponse           `json:"last_message,omitempty"`
+	UnreadCount int                        `json:"unread_count"`
+	IsTyping    bool                       `json:"is_typing"`
+	CreatedAt   time.Time                  `json:"created_at"`
 }
 
 type ParticipantPreviewResponse struct {
-	ID             uuid.UUID `json:"id"`
-	FullName       string    `json:"full_name"`
-	Age            int       `json:"age"`
-	ProfilePicture string    `json:"profile_picture"`
-	IsOnline       bool      `json:"is_online"`
+	ID               uuid.UUID  `json:"id"`
+	FullName         string     `json:"full_name"`
+	Age              int        `json:"age"`
+	ProfilePicture   string     `json:"profile_picture"`
+	OfficialVerified bool       `json:"official_verified"`
+	VerifiedAt       *time.Time `json:"verified_at,omitempty"`
+	IsOnline         bool       `json:"is_online"`
 }
 
 type ParticipantResponse struct {
@@ -63,33 +63,38 @@ func ToMessageResponse(m *entities.Message, currentUserID uuid.UUID) MessageResp
 	}
 }
 
-func ToConversationResponse(c *entities.Conversation, currentUserID uuid.UUID, unreadCount int, storageUC *usecases.StorageUsecase) ConversationResponse {
-	participants := make([]ParticipantResponse, 0, len(c.Participants))
+func ToConversationResponse(c *entities.Conversation, currentUserID uuid.UUID, unreadCount int, isTyping bool, storageUC *usecases.StorageUsecase) ConversationResponse {
+	var otherUser *entities.ConversationParticipant
 	for _, p := range c.Participants {
-		fullName := ""
-		photoURL := ""
-		isOnline := false
-
-		if p.User != nil {
-			fullName = p.User.FullName
-			if mainPhoto := p.User.GetMainPhotoProfile(); mainPhoto != nil {
-				photoURL = mainPhoto.URL
-				if storageUC != nil {
-					photoURL = storageUC.GetPublicURL(mainPhoto.URL)
-				}
-			}
+		if p.UserID != currentUserID {
+			otherUser = &p
+			break
 		}
+	}
 
-		if p.Presence != nil {
-			isOnline = p.Presence.IsOnline
+	if otherUser == nil || otherUser.User == nil {
+		return ConversationResponse{ID: c.ID, CreatedAt: c.CreatedAt}
+	}
+
+	fullName := otherUser.User.FullName
+	photoURL := ""
+	if mainPhoto := otherUser.User.GetMainPhotoProfile(); mainPhoto != nil {
+		photoURL = mainPhoto.URL
+		if storageUC != nil {
+			photoURL = storageUC.GetPublicURL(mainPhoto.URL)
 		}
+	}
 
-		participants = append(participants, ParticipantResponse{
-			UserID:   p.UserID,
-			FullName: fullName,
-			PhotoURL: photoURL,
-			IsOnline: isOnline,
-		})
+	isOnline := false
+	if otherUser.Presence != nil {
+		isOnline = otherUser.Presence.IsOnline
+	}
+
+	// Calculate age
+	birthDate := otherUser.User.DateOfBirth
+	age := time.Now().Year() - birthDate.Year()
+	if time.Now().YearDay() < birthDate.YearDay() {
+		age--
 	}
 
 	var lastMsg *MessageResponse
@@ -98,40 +103,20 @@ func ToConversationResponse(c *entities.Conversation, currentUserID uuid.UUID, u
 		lastMsg = &m
 	}
 
-	var otherUser *ParticipantPreviewResponse
-	for _, p := range participants {
-		if p.UserID != currentUserID {
-			// Find original participant to get additional info like age
-			var age int
-			for _, cp := range c.Participants {
-				if cp.UserID == p.UserID && cp.User != nil {
-					// Basic age calculation
-					birthDate := cp.User.DateOfBirth
-					age = time.Now().Year() - birthDate.Year()
-					if time.Now().YearDay() < birthDate.YearDay() {
-						age--
-					}
-					break
-				}
-			}
-
-			otherUser = &ParticipantPreviewResponse{
-				ID:             p.UserID,
-				FullName:       p.FullName,
-				Age:            age,
-				ProfilePicture: p.PhotoURL,
-				IsOnline:       p.IsOnline,
-			}
-			break
-		}
-	}
-
 	return ConversationResponse{
-		ID:           c.ID,
-		Participants: participants,
-		LastMessage:  lastMsg,
-		UnreadCount:  unreadCount,
-		OtherUser:    otherUser,
-		CreatedAt:    c.CreatedAt,
+		ID: c.ID,
+		User: ParticipantPreviewResponse{
+			ID:               otherUser.UserID,
+			FullName:         fullName,
+			Age:              age,
+			ProfilePicture:   photoURL,
+			OfficialVerified: otherUser.User.VerifiedAt != nil,
+			VerifiedAt:       otherUser.User.VerifiedAt,
+			IsOnline:         isOnline,
+		},
+		LastMessage: lastMsg,
+		UnreadCount: unreadCount,
+		IsTyping:    isTyping,
+		CreatedAt:   c.CreatedAt,
 	}
 }

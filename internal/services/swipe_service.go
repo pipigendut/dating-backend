@@ -370,14 +370,6 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 			err := tx.Where("swiper_id = ? AND swiped_id = ? AND direction IN ?", swipedID, swiperID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).First(&reverseSwipe).Error
 
 			if err == nil {
-				// Mutual Like exists! Create a Match with Delay
-				// Calculate delay based on premium status
-				delayMinutes := s.config.GetInt("delay_free_minutes", 60)
-				isPremium, _, _ := s.subscription.HasFeature(ctx, swiperID, "priority_likes")
-				if isPremium {
-					delayMinutes = s.config.GetInt("delay_premium_minutes", 10)
-				}
-
 				userLowID, userHighID := swiperID, swipedID
 				if userLowID.String() > userHighID.String() {
 					userLowID, userHighID = swipedID, swiperID
@@ -386,7 +378,7 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 				newMatch := entities.Match{
 					UserLowID:  userLowID,
 					UserHighID: userHighID,
-					VisibleAt:  time.Now().Add(time.Duration(delayMinutes) * time.Minute),
+					VisibleAt:  time.Now(),
 				}
 				if err := tx.Create(&newMatch).Error; err != nil {
 					return err
@@ -442,7 +434,7 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID, l
 		WHERE s.swiped_id = ?
 		AND s.direction IN ('LIKE', 'CRUSH')
 		AND (
-			s.created_at < NOW() - (
+			s.updated_at < NOW() - (
 				SELECT INTERVAL '1 minute' * (value->>0)::INT 
 				FROM app_configs 
 				WHERE key = (

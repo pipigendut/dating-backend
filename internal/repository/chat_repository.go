@@ -12,7 +12,7 @@ type ChatRepository interface {
 	// Conversations
 	CreateConversation(ctx context.Context, conversation *entities.Conversation) error
 	GetConversationByID(ctx context.Context, id uuid.UUID) (*entities.Conversation, error)
-	GetUserConversations(ctx context.Context, userID uuid.UUID) ([]entities.Conversation, error)
+	GetUserConversations(ctx context.Context, userID uuid.UUID, limit int, cursor *time.Time) ([]entities.Conversation, error)
 	GetConversationBetweenUsers(ctx context.Context, user1ID, user2ID uuid.UUID) (*entities.Conversation, error)
 	GetUnreadCount(ctx context.Context, conversationID, userID uuid.UUID) (int, error)
 

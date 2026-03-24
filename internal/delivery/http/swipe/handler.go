@@ -11,6 +11,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/services"
+	"gorm.io/gorm"
 )
 
 func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, storageUC storageUsecase, authMiddleware gin.HandlerFunc, anticheatMiddleware gin.HandlerFunc) {
@@ -346,6 +347,10 @@ func (h *SwipeHandler) Unlike(c *gin.Context) {
 	}
 
 	if err := h.swipeService.UnlikeUser(c.Request.Context(), userID, req.TargetUserID); err != nil {
+		if err == gorm.ErrInvalidDB {
+			response.Error(c, http.StatusBadRequest, "Cannot unlike user", "Users are already matched. Use unmatch instead.")
+			return
+		}
 		response.Error(c, http.StatusInternalServerError, "Failed to unlike user", err.Error())
 		return
 	}

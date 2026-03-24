@@ -78,7 +78,7 @@ func (r *swipeRepository) GetLikesSent(ctx context.Context, userID uuid.UUID, li
 	// Find users current user liked but not yet matched
 	err := r.db.WithContext(ctx).
 		Where("swiper_id = ? AND direction IN ?", userID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
-		Where("NOT EXISTS (SELECT 1 FROM matches m WHERE ((m.user_low_id = ? AND m.user_high_id = swipes.swiped_id) OR (m.user_low_id = swipes.swiped_id AND m.user_high_id = ?)) AND m.visible_at <= NOW())", userID, userID).
+		Where("NOT EXISTS (SELECT 1 FROM matches m WHERE ((m.user_low_id = ? AND m.user_high_id = swipes.swiped_id) OR (m.user_low_id = swipes.swiped_id AND m.user_high_id = ?)))", userID, userID).
 		Order("updated_at DESC").
 		Limit(limit).Offset(offset).
 		Find(&swipes).Error
@@ -96,12 +96,12 @@ func (r *swipeRepository) UnlikeUser(ctx context.Context, swiperID, swipedID uui
 		var match entities.Match
 		err := tx.Where("user_low_id = ? AND user_high_id = ?", userLowID, userHighID).First(&match).Error
 		if err == nil {
-			return gorm.ErrInvalidData // Already matched
+			return gorm.ErrInvalidDB // Or custom error
 		} else if err != gorm.ErrRecordNotFound {
 			return err
 		}
 
 		// Soft delete the swipe
-		return tx.Where("swiper_id = ? AND swiped_id = ?", swiperID, swipedID).Delete(&entities.Swipe{}).Error
+		return tx.Model(&entities.Swipe{}).Where("swiper_id = ? AND swiped_id = ?", swiperID, swipedID).Delete(&entities.Swipe{}).Error
 	})
 }

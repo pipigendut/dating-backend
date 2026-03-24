@@ -47,7 +47,6 @@ func (r *subscriptionRepository) GetPlanFeatures(ctx context.Context, planID uui
 func (r *subscriptionRepository) GetConsumables(ctx context.Context, userID uuid.UUID) ([]entities.UserConsumable, error) {
 	var consumables []entities.UserConsumable
 	err := r.db.WithContext(ctx).
-		Preload("Package"). // Preload the package to get ItemType
 		Where("user_id = ? AND amount > 0", userID).
 		Find(&consumables).Error
 	return consumables, err
@@ -58,8 +57,7 @@ func (r *subscriptionRepository) UpdateConsumable(ctx context.Context, userID uu
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var cons entities.UserConsumable
 		err := tx.
-			Joins("JOIN consumable_packages ON user_consumables.consumable_package_id = consumable_packages.id").
-			Where("user_consumables.user_id = ? AND consumable_packages.item_type = ?", userID, consumableType).
+			Where("user_id = ? AND item_type = ?", userID, consumableType).
 			First(&cons).Error
 
 		if err != nil {

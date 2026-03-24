@@ -52,7 +52,7 @@ type Message struct {
 	Content        string         `gorm:"type:text"` // For text messages or URLs
 	ReplyToID      *uuid.UUID     `gorm:"type:uuid;index"`
 
-	Metadata MessageMetadata `gorm:"type:jsonb"`
+	Metadata MessageMetadata `gorm:"serializer:json;type:jsonb"`
 }
 
 type MessageMetadata struct {

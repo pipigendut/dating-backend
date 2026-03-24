@@ -45,7 +45,15 @@ func NewChatHandler(r *gin.RouterGroup, chatService services.ChatService, storag
 func (h *ChatHandler) GetConversations(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 
-	convs, err := h.chatService.GetConversations(c.Request.Context(), userID)
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	var cursor *time.Time
+	if c.Query("cursor") != "" {
+		if t, err := time.Parse(time.RFC3339, c.Query("cursor")); err == nil {
+			cursor = &t
+		}
+	}
+
+	convs, err := h.chatService.GetConversations(c.Request.Context(), userID, limit, cursor)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get conversations", err.Error())
 		return
@@ -53,8 +61,19 @@ func (h *ChatHandler) GetConversations(c *gin.Context) {
 
 	resp := make([]ConversationResponse, len(convs))
 	for i, conv := range convs {
-		unreadCount, _ := h.chatService.GetUnreadCount(c.Request.Context(), conv.ID, userID)
-		resp[i] = ToConversationResponse(&conv, userID, unreadCount, h.storageUC)
+		unreadCount, _ := h.chatService.GetUnreadCount(c.Request.Context(), userID, conv.ID)
+		
+		// Find other user ID to check typing status
+		var otherUserID uuid.UUID
+		for _, p := range conv.Participants {
+			if p.UserID != userID {
+				otherUserID = p.UserID
+				break
+			}
+		}
+		isTyping, _ := h.chatService.IsTyping(c.Request.Context(), conv.ID, otherUserID)
+		
+		resp[i] = ToConversationResponse(&conv, userID, unreadCount, isTyping, h.storageUC)
 	}
 
 	response.OK(c, resp)
@@ -89,6 +108,11 @@ func (h *ChatHandler) GetMessages(c *gin.Context) {
 		return
 	}
 
+	// Automatically mark as read if we're fetching the latest messages (offset 0)
+	if offset == 0 && len(msgs) > 0 {
+		h.chatService.SendReadReceipt(c.Request.Context(), userID, convID, msgs[0].ID)
+	}
+
 	resp := make([]MessageResponse, len(msgs))
 	for i, msg := range msgs {
 		resp[i] = ToMessageResponse(&msg, userID)
@@ -121,8 +145,19 @@ func (h *ChatHandler) GetOrCreateMatchConversation(c *gin.Context) {
 		return
 	}
 
-	unreadCount, _ := h.chatService.GetUnreadCount(c.Request.Context(), conv.ID, userID)
-	response.OK(c, ToConversationResponse(conv, userID, unreadCount, h.storageUC))
+	unreadCount, _ := h.chatService.GetUnreadCount(c.Request.Context(), userID, conv.ID)
+	
+	// Find other user ID to check typing status
+	var otherUserID uuid.UUID
+	for _, p := range conv.Participants {
+		if p.UserID != userID {
+			otherUserID = p.UserID
+			break
+		}
+	}
+	isTyping, _ := h.chatService.IsTyping(c.Request.Context(), conv.ID, otherUserID)
+
+	response.OK(c, ToConversationResponse(conv, userID, unreadCount, isTyping, h.storageUC))
 }
 
 // GetUploadURL godoc
