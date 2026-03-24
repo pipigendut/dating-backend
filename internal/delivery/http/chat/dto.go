@@ -18,13 +18,13 @@ type ConversationResponse struct {
 }
 
 type ParticipantPreviewResponse struct {
-	ID               uuid.UUID  `json:"id"`
-	FullName         string     `json:"full_name"`
-	Age              int        `json:"age"`
-	ProfilePicture   string     `json:"profile_picture"`
-	OfficialVerified bool       `json:"official_verified"`
-	VerifiedAt       *time.Time `json:"verified_at,omitempty"`
-	IsOnline         bool       `json:"is_online"`
+	ID             uuid.UUID  `json:"id"`
+	FullName       string     `json:"full_name"`
+	Age            int        `json:"age"`
+	ProfilePicture string     `json:"profile_picture"`
+	IsVerified     bool       `json:"is_verified"`
+	VerifiedAt     *time.Time `json:"verified_at,omitempty"`
+	IsOnline       bool       `json:"is_online"`
 }
 
 type ParticipantResponse struct {
@@ -49,6 +49,7 @@ type ChatUploadURLResponse struct {
 	UploadURL string `json:"upload_url"`
 	FileKey   string `json:"file_key"`
 }
+
 func ToMessageResponse(m *entities.Message, currentUserID uuid.UUID) MessageResponse {
 	isRead := m.Status == entities.MessageStatusRead
 	return MessageResponse{
@@ -106,13 +107,13 @@ func ToConversationResponse(c *entities.Conversation, currentUserID uuid.UUID, u
 	return ConversationResponse{
 		ID: c.ID,
 		User: ParticipantPreviewResponse{
-			ID:               otherUser.UserID,
-			FullName:         fullName,
-			Age:              age,
-			ProfilePicture:   photoURL,
-			OfficialVerified: otherUser.User.VerifiedAt != nil,
-			VerifiedAt:       otherUser.User.VerifiedAt,
-			IsOnline:         isOnline,
+			ID:             otherUser.UserID,
+			FullName:       fullName,
+			Age:            age,
+			ProfilePicture: photoURL,
+			IsVerified:     otherUser.User.VerifiedAt != nil,
+			VerifiedAt:     otherUser.User.VerifiedAt,
+			IsOnline:       isOnline,
 		},
 		LastMessage: lastMsg,
 		UnreadCount: unreadCount,

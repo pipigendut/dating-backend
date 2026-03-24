@@ -60,13 +60,8 @@ func (r *swipeRepository) UnmatchUser(ctx context.Context, userID, targetUserID 
 			return err
 		}
 
-		// 3. Insert into unmatches table
-		unmatch := entities.Unmatch{
-			UserID:       userID,
-			TargetUserID: targetUserID,
-			MatchID:      matchID,
-		}
-		if err := tx.Create(&unmatch).Error; err != nil {
+		// 3. Hard delete swipes between the two users
+		if err := tx.Unscoped().Where("(swiper_id = ? AND swiped_id = ?) OR (swiper_id = ? AND swiped_id = ?)", userID, targetUserID, targetUserID, userID).Delete(&entities.Swipe{}).Error; err != nil {
 			return err
 		}
 

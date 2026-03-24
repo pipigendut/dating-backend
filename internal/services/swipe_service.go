@@ -241,7 +241,7 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 		Preload("InterestedGenders").
 		Preload("Interests").
 		Preload("Languages").
-		Preload("Photos").
+		Preload("Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).
 		Where("id IN ?", candidateIDs).
 		Find(&fullUsers).Error
 
@@ -394,7 +394,7 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 
 				// Fetch matched user details for the response
 				var u entities.User
-				if err := tx.Preload("Photos").Where("id = ?", swipedID).First(&u).Error; err == nil {
+				if err := tx.Preload("Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).Where("id = ?", swipedID).First(&u).Error; err == nil {
 					matchedUser = &u
 				}
 			} else if err != gorm.ErrRecordNotFound {
@@ -481,7 +481,7 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID, l
 		Preload("InterestedGenders").
 		Preload("Interests").
 		Preload("Languages").
-		Preload("Photos").
+		Preload("Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).
 		Where("id IN ?", userIDs).
 		Find(&fullUsers).Error
 
@@ -556,7 +556,7 @@ func (s *swipeService) UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*en
 
 		// 5. Fetch the target user so the frontend knows who to put back in the deck
 		var targetUser entities.User
-		if err := tx.Preload("Photos").Where("id = ?", lastSwipe.SwipedID).First(&targetUser).Error; err != nil {
+		if err := tx.Preload("Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).Where("id = ?", lastSwipe.SwipedID).First(&targetUser).Error; err != nil {
 			return err
 		}
 
@@ -587,7 +587,7 @@ func (s *swipeService) GetLikesSent(ctx context.Context, userID uuid.UUID, limit
 
 	var users []entities.User
 	err = s.db.WithContext(ctx).
-		Preload("Photos").
+		Preload("Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).
 		Preload("Gender").
 		Where("id IN ?", userIDs).
 		Find(&users).Error

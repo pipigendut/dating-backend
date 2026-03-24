@@ -43,9 +43,6 @@ func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.U
 		Preload("Participants", "user_id != ?", userID).
 		Preload("Participants.User.Photos").
 		Preload("Participants.Presence").
-		Preload("Messages", func(db *gorm.DB) *gorm.DB {
-			return db.Order("messages.created_at DESC").Limit(1)
-		}).
 		Table("conversations").
 		Select("conversations.*").
 		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").
@@ -58,7 +55,19 @@ func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.U
 	}
 
 	err := query.Find(&convs).Error
-	return convs, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch last message for each conversation to avoid GORM's Limit(1) bug on Preload
+	for i := range convs {
+		var lastMsg entities.Message
+		if err := r.db.WithContext(ctx).Where("conversation_id = ?", convs[i].ID).Order("created_at DESC").First(&lastMsg).Error; err == nil {
+			convs[i].Messages = []entities.Message{lastMsg}
+		}
+	}
+
+	return convs, nil
 }
 
 func (r *chatRepository) GetConversationBetweenUsers(ctx context.Context, user1ID, user2ID uuid.UUID) (*entities.Conversation, error) {

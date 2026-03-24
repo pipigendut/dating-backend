@@ -30,7 +30,7 @@ func (r *userRepo) GetByID(id uuid.UUID) (*entities.User, error) {
 }
 func (r *userRepo) GetWithRelations(id uuid.UUID) (*entities.User, error) {
 	var user entities.User
-	err := r.db.Preload("Photos").
+	err := r.db.Preload("Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).
 		Preload("Gender").
 		Preload("RelationshipType").
 		Preload("InterestedGenders").
