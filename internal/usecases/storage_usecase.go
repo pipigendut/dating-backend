@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/google/uuid"
@@ -62,4 +63,8 @@ func (u *StorageUsecase) GetPublicURL(key string) string {
 
 func (u *StorageUsecase) DeleteFile(ctx context.Context, key string) error {
 	return u.storage.DeleteFile(ctx, key)
+}
+
+func (u *StorageUsecase) GetFileContent(ctx context.Context, key string) (io.ReadCloser, error) {
+	return u.storage.GetFileContent(ctx, key)
 }

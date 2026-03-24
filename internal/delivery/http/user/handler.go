@@ -2,6 +2,7 @@ package user
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -11,10 +12,11 @@ import (
 	"github.com/pipigendut/dating-backend/internal/usecases"
 )
 
-func NewUserHandler(r *gin.RouterGroup, usecase *usecases.UserUsecase, storageUC *usecases.StorageUsecase, authMiddleware gin.HandlerFunc) {
+func NewUserHandler(r *gin.RouterGroup, usecase *usecases.UserUsecase, storageUC *usecases.StorageUsecase, verifyUC *usecases.VerificationService, authMiddleware gin.HandlerFunc) {
 	handler := &UserHandler{
-		usecase:   usecase,
-		storageUC: storageUC,
+		usecase:        usecase,
+		storageUC:      storageUC,
+		verificationUC: verifyUC,
 	}
 	users := r.Group("/users")
 
@@ -28,12 +30,14 @@ func NewUserHandler(r *gin.RouterGroup, usecase *usecases.UserUsecase, storageUC
 		users.PATCH("/profile", handler.UpdateProfile)
 		users.DELETE("/profile", handler.DeleteAccount)
 		users.GET("/upload-url", handler.GetUploadURL)
+		users.POST("/verify-face", handler.VerifyFace)
 	}
 }
 
 type UserHandler struct {
-	usecase   *usecases.UserUsecase
-	storageUC *usecases.StorageUsecase
+	usecase        *usecases.UserUsecase
+	storageUC      *usecases.StorageUsecase
+	verificationUC *usecases.VerificationService
 }
 
 func (h *UserHandler) GetProfile(c *gin.Context) {
@@ -70,20 +74,20 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	usecaseReq := usecases.UpdateProfileRequest{
-		FullName:        req.FullName,
-		DateOfBirth:     req.DateOfBirth,
-		Gender:          req.Gender,
-		HeightCM:        req.HeightCM,
-		Bio:             req.Bio,
-		InterestedIn:    req.InterestedIn,
+		FullName:         req.FullName,
+		DateOfBirth:      req.DateOfBirth,
+		Gender:           req.Gender,
+		HeightCM:         req.HeightCM,
+		Bio:              req.Bio,
+		InterestedIn:     req.InterestedIn,
 		RelationshipType: req.RelationshipType,
-		LocationCity:    req.LocationCity,
-		LocationCountry: req.LocationCountry,
-		Latitude:        req.Latitude,
-		Longitude:       req.Longitude,
-		Interests:       req.Interests,
-		Languages:       req.Languages,
-		Photos:          photosDTO,
+		LocationCity:     req.LocationCity,
+		LocationCountry:  req.LocationCountry,
+		Latitude:         req.Latitude,
+		Longitude:        req.Longitude,
+		Interests:        req.Interests,
+		Languages:        req.Languages,
+		Photos:           photosDTO,
 	}
 
 	if req.Status != nil {
@@ -152,4 +156,33 @@ func (h *UserHandler) GetUploadURLPublic(c *gin.Context) {
 		UploadURL: url,
 		FileKey:   key,
 	})
+}
+
+func (h *UserHandler) VerifyFace(c *gin.Context) {
+	userID := c.MustGet("userID").(uuid.UUID)
+
+	file, err := c.FormFile("photo")
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Photo is required", err.Error())
+		return
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to open photo", err.Error())
+		return
+	}
+	defer f.Close()
+
+	result, err := h.verificationUC.VerifyFace(c.Request.Context(), userID, f)
+	if err != nil {
+		if strings.Contains(err.Error(), "daily face verification limit exceeded") {
+			response.Error(c, http.StatusTooManyRequests, "Daily Limit Exceeded", err.Error())
+			return
+		}
+		response.Error(c, http.StatusInternalServerError, "Verification process failed", err.Error())
+		return
+	}
+
+	response.OK(c, result)
 }

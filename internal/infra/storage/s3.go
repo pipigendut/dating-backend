@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -87,6 +88,19 @@ func (s *S3Storage) GetPublicURL(key string) string {
 	}
 	// AWS Native
 	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucketName, s.region, key)
+}
+
+func (s *S3Storage) GetFileContent(ctx context.Context, key string) (io.ReadCloser, error) {
+	output, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucketName),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file from S3: %v", err)
+	}
+
+	return output.Body, nil
 }
 
 func (s *S3Storage) DeleteFile(ctx context.Context, key string) error {

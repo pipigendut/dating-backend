@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/admin"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/chat"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/master"
@@ -13,17 +16,15 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/monetization"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/swipe"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
-	"github.com/pipigendut/dating-backend/internal/delivery/http/admin"
 	"github.com/pipigendut/dating-backend/internal/delivery/ws"
 	"github.com/pipigendut/dating-backend/internal/infra"
 	"github.com/pipigendut/dating-backend/internal/infra/kafka"
+	"github.com/pipigendut/dating-backend/internal/infra/ml"
 	"github.com/pipigendut/dating-backend/internal/infra/seeds"
 	infraStorage "github.com/pipigendut/dating-backend/internal/infra/storage"
 	"github.com/pipigendut/dating-backend/internal/repository/impl"
 	"github.com/pipigendut/dating-backend/internal/services"
 	"github.com/pipigendut/dating-backend/internal/usecases"
-	"strings"
-	"context"
 
 	_ "github.com/pipigendut/dating-backend/docs"
 	swaggerFiles "github.com/swaggo/files"
@@ -115,7 +116,14 @@ func main() {
 		log.Printf("Warning: Storage Provider (%s) not connected: %v", storageProvider, errS3)
 	}
 
-	// 1.6 Setup Kafka
+	mlProvider, err := ml.NewProvider()
+	if err != nil {
+		log.Printf("Warning: Face Verification Provider not initialized: %v", err)
+	} else if mlProvider != nil {
+		defer mlProvider.Close()
+	}
+
+	// 1.7 Setup Kafka
 	kafkaBrokers := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
 	if os.Getenv("KAFKA_BROKERS") == "" {
 		kafkaBrokers = []string{"localhost:9092"}
@@ -123,7 +131,7 @@ func main() {
 	kafkaProducer := kafka.NewProducer(kafkaBrokers)
 	defer kafkaProducer.Close()
 
-	// 1.7 Setup WebSocket Manager
+	// 1.8 Setup WebSocket Manager
 	wsManager := ws.NewManager()
 	go wsManager.Run()
 
@@ -139,6 +147,8 @@ func main() {
 
 	configRepo := impl.NewConfigRepository(db)
 	configSvc := services.NewConfigService(configRepo)
+
+	verifyUC := usecases.NewVerificationService(userRepo, storageUC, mlProvider, redisClient, configSvc)
 
 	chatRepo := impl.NewChatRepository(db)
 	chatSvc := services.NewChatService(chatRepo, kafkaProducer)
@@ -169,7 +179,7 @@ func main() {
 		anticheatMiddleware = acm.RateLimitSwipe()
 	}
 
-	user.NewUserHandler(v1, userUC, storageUC, authMiddleware)
+	user.NewUserHandler(v1, userUC, storageUC, verifyUC, authMiddleware)
 	auth.NewAuthHandler(v1, authUC)
 	master.NewMasterHandler(v1, masterUC)
 	monetization.NewMonetizationHandler(v1, subscriptionService, userRepo, authMiddleware)

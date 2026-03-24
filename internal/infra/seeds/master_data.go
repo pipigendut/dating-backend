@@ -102,6 +102,7 @@ func SeedMasterData(db *gorm.DB) error {
 			{Key: "dislike_recycle_minutes", Value: `"4320"`}, // 3 days default
 			{Key: "max_limit_likes_free", Value: `"50"`},
 			{Key: "like_expiry_hours", Value: `"72"`}, // 3 days default
+			{Key: "max_limit_face_verification_per_day", Value: `"5"`}, // Security rate-limit default
 			{Key: "whitelist_emails", Value: `["akbar.maulana090895@gmail.com"]`},
 		}
 
