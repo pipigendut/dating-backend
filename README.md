@@ -38,7 +38,7 @@ graph TD
   - JWT-based session management.
 - **Standardized API Responses**: Centralized response envelope for consistency.
 - **Scalable HTTP Layer**: Handlers and DTOs grouped by resource.
-- **Database Migrations**: Automatic schema migration on startup.
+- **Database Migrations**: Versioned SQL migrations using `golang-migrate`.
 
 ## 🛠 Getting Started
 
@@ -58,7 +58,7 @@ graph TD
 2. **Configure Environment Variables**:
    Copy the example environment file and adjust the values (especially database credentials).
    ```bash
-   cp .env.example .env # If available, or create .env manually
+   cp .env.example .env
    ```
 
 3. **Start Infrastructure**:
@@ -71,7 +71,20 @@ graph TD
    go mod tidy
    ```
 
-5. **Run the Application**:
+5. **Database Migrations & Seeding**:
+   Migrations and seeding are now manual. Refer to the commands below:
+   ```bash
+   # Run all pending migrations
+   go run cmd/migrate/main.go up
+
+   # Rollback the last migration
+   go run cmd/migrate/main.go down
+
+   # Seed master data
+   go run cmd/seed/main.go
+   ```
+
+6. **Run the Application**:
    ```bash
    go run cmd/app/main.go
    ```
@@ -90,4 +103,23 @@ The project uses Swagger for API documentation.
 
 ```bash
 go test ./...
+```
+
+## 🛠 Extra Commands
+
+### Advanced Migrations
+For more granular control over database migrations:
+
+```bash
+# Check current migration version
+go run cmd/migrate/main.go version
+
+# Rollback exactly 1 migration step
+go run cmd/migrate/main.go step -1
+
+# Run exactly 1 next migration step
+go run cmd/migrate/main.go step 1
+
+# Force a specific version (use this if the database is in a 'dirty' state)
+go run cmd/migrate/main.go force <version_number>
 ```

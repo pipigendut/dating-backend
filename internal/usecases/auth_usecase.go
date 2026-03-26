@@ -12,6 +12,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/pkg/auth"
+	"gorm.io/gorm"
 )
 
 // getRefreshTokenExpiry reads JWT_REFRESH_TOKEN_EXPIRY_DAYS from env (default: 30)
@@ -168,16 +169,7 @@ func (u *AuthUsecase) generateTokensAndDevice(userID uuid.UUID, dto DeviceDTO) (
 	return accessToken, refreshTokenStr, nil
 }
 
-func (u *AuthUsecase) formatUserPhotos(user *entities.User) {
-	if user == nil || u.storageUC == nil {
-		return
-	}
-	for i := range user.Photos {
-		if user.Photos[i].URL != "" && !strings.HasPrefix(user.Photos[i].URL, "http") {
-			user.Photos[i].URL = u.storageUC.GetPublicURL(user.Photos[i].URL)
-		}
-	}
-}
+
 
 func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *entities.User, error) {
 	// 1. Check if this Google account is already linked
@@ -187,15 +179,14 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		if fullUser != nil {
 			user = fullUser
 		}
-		u.formatUserPhotos(user)
 		token, refresh, err := u.generateTokensAndDevice(user.ID, dto.Device)
 		return token, refresh, user, err
 	}
 
-	// 2. Check if email exists (Account Linking)
-	user, err = u.repo.GetByEmail(dto.Email)
-	if err == nil {
-		// Link existing email account to Google
+	// 2. Check if email exists (Account Linking or Restoration)
+	user, err = u.repo.GetByEmailUnscoped(dto.Email)
+	if err == nil && !user.DeletedAt.Valid {
+		// Active user -> link
 		err = u.repo.LinkProvider(user.ID, "google", dto.GoogleID)
 		if err != nil {
 			return "", "", nil, err
@@ -204,14 +195,16 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		if fullUser != nil {
 			user = fullUser
 		}
-		u.formatUserPhotos(user)
 		token, refresh, err := u.generateTokensAndDevice(user.ID, dto.Device)
 		return token, refresh, user, err
 	}
 
-	// 3. Register New User via Google
+	// 3. Register New User (or Restore) via Google
 	userID := uuid.New()
-	if dto.ID != nil && *dto.ID != "" {
+	if user != nil && user.DeletedAt.Valid {
+		// Restore user
+		userID = user.ID
+	} else if dto.ID != nil && *dto.ID != "" {
 		if parsed, errParse := uuid.Parse(*dto.ID); errParse == nil {
 			userID = parsed
 		}
@@ -244,6 +237,10 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		GenderID:        parseUUIDPtr(dto.Gender),
 	}
 	newUser.ID = userID
+
+	if user != nil && user.DeletedAt.Valid {
+		newUser.DeletedAt = gorm.DeletedAt{Valid: false}
+	}
 
 	if relIDs := parseCommaSeparatedUUIDs(dto.LookingFor); len(relIDs) > 0 {
 		newUser.RelationshipTypeID = &relIDs[0]
@@ -280,7 +277,17 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		},
 	}
 
-	err = u.repo.CreateWithRelations(newUser)
+	if user != nil && user.DeletedAt.Valid {
+		// Update (Restore) existing soft-deleted user
+		err = u.repo.Update(newUser)
+		if err == nil {
+			// Save the new AuthProvider manually since Update omits associations
+			_ = u.repo.LinkProvider(newUser.ID, "google", dto.GoogleID)
+		}
+	} else {
+		err = u.repo.CreateWithRelations(newUser)
+	}
+
 	if err != nil {
 		return "", "", nil, err
 	}
@@ -291,7 +298,6 @@ func (u *AuthUsecase) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		newUser = fullUser
 	}
 
-	u.formatUserPhotos(newUser)
 	token, refresh, err := u.generateTokensAndDevice(newUser.ID, dto.Device)
 	return token, refresh, newUser, err
 }
@@ -406,8 +412,10 @@ func (u *AuthUsecase) CheckEmail(email string) (bool, error) {
 }
 
 func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *entities.User, error) {
-	exists, _ := u.CheckEmail(dto.Email)
-	if exists {
+	// First check if email belongs to an existing (and possibly soft-deleted) user
+	existingUser, _ := u.repo.GetByEmailUnscoped(dto.Email)
+	if existingUser != nil && !existingUser.DeletedAt.Valid {
+		// Found active user -> reject
 		return "", "", nil, errors.New("email already registered")
 	}
 
@@ -417,7 +425,10 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	}
 
 	userID := uuid.New()
-	if dto.ID != nil && *dto.ID != "" {
+	if existingUser != nil && existingUser.DeletedAt.Valid {
+		// Restore Soft Deleted Account
+		userID = existingUser.ID
+	} else if dto.ID != nil && *dto.ID != "" {
 		if parsed, errParse := uuid.Parse(*dto.ID); errParse == nil {
 			userID = parsed
 		}
@@ -446,6 +457,11 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	}
 	user.ID = userID
 
+	if existingUser != nil && existingUser.DeletedAt.Valid {
+		// Specifically nullify the soft-delete timestamp
+		user.DeletedAt = gorm.DeletedAt{Valid: false}
+	}
+
 	if relIDs := parseCommaSeparatedUUIDs(dto.LookingFor); len(relIDs) > 0 {
 		user.RelationshipTypeID = &relIDs[0]
 	}
@@ -465,18 +481,23 @@ func (u *AuthUsecase) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 		}
 	}
 
-	err = u.repo.CreateWithRelations(user)
+	if existingUser != nil && existingUser.DeletedAt.Valid {
+		// Update instead of Create when restoring
+		err = u.repo.Update(user) // Update also propagates to nested associations in repo layer
+	} else {
+		err = u.repo.CreateWithRelations(user)
+	}
+
 	if err != nil {
 		return "", "", nil, err
 	}
 
-	// 3. Fetch full user to ensure all relations (master data) are preloaded for response
+	// Fetch full user to ensure all relations (master data) are preloaded for response
 	fullUser, err := u.repo.GetWithRelations(user.ID)
 	if err == nil {
 		user = fullUser
 	}
 
-	u.formatUserPhotos(user)
 	token, refresh, err := u.generateTokensAndDevice(user.ID, dto.Device)
 	return token, refresh, user, err
 }
@@ -496,7 +517,6 @@ func (u *AuthUsecase) LoginEmail(dto LoginEmailDTO) (string, string, *entities.U
 		user = fullUser
 	}
 
-	u.formatUserPhotos(user)
 	token, refresh, err := u.generateTokensAndDevice(user.ID, dto.Device)
 	return token, refresh, user, err
 }

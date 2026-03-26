@@ -21,6 +21,7 @@ type IncomingLikeResponse struct {
 	User          user.UserResponse `json:"user"`
 	IsCrush       bool              `json:"is_crush"`
 	RankingScore  float64           `json:"ranking_score"`
+	IsBoosted     bool              `json:"is_boosted"`
 	SwipeTime     string            `json:"swipe_time"`
 }
 

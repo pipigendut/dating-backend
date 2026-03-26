@@ -71,6 +71,7 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 	scoreWeight := s.config.GetFloat("score_weight", 0.7)
 	randomWeight := s.config.GetFloat("random_weight", 0.3)
 	dislikeRecycleMinutes := s.config.GetInt("dislike_recycle_minutes", 4320)
+	likeExpiryHours := s.config.GetInt("like_expiry_hours", 168)
 
 	// 1. Prepare dynamic filters (Genders)
 	var searchGenders []uuid.UUID
@@ -123,7 +124,7 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 					-- Premium Score
 					CASE WHEN u.is_premium = true THEN ? ELSE 0 END +
 					-- Boost Score
-					CASE WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.is_active = true AND ub.expired_at > NOW()) THEN ? ELSE 0 END -
+					CASE WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.expired_at > NOW()) THEN ? ELSE 0 END -
 					-- Unmatch Penalty
 					CASE WHEN ru.id IS NOT NULL THEN 1000 ELSE 0 END
 				) as raw_score,
@@ -133,6 +134,7 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 			LEFT JOIN recent_unmatches ru ON ru.target_user_id = u.id
 			WHERE u.id != ?
 			AND u.status = 'active'
+			AND u.deleted_at IS NULL
 	`
 	args := []interface{}{
 		userID, userID, premiumScore, boostScore, userID,
@@ -190,18 +192,18 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 		SELECT 1 FROM swipes s 
 		WHERE s.swiper_id = ? AND s.swiped_id = u.id AND s.deleted_at IS NULL
 		AND (
-			s.direction IN ('LIKE', 'CRUSH')
-			OR s.updated_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 minute')
+			(s.direction IN ('LIKE', 'CRUSH') AND s.updated_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 hour'))
+			OR (s.direction = 'DISLIKE' AND s.updated_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 minute'))
 		)
 	)`
-	args = append(args, userID, float64(dislikeRecycleMinutes))
+	args = append(args, userID, float64(likeExpiryHours), float64(dislikeRecycleMinutes))
 
 	// Cooldown Rules
 	whereClauses += ` AND (
 		ri.last_shown IS NULL OR 
 		NOW() - ri.last_shown > (
 			CASE 
-				WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.is_active = true AND ub.expired_at > NOW()) THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
+				WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.expired_at > NOW()) THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
 				WHEN u.is_premium = true THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
 				ELSE CAST(? AS FLOAT) * INTERVAL '1 minute'
 			END
@@ -273,6 +275,7 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 		// 1. Calculate Ranking Score & Priority Score
 		var rankingScore float64
 		var priorityScore int
+		var isBoosted bool
 
 		if direction == entities.SwipeDirectionLike || direction == entities.SwipeDirectionCrush {
 			// Base Activity Score (can be simplified here if we use the one from candidate search)
@@ -289,7 +292,7 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 			}
 
 			// Boost Score
-			isBoosted, _ := s.subscription.IsBoosted(ctx, swiperID)
+			isBoosted, _, _ = s.subscription.IsBoosted(ctx, swipedID)
 			if isBoosted {
 				rankingScore += float64(s.config.GetInt("boost_score", 200))
 			}
@@ -348,6 +351,7 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 			Direction:     direction,
 			RankingScore:  rankingScore,
 			PriorityScore: priorityScore,
+			IsBoosted:     isBoosted,
 		}
 
 		if err := tx.Clauses(clause.OnConflict{
@@ -356,6 +360,7 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 				"direction":      direction,
 				"ranking_score":  rankingScore,
 				"priority_score": priorityScore,
+				"is_boosted":     isBoosted,
 				"deleted_at":     nil,
 				"created_at":     time.Now(),
 				"updated_at":     time.Now(),
@@ -366,8 +371,11 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 
 		// 3. If LIKE or CRUSH, check for mutual match
 		if direction == entities.SwipeDirectionLike || direction == entities.SwipeDirectionCrush {
+			likeExpiryHours := s.config.GetInt("like_expiry_hours", 168)
+			expiryThreshold := time.Now().Add(-time.Duration(likeExpiryHours) * time.Hour)
+
 			var reverseSwipe entities.Swipe
-			err := tx.Where("swiper_id = ? AND swiped_id = ? AND direction IN ?", swipedID, swiperID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).First(&reverseSwipe).Error
+			err := tx.Where("swiper_id = ? AND swiped_id = ? AND direction IN ? AND updated_at > ?", swipedID, swiperID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}, expiryThreshold).First(&reverseSwipe).Error
 
 			if err == nil {
 				userLowID, userHighID := swiperID, swipedID
@@ -380,7 +388,13 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperID, swipedID uuid.
 					UserHighID: userHighID,
 					VisibleAt:  time.Now(),
 				}
-				if err := tx.Create(&newMatch).Error; err != nil {
+				if err := tx.Clauses(clause.OnConflict{
+					Columns: []clause.Column{{Name: "user_low_id"}, {Name: "user_high_id"}},
+					DoUpdates: clause.Assignments(map[string]interface{}{
+						"visible_at": time.Now(),
+						"deleted_at": nil,
+					}),
+				}).Create(&newMatch).Error; err != nil {
 					return err
 				}
 				match = &newMatch
@@ -412,14 +426,19 @@ type IncomingLike struct {
 	User         entities.User
 	IsCrush      bool
 	RankingScore float64
+	IsBoosted    bool
 	CreatedAt    time.Time
 }
 
 func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID, limit, offset int) ([]IncomingLike, error) {
+	dislikeRecycleMinutes := s.config.GetInt("dislike_recycle_minutes", 4320)
+	likeExpiryHours := s.config.GetInt("like_expiry_hours", 168)
+
 	var results []struct {
 		entities.User
 		RawDirection    string    `gorm:"column:direction"`
 		RawRankingScore float64   `gorm:"column:ranking_score"`
+		RawIsBoosted    bool      `gorm:"column:is_boosted"`
 		RawCreatedAt    time.Time `gorm:"column:swipe_time"`
 	}
 
@@ -428,11 +447,13 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID, l
 			u.*,
 			s.direction,
 			s.ranking_score,
+			s.is_boosted,
 			s.created_at as swipe_time
 		FROM swipes s
 		JOIN users u ON u.id = s.swiper_id
 		WHERE s.swiped_id = ?
 		AND s.direction IN ('LIKE', 'CRUSH')
+		AND s.updated_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 hour')
 		AND (
 			s.updated_at < NOW() - (
 				SELECT INTERVAL '1 minute' * (value->>0)::INT 
@@ -450,15 +471,25 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID, l
 			)
 		)
 		AND NOT EXISTS (
-			-- Exclude if the current user already swiped on them (whether match or dislike)
-			SELECT 1 FROM swipes my_swipe 
+			-- Exclude if:
+			-- 1. Current user already liked/crushed them back (mutual → would have matched)
+			-- 2. Current user disliked them and recycle period has NOT passed yet
+			SELECT 1 FROM swipes my_swipe
 			WHERE my_swipe.swiper_id = ? AND my_swipe.swiped_id = s.swiper_id
+			  AND my_swipe.deleted_at IS NULL
+			  AND (
+				  my_swipe.direction IN ('LIKE', 'CRUSH')
+				  OR (
+					  my_swipe.direction = 'DISLIKE' AND 
+					  my_swipe.updated_at > NOW() - (CAST(? AS FLOAT) * INTERVAL '1 minute')
+				  )
+			  )
 		)
 		ORDER BY s.ranking_score DESC, s.created_at DESC
 		LIMIT ? OFFSET ?
 	`
 
-	err := s.db.WithContext(ctx).Raw(query, userID, userID, userID, limit, offset).Scan(&results).Error
+	err := s.db.WithContext(ctx).Raw(query, userID, float64(likeExpiryHours), userID, userID, float64(dislikeRecycleMinutes), limit, offset).Scan(&results).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get incoming likes: %w", err)
 	}
@@ -497,6 +528,7 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID, l
 			User:         u,
 			IsCrush:      results[idx].RawDirection == string(entities.SwipeDirectionCrush),
 			RankingScore: results[idx].RawRankingScore,
+			IsBoosted:    results[idx].RawIsBoosted,
 			CreatedAt:    results[idx].RawCreatedAt,
 		}
 	}
@@ -568,7 +600,10 @@ func (s *swipeService) UndoLastSwipe(ctx context.Context, userID uuid.UUID) (*en
 }
 
 func (s *swipeService) GetLikesSent(ctx context.Context, userID uuid.UUID, limit, offset int) ([]SentLike, error) {
-	swipes, err := s.swipeRepo.GetLikesSent(ctx, userID, limit, offset)
+	expiryHours := s.config.GetInt("like_expiry_hours", 168)
+	expiryThreshold := time.Now().Add(-time.Duration(expiryHours) * time.Hour)
+
+	swipes, err := s.swipeRepo.GetLikesSent(ctx, userID, limit, offset, &expiryThreshold)
 	if err != nil {
 		return nil, err
 	}
@@ -577,7 +612,6 @@ func (s *swipeService) GetLikesSent(ctx context.Context, userID uuid.UUID, limit
 		return []SentLike{}, nil
 	}
 
-	expiryHours := s.config.GetInt("like_expiry_hours", 168)
 	expiryDuration := time.Duration(expiryHours) * time.Hour
 
 	var userIDs []uuid.UUID

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"time"
 	"github.com/google/uuid"
 )
 
@@ -23,4 +24,9 @@ type RedisRepository interface {
 
 	// Pub/Sub
 	PublishEvent(ctx context.Context, channel string, payload interface{}) error
+
+	// Boost
+	SetUserBoost(ctx context.Context, userID uuid.UUID, expiresAt time.Time) error
+	GetBoostExpiration(ctx context.Context, userID uuid.UUID) (*time.Time, error)
+	DeleteUserBoost(ctx context.Context, userID uuid.UUID) error
 }

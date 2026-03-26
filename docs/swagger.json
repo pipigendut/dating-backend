@@ -506,6 +506,54 @@
                 }
             }
         },
+        "/boosts/activate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monetization"
+                ],
+                "summary": "Activate a boost for the user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/boosts/availability": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monetization"
+                ],
+                "summary": "Check if user has boosts available and current boost status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/chat/conversations": {
             "get": {
                 "security": [
@@ -1438,6 +1486,319 @@
                     }
                 }
             }
+        },
+        "/users/profile": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permanently deletes the current user's account and all associated data.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Delete user account",
+                "responses": {
+                    "200": {
+                        "description": "Successfully deleted account",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates the current user's profile information.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Update user profile",
+                "parameters": [
+                    {
+                        "description": "Update profile details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_delivery_http_user.UpdateProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated user profile",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_delivery_http_user.UserResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/profile/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches the profile details of a specific user by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User profile",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_delivery_http_user.UserResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/upload-url": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generates a presigned URL for the user to securely upload photos to S3.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get presigned S3 upload URL",
+                "responses": {
+                    "200": {
+                        "description": "Upload details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_delivery_http_user.UploadURLResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/upload-url/public": {
+            "get": {
+                "description": "Generates a presigned URL for a new (unauthenticated) user during onboarding.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get public presigned S3 upload URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Client ID constraint",
+                        "name": "client_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Upload details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_delivery_http_user.UploadURLResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/verify-face": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Uploads a photo to perform facial verification heuristics for profile validation.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Verify user face",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Photo to verify",
+                        "name": "photo",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Verification result",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2007,25 +2368,17 @@
                 "id": {
                     "type": "string"
                 },
+                "is_typing": {
+                    "type": "boolean"
+                },
                 "last_message": {
                     "$ref": "#/definitions/internal_delivery_http_chat.MessageResponse"
                 },
-                "other_user": {
-                    "description": "User Preview for Chat List",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/internal_delivery_http_chat.ParticipantPreviewResponse"
-                        }
-                    ]
-                },
-                "participants": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_delivery_http_chat.ParticipantResponse"
-                    }
-                },
                 "unread_count": {
                     "type": "integer"
+                },
+                "user": {
+                    "$ref": "#/definitions/internal_delivery_http_chat.ParticipantPreviewResponse"
                 }
             }
         },
@@ -2073,24 +2426,13 @@
                 "is_online": {
                     "type": "boolean"
                 },
-                "profile_picture": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_delivery_http_chat.ParticipantResponse": {
-            "type": "object",
-            "properties": {
-                "full_name": {
-                    "type": "string"
-                },
-                "is_online": {
+                "is_verified": {
                     "type": "boolean"
                 },
-                "photo_url": {
+                "profile_picture": {
                     "type": "string"
                 },
-                "user_id": {
+                "verified_at": {
                     "type": "string"
                 }
             }
@@ -2198,6 +2540,249 @@
             ],
             "properties": {
                 "target_user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_delivery_http_user.ConsumableItemResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "item_type": {
+                    "description": "boost, crush",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_delivery_http_user.PhotoRequest": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "_destroy": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_main": {
+                    "type": "boolean"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_delivery_http_user.PhotoResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "is_main": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "url": {
+                    "type": "string",
+                    "example": "https://example.com/photo.jpg"
+                }
+            }
+        },
+        "internal_delivery_http_user.UpdateProfileRequest": {
+            "type": "object",
+            "properties": {
+                "bio": {
+                    "type": "string"
+                },
+                "date_of_birth": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "height_cm": {
+                    "type": "integer"
+                },
+                "interested_in": {
+                    "type": "string"
+                },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "location_city": {
+                    "type": "string"
+                },
+                "location_country": {
+                    "type": "string"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "photos": {
+                    "description": "List of photo objects",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_delivery_http_user.PhotoRequest"
+                    }
+                },
+                "relationship_type": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "onboarding, active",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_delivery_http_user.UploadURLResponse": {
+            "type": "object",
+            "properties": {
+                "file_key": {
+                    "type": "string"
+                },
+                "upload_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_delivery_http_user.UserResponse": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "bio": {
+                    "type": "string",
+                    "example": "Avid hiker and coffee lover."
+                },
+                "consumables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_delivery_http_user.ConsumableItemResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "date_of_birth": {
+                    "type": "string",
+                    "example": "1995-01-01T00:00:00Z"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "full_name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "gender": {
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                },
+                "height_cm": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "interested_genders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                    }
+                },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                    }
+                },
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                    }
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "location_city": {
+                    "type": "string"
+                },
+                "location_country": {
+                    "type": "string"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "photos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_delivery_http_user.PhotoResponse"
+                    }
+                },
+                "relationship_type": {
+                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
+                },
+                "status": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_entities.UserStatus"
+                        }
+                    ],
+                    "example": "active"
+                },
+                "subscription": {
+                    "$ref": "#/definitions/internal_delivery_http_user.UserSubscriptionResponse"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_delivery_http_user.UserSubscriptionResponse": {
+            "type": "object",
+            "properties": {
+                "expired_at": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "started_at": {
                     "type": "string"
                 }
             }

@@ -18,3 +18,9 @@ vendor/
 # Mac
 .DS_Store
 models/*.onnx
+
+# VSCode
+.vscode
+
+# Debug
+__debug_bin*

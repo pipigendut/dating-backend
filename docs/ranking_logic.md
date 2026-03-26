@@ -7,7 +7,7 @@ SELECT
     u.*,
     (
         1.0 -- base_score
-        + (CASE WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.is_active = true AND ub.expired_at > NOW()) THEN (SELECT (value->>0)::FLOAT FROM app_configs WHERE key = 'boost_multiplier') ELSE 0 END) -- boost_score
+        + (CASE WHEN EXISTS (SELECT 1 FROM user_boosts ub WHERE ub.user_id = u.id AND ub.expired_at > NOW()) THEN (SELECT (value->>0)::FLOAT FROM app_configs WHERE key = 'boost_multiplier') ELSE 0 END) -- boost_score
         + (CASE WHEN EXISTS (SELECT 1 FROM user_subscriptions us JOIN subscription_plan_features spf ON us.plan_id = spf.plan_id WHERE us.user_id = u.id AND us.is_active = true AND us.expired_at > NOW() AND spf.feature_key = 'priority_likes') THEN (SELECT (spf.value->>0)::FLOAT FROM user_subscriptions us JOIN subscription_plan_features spf ON us.plan_id = spf.plan_id WHERE us.user_id = u.id AND us.is_active = true AND us.expired_at > NOW() AND spf.feature_key = 'priority_likes' LIMIT 1) ELSE 0 END) -- subscription_score
         + (CASE WHEN u.last_active_at > NOW() - INTERVAL '24 hours' THEN 1.0 ELSE 0.5 END) -- activity_score
         + RANDOM() -- randomness (0 to 1)

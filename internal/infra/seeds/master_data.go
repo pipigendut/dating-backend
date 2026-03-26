@@ -94,20 +94,21 @@ func SeedMasterData(db *gorm.DB) error {
 			{Key: "crush_score_bonus", Value: "500"},
 			{Key: "swipe_impression_cooldown_premium", Value: "10"},
 			{Key: "swipe_impression_cooldown_free", Value: "1"},
-			{Key: "swipe_impression_cooldown_boost", Value: `"3"`},
-			{Key: "score_weight", Value: `"0.7"`},
-			{Key: "random_weight", Value: `"0.3"`},
-			// {Key: "incoming_like_delay_free", Value: `"60"`},
-			{Key: "incoming_like_delay_free", Value: `"0"`},
-			// {Key: "incoming_like_delay_premium", Value: `"10"`},
-			{Key: "incoming_like_delay_premium", Value: `"0"`},
-			// {Key: "dislike_recycle_minutes", Value: `"4320"`}, // 3 days default
-			{Key: "dislike_recycle_minutes", Value: `"1"`}, // 3 days default
-			{Key: "max_limit_likes_free", Value: `"50"`},
-			// {Key: "like_expiry_hours", Value: `"72"`}, // 3 days default
-			{Key: "like_expiry_hours", Value: `"1"`},
-			{Key: "max_limit_face_verification_per_day", Value: `"5"`}, // Security rate-limit default
+			{Key: "swipe_impression_cooldown_boost", Value: "3"},
+			{Key: "score_weight", Value: "0.7"},
+			{Key: "random_weight", Value: "0.3"},
+			// {Key: "incoming_like_delay_free", Value: "60"},
+			{Key: "incoming_like_delay_free", Value: "0"},
+			// {Key: "incoming_like_delay_premium", Value: "10"},
+			{Key: "incoming_like_delay_premium", Value: "0"},
+			// {Key: "dislike_recycle_minutes", Value: "4320"}, // 3 days default
+			{Key: "dislike_recycle_minutes", Value: "1"}, // 3 days default
+			{Key: "max_limit_likes_free", Value: "50"},
+			// {Key: "like_expiry_hours", Value: "72"}, // 3 days default
+			{Key: "like_expiry_hours", Value: "1"},
+			{Key: "max_limit_face_verification_per_day", Value: "5"}, // Security rate-limit default
 			{Key: "whitelist_emails", Value: `["akbar.maulana090895@gmail.com"]`},
+			{Key: "boost_duration_minutes", Value: "60"},
 		}
 
 		for _, c := range configs {

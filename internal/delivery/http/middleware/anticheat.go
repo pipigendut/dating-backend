@@ -26,7 +26,7 @@ func (m *AntiCheatMiddleware) RateLimitSwipe() gin.HandlerFunc {
 			return
 		}
 
-		userIDStr, exists := c.Get("user_id")
+		userIDStr, exists := c.Get("userID")
 		if !exists {
 			c.Next()
 			return

@@ -16,7 +16,7 @@ const (
 )
 
 type User struct {
-	BaseModel
+	SoftDeleteModel
 	Email              *string   `gorm:"uniqueIndex"`
 	PasswordHash       *string
 	FullName           string
@@ -211,7 +211,6 @@ type UserBoost struct {
 	UserID    uuid.UUID `gorm:"type:uuid;index;not null"`
 	StartedAt time.Time `gorm:"index"`
 	ExpiredAt time.Time `gorm:"index"`
-	IsActive  bool      `gorm:"default:true;index"`
 }
 
 type AppConfig struct {

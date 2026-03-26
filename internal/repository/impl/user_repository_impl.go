@@ -114,6 +114,12 @@ func (r *userRepo) GetByEmail(email string) (*entities.User, error) {
 	return &user, err
 }
 
+func (r *userRepo) GetByEmailUnscoped(email string) (*entities.User, error) {
+	var user entities.User
+	err := r.db.Unscoped().First(&user, "email = ?", email).Error
+	return &user, err
+}
+
 func (r *userRepo) GetByProvider(provider, providerUserID string) (*entities.User, error) {
 	var authProvider entities.AuthProvider
 	err := r.db.Where("provider = ? AND provider_user_id = ?", provider, providerUserID).First(&authProvider).Error

@@ -2,14 +2,23 @@ package usecases
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
+	"github.com/pipigendut/dating-backend/internal/background"
+	"github.com/pipigendut/dating-backend/internal/background/jobs"
 	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/infra/errors"
 	"github.com/pipigendut/dating-backend/internal/repository"
 )
+
+type WsDisconnecter interface {
+	DisconnectUser(userID uuid.UUID)
+}
 
 type UpdateProfileRequest struct {
 	FullName        *string
@@ -30,12 +39,30 @@ type UpdateProfileRequest struct {
 }
 
 type UserUsecase struct {
-	repo      repository.UserRepository
-	storageUC *StorageUsecase
+	repo           repository.UserRepository
+	jobRepo        repository.JobRepository
+	sessionRepo    repository.SessionRepository
+	asynqClient    *asynq.Client
+	storageUC      *StorageUsecase
+	wsDisconnecter WsDisconnecter
 }
 
-func NewUserUsecase(repo repository.UserRepository, storageUC *StorageUsecase) *UserUsecase {
-	return &UserUsecase{repo: repo, storageUC: storageUC}
+func NewUserUsecase(
+	repo repository.UserRepository,
+	jobRepo repository.JobRepository,
+	sessionRepo repository.SessionRepository,
+	asynqClient *asynq.Client,
+	storageUC *StorageUsecase,
+	wsDisconnecter WsDisconnecter,
+) *UserUsecase {
+	return &UserUsecase{
+		repo:           repo,
+		jobRepo:        jobRepo,
+		sessionRepo:    sessionRepo,
+		asynqClient:    asynqClient,
+		storageUC:      storageUC,
+		wsDisconnecter: wsDisconnecter,
+	}
 }
 
 func (u *UserUsecase) GetProfile(id string) (*entities.User, error) {
@@ -213,20 +240,56 @@ func (u *UserUsecase) UpdateProfile(userID uuid.UUID, data UpdateProfileRequest)
 }
 
 func (u *UserUsecase) DeleteAccount(userID uuid.UUID) error {
-	// First fetch the user to get their photos
-	user, err := u.GetProfile(userID.String())
-	if err == nil && user != nil && u.storageUC != nil {
-		// Attempt to delete all associated photos from storage concurrently or sequentially
-		// We'll do it sequentially for simplicity
-		for _, photo := range user.Photos {
-			// In our schema, photo.URL holds the S3 key (e.g. users/UUID/profile/...)
-			if photo.URL != "" {
-				_ = u.storageUC.DeleteFile(context.Background(), photo.URL) // Fire and forget or handle gracefully
-			}
+	// 1. Authenticate user - Handled via API AuthMiddleware routing to userID
+	ctx := context.Background()
+
+	// 2. Perform Soft Delete on the user record directly
+	// GORM's .Delete() applied to a SoftDeleteModel automatically updates deleted_at = NOW()
+	if err := u.repo.Delete(userID); err != nil {
+		return err
+	}
+
+	// 3. Insert background job into DB tracking table
+	jobID := uuid.New()
+	basePayload := map[string]interface{}{"job_id": jobID.String(), "user_id": userID.String()}
+	payloadBytes, _ := json.Marshal(basePayload)
+	
+	job := &entities.Job{
+		BaseModel:     entities.BaseModel{ID: jobID},
+		Type:          jobs.TaskUserCleanup,
+		Status:        entities.JobStatusPending,
+		Payload:       payloadBytes,
+		ReferenceID:   &userID,
+		ReferenceType: "user",
+		Source:        "user_service",
+	}
+
+	if err := u.jobRepo.CreateJob(ctx, job); err != nil {
+		return fmt.Errorf("failed to create job: %v", err)
+	}
+
+	// 4. Enqueue job to Asynq with the same payload structure
+	if u.asynqClient != nil {
+		taskJSON, _ := json.Marshal(jobs.UserCleanupPayload{
+			BaseJobPayload: background.BaseJobPayload{JobID: jobID.String()},
+			UserID:         userID,
+		}) // Use struct mapping directly from background module
+		
+		task := asynq.NewTask(jobs.TaskUserCleanup, taskJSON)
+		if _, err := u.asynqClient.Enqueue(task); err != nil {
+			return fmt.Errorf("failed to enqueue background job: %v", err)
 		}
 	}
 
-	return u.repo.Delete(userID)
+	// 5. Invalidate Sessions and tokens
+	_ = u.sessionRepo.RevokeAllUserTokens(userID)
+
+	// 6. Disconnect WebSocket gracefully
+	if u.wsDisconnecter != nil {
+		u.wsDisconnecter.DisconnectUser(userID)
+	}
+
+	return nil
 }
 
 func stripPublicURL(url string) string {

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/entities"
@@ -12,6 +13,6 @@ type SwipeRepository interface {
 	GetMatch(ctx context.Context, userID, targetUserID uuid.UUID) (*entities.Match, error)
 	GetUnmatch(ctx context.Context, userID, targetUserID uuid.UUID) (*entities.Unmatch, error)
 	UnmatchUser(ctx context.Context, userID, targetUserID uuid.UUID, matchID uuid.UUID, conversationID uuid.UUID) error
-	GetLikesSent(ctx context.Context, userID uuid.UUID, limit, offset int) ([]entities.Swipe, error)
+	GetLikesSent(ctx context.Context, userID uuid.UUID, limit, offset int, expiryThreshold *time.Time) ([]entities.Swipe, error)
 	UnlikeUser(ctx context.Context, swiperID, swipedID uuid.UUID) error
 }

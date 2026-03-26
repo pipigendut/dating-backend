@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
-	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/services"
 	"gorm.io/gorm"
 )
@@ -50,17 +49,7 @@ type SwipeHandler struct {
 	storageUC    storageUsecase
 }
 
-// resolvePhotoURLs converts raw S3 file keys in Photos to full public URLs
-func (h *SwipeHandler) resolvePhotoURLs(u *entities.User) {
-	if h.storageUC == nil {
-		return
-	}
-	for i := range u.Photos {
-		if u.Photos[i].URL != "" {
-			u.Photos[i].URL = h.storageUC.GetPublicURL(u.Photos[i].URL)
-		}
-	}
-}
+
 
 // GetCandidates godoc
 // @Summary      Get list of users for swipe discovery
@@ -116,8 +105,7 @@ func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 	for _, u := range candidates {
 		shownIDs = append(shownIDs, u.ID)
 		uCopy := u // capture loop variable cleanly
-		h.resolvePhotoURLs(&uCopy)
-		respCandidates = append(respCandidates, user.ToUserResponse(&uCopy))
+		respCandidates = append(respCandidates, user.ToUserResponse(&uCopy, h.storageUC))
 	}
 
 	// Fire and forget impression recording
@@ -161,8 +149,7 @@ func (h *SwipeHandler) Swipe(c *gin.Context) {
 	if match != nil {
 		var matchedUserResp *user.UserResponse
 		if matchedUser != nil {
-			h.resolvePhotoURLs(matchedUser)
-			ur := user.ToUserResponse(matchedUser)
+			ur := user.ToUserResponse(matchedUser, h.storageUC)
 			matchedUserResp = &ur
 		}
 		response.OK(c, MatchResponse{
@@ -208,13 +195,13 @@ func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
 	var respLikes []IncomingLikeResponse
 	for _, like := range likes {
 		userCopy := like.User
-		h.resolvePhotoURLs(&userCopy)
-		userResp := user.ToUserResponse(&userCopy)
+		userResp := user.ToUserResponse(&userCopy, h.storageUC)
 
 		respLikes = append(respLikes, IncomingLikeResponse{
 			User:         userResp,
 			IsCrush:      like.IsCrush,
 			RankingScore: like.RankingScore,
+			IsBoosted:    like.IsBoosted,
 			SwipeTime:    like.CreatedAt.Format(time.RFC3339),
 		})
 	}
@@ -246,8 +233,7 @@ func (h *SwipeHandler) UndoSwipe(c *gin.Context) {
 		return
 	}
 
-	h.resolvePhotoURLs(undoneUser)
-	userResp := user.ToUserResponse(undoneUser)
+	userResp := user.ToUserResponse(undoneUser, h.storageUC)
 
 	response.OK(c, userResp)
 }
@@ -312,8 +298,7 @@ func (h *SwipeHandler) GetLikesSent(c *gin.Context) {
 	var respLikes []SentLikeResponse
 	for _, like := range likes {
 		userCopy := like.User
-		h.resolvePhotoURLs(&userCopy)
-		userResp := user.ToUserResponse(&userCopy)
+		userResp := user.ToUserResponse(&userCopy, h.storageUC)
 
 		respLikes = append(respLikes, SentLikeResponse{
 			User:      userResp,

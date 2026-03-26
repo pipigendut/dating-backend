@@ -87,7 +87,7 @@ func (r *subscriptionRepository) GetActiveBoost(ctx context.Context, userID uuid
 	var boost entities.UserBoost
 	now := time.Now()
 	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND is_active = ? AND started_at <= ? AND expired_at > ?", userID, true, now, now).
+		Where("user_id = ? AND started_at <= ? AND expired_at > ?", userID, now, now).
 		First(&boost).Error
 
 	if err != nil {
@@ -139,7 +139,7 @@ func (r *subscriptionRepository) GetConsumablePackageByID(ctx context.Context, i
 
 func (r *subscriptionRepository) CreateUserSubscription(ctx context.Context, sub *entities.UserSubscription) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// Single query UPSERT using OnConflict. 
+		// Single query UPSERT using OnConflict.
 		// If user_id exists, we ONLY update the plan_id (preserving expired_at).
 		return tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_id"}},

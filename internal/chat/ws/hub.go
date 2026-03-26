@@ -65,6 +65,16 @@ func (h *Hub) BroadcastEvent(event WSEvent, targetUserID uuid.UUID) {
 	}
 }
 
+func (h *Hub) DisconnectUser(userID uuid.UUID) {
+	h.mu.RLock()
+	client, ok := h.clients[userID]
+	h.mu.RUnlock()
+
+	if ok {
+		h.unregister <- client
+	}
+}
+
 // ListenToRedisPubSub listens to the global chat:events channel and broadcasts to local clients
 func (h *Hub) ListenToRedisPubSub(ctx context.Context, rdb *redis.Client) {
 	pubsub := rdb.Subscribe(ctx, "chat:events")

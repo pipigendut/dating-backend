@@ -13,11 +13,12 @@ import (
 )
 
 type AuthHandler struct {
-	usecase *usecases.AuthUsecase
+	usecase   *usecases.AuthUsecase
+	storageUC *usecases.StorageUsecase
 }
 
-func NewAuthHandler(r *gin.RouterGroup, usecase *usecases.AuthUsecase) {
-	handler := &AuthHandler{usecase: usecase}
+func NewAuthHandler(r *gin.RouterGroup, usecase *usecases.AuthUsecase, storageUC *usecases.StorageUsecase) {
+	handler := &AuthHandler{usecase: usecase, storageUC: storageUC}
 	group := r.Group("/auth")
 	{
 		group.POST("/check-email", handler.CheckEmail)
@@ -120,7 +121,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user)})
+	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user, h.storageUC)})
 }
 
 // Login godoc
@@ -160,7 +161,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user)})
+	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user, h.storageUC)})
 }
 
 // GoogleLogin godoc
@@ -226,7 +227,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user)})
+	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user, h.storageUC)})
 }
 
 // Refresh godoc

@@ -1,12 +1,17 @@
 package user
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/master"
+	"github.com/pipigendut/dating-backend/internal/entities"
 )
+
+type StorageURLProvider interface {
+	GetPublicURL(key string) string
+}
 
 type UserSubscriptionResponse struct {
 	PlanID    uuid.UUID `json:"plan_id"`
@@ -53,7 +58,7 @@ type PhotoResponse struct {
 	IsMain bool      `json:"is_main" example:"true"`
 }
 
-func ToUserResponse(u *entities.User) UserResponse {
+func ToUserResponse(u *entities.User, storage StorageURLProvider) UserResponse {
 	resp := UserResponse{
 		ID:                u.ID,
 		Email:             u.Email,
@@ -100,9 +105,13 @@ func ToUserResponse(u *entities.User) UserResponse {
 	}
 
 	for _, p := range u.Photos {
+		url := p.URL
+		if storage != nil && url != "" && !strings.HasPrefix(url, "http") {
+			url = storage.GetPublicURL(url)
+		}
 		resp.Photos = append(resp.Photos, PhotoResponse{
 			ID:     p.ID,
-			URL:    p.URL,
+			URL:    url,
 			IsMain: p.IsMain,
 		})
 	}

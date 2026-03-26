@@ -12,6 +12,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/infra/seeds"
 	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/internal/services"
+	"github.com/pipigendut/dating-backend/internal/usecases"
 	"gorm.io/gorm"
 )
 
@@ -20,14 +21,16 @@ type AdminHandler struct {
 	configSvc services.ConfigService
 	adminSvc  services.AdminService
 	userRepo  repository.UserRepository
+	storageUC *usecases.StorageUsecase
 }
 
-func NewAdminHandler(db *gorm.DB, configSvc services.ConfigService, adminSvc services.AdminService, userRepo repository.UserRepository) *AdminHandler {
+func NewAdminHandler(db *gorm.DB, configSvc services.ConfigService, adminSvc services.AdminService, userRepo repository.UserRepository, storageUC *usecases.StorageUsecase) *AdminHandler {
 	return &AdminHandler{
 		db:        db,
 		configSvc: configSvc,
 		adminSvc:  adminSvc,
 		userRepo:  userRepo,
+		storageUC: storageUC,
 	}
 }
 
@@ -157,7 +160,7 @@ func (h *AdminHandler) SubscribeUser(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, userDTO.ToUserResponse(user))
+	response.OK(c, userDTO.ToUserResponse(user, h.storageUC))
 }
 
 // AddBoost godoc
@@ -195,7 +198,7 @@ func (h *AdminHandler) AddBoost(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, userDTO.ToUserResponse(user))
+	response.OK(c, userDTO.ToUserResponse(user, h.storageUC))
 }
 
 // AddCrush godoc
@@ -232,7 +235,7 @@ func (h *AdminHandler) AddCrush(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, userDTO.ToUserResponse(user))
+	response.OK(c, userDTO.ToUserResponse(user, h.storageUC))
 }
 
 // GetAllConfigs godoc

@@ -9,17 +9,20 @@ import (
 	userDTO "github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/internal/services"
+	"github.com/pipigendut/dating-backend/internal/usecases"
 )
 
 type MonetizationHandler struct {
 	subService services.SubscriptionService
 	userRepo   repository.UserRepository
+	storageUC  *usecases.StorageUsecase
 }
 
-func NewMonetizationHandler(r *gin.RouterGroup, subService services.SubscriptionService, userRepo repository.UserRepository, authMiddleware gin.HandlerFunc) {
+func NewMonetizationHandler(r *gin.RouterGroup, subService services.SubscriptionService, userRepo repository.UserRepository, storageUC *usecases.StorageUsecase, authMiddleware gin.HandlerFunc) {
 	handler := &MonetizationHandler{
 		subService: subService,
 		userRepo:   userRepo,
+		storageUC:  storageUC,
 	}
 
 	monGroup := r.Group("/monetization")
@@ -30,6 +33,13 @@ func NewMonetizationHandler(r *gin.RouterGroup, subService services.Subscription
 		monGroup.GET("/status", handler.GetStatus)
 		monGroup.POST("/purchase/consumable", handler.PurchaseConsumable)
 		monGroup.POST("/purchase/plan", handler.PurchasePlan)
+	}
+
+	boostGroup := r.Group("/boosts")
+	boostGroup.Use(authMiddleware)
+	{
+		boostGroup.GET("/availability", handler.GetBoostAvailability)
+		boostGroup.POST("/activate", handler.ActivateBoost)
 	}
 }
 
@@ -97,7 +107,7 @@ func (h *MonetizationHandler) PurchaseConsumable(c *gin.Context) {
 		response.Error(c, http.StatusInternalServerError, "Failed to get updated user", err.Error())
 		return
 	}
-	response.OK(c, userDTO.ToUserResponse(updatedUser))
+	response.OK(c, userDTO.ToUserResponse(updatedUser, h.storageUC))
 }
 
 // PurchasePlan godoc
@@ -126,7 +136,7 @@ func (h *MonetizationHandler) PurchasePlan(c *gin.Context) {
 		response.Error(c, http.StatusInternalServerError, "Failed to get updated user", err.Error())
 		return
 	}
-	response.OK(c, userDTO.ToUserResponse(updatedUser))
+	response.OK(c, userDTO.ToUserResponse(updatedUser, h.storageUC))
 }
 
 // GetStatus godoc
@@ -155,4 +165,67 @@ func (h *MonetizationHandler) GetStatus(c *gin.Context) {
 		return
 	}
 	response.OK(c, status)
+}
+
+// GetBoostAvailability godoc
+// @Summary Check if user has boosts available and current boost status
+// @Tags Monetization
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.BaseResponse
+// @Router /boosts/availability [get]
+func (h *MonetizationHandler) GetBoostAvailability(c *gin.Context) {
+	val, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+	userID := val.(uuid.UUID)
+
+	status, err := h.subService.GetStatus(c.Request.Context(), userID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to get boost availability", err.Error())
+		return
+	}
+
+	isBoosted, expiredAt, err := h.subService.IsBoosted(c.Request.Context(), userID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to check boost status", err.Error())
+		return
+	}
+
+	boostAmount := status.Consumables["boost"]
+	response.OK(c, gin.H{
+		"has_boost":    boostAmount > 0,
+		"boost_amount": boostAmount,
+		"is_boosted":   isBoosted,
+		"expired_at":   expiredAt,
+	})
+}
+
+// ActivateBoost godoc
+// @Summary Activate a boost for the user
+// @Tags Monetization
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.BaseResponse
+// @Router /boosts/activate [post]
+func (h *MonetizationHandler) ActivateBoost(c *gin.Context) {
+	val, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+	userID := val.(uuid.UUID)
+
+	boost, err := h.subService.ActivateBoost(c.Request.Context(), userID)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Failed to activate boost", err.Error())
+		return
+	}
+
+	response.OK(c, gin.H{
+		"message":    "Boost activated successfully",
+		"expired_at": boost.ExpiredAt,
+	})
 }

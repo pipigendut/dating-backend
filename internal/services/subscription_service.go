@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
+
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/repository"
@@ -13,12 +15,13 @@ type SubscriptionService interface {
 	HasFeature(ctx context.Context, userID uuid.UUID, featureKey string) (bool, interface{}, error)
 	GetConsumables(ctx context.Context, userID uuid.UUID) (map[string]int, error)
 	UseConsumable(ctx context.Context, userID uuid.UUID, consumableType string) (bool, error)
-	IsBoosted(ctx context.Context, userID uuid.UUID) (bool, error)
+	IsBoosted(ctx context.Context, userID uuid.UUID) (bool, *time.Time, error)
 	GetPlans(ctx context.Context) ([]entities.SubscriptionPlan, error)
 	GetConsumableItems(ctx context.Context) ([]entities.ConsumablePackage, error)
 	PurchaseConsumable(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) error
 	PurchasePlan(ctx context.Context, userID uuid.UUID, planID uuid.UUID, priceID uuid.UUID) error
 	GetStatus(ctx context.Context, userID uuid.UUID) (*MonetizationStatus, error)
+	ActivateBoost(ctx context.Context, userID uuid.UUID) (*entities.UserBoost, error)
 }
 
 type MonetizationStatus struct {
@@ -29,14 +32,23 @@ type MonetizationStatus struct {
 }
 
 type subscriptionService struct {
-	repo     repository.SubscriptionRepository
-	userRepo repository.UserRepository
+	repo      repository.SubscriptionRepository
+	userRepo  repository.UserRepository
+	redisRepo repository.RedisRepository
+	configSvc ConfigService
 }
 
-func NewSubscriptionService(repo repository.SubscriptionRepository, userRepo repository.UserRepository) SubscriptionService {
+func NewSubscriptionService(
+	repo repository.SubscriptionRepository,
+	userRepo repository.UserRepository,
+	redisRepo repository.RedisRepository,
+	configSvc ConfigService,
+) SubscriptionService {
 	return &subscriptionService{
-		repo:     repo,
-		userRepo: userRepo,
+		repo:      repo,
+		userRepo:  userRepo,
+		redisRepo: redisRepo,
+		configSvc: configSvc,
 	}
 }
 
@@ -97,12 +109,31 @@ func (s *subscriptionService) UseConsumable(ctx context.Context, userID uuid.UUI
 	return false, nil
 }
 
-func (s *subscriptionService) IsBoosted(ctx context.Context, userID uuid.UUID) (bool, error) {
+func (s *subscriptionService) IsBoosted(ctx context.Context, userID uuid.UUID) (bool, *time.Time, error) {
+	// 1. Check Redis first
+	// if s.redisRepo != nil {
+	// 	expiresAt, err := s.redisRepo.GetBoostExpiration(ctx, userID)
+	// 	if err == nil && expiresAt != nil {
+	// 		return true, expiresAt, nil
+	// 	}
+	// }
+
+	// 2. Fallback to DB to get the actual boost object
 	boost, err := s.repo.GetActiveBoost(ctx, userID)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
-	return boost != nil, nil
+
+	if boost == nil {
+		return false, nil, nil
+	}
+
+	// 3. Backfill Redis if active
+	if s.redisRepo != nil {
+		_ = s.redisRepo.SetUserBoost(ctx, userID, boost.ExpiredAt)
+	}
+
+	return true, &boost.ExpiredAt, nil
 }
 
 func (s *subscriptionService) GetPlans(ctx context.Context) ([]entities.SubscriptionPlan, error) {
@@ -175,4 +206,51 @@ func (s *subscriptionService) GetStatus(ctx context.Context, userID uuid.UUID) (
 	}
 
 	return status, nil
+}
+
+func (s *subscriptionService) ActivateBoost(ctx context.Context, userID uuid.UUID) (*entities.UserBoost, error) {
+	// 1. Check if user already has an active boost
+	active, err := s.repo.GetActiveBoost(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if active != nil {
+		return nil, fmt.Errorf("you already have an active boost until %s", active.ExpiredAt.Format(time.Kitchen))
+	}
+
+	// 2. Use one boost consumable
+	success, err := s.UseConsumable(ctx, userID, "boost")
+	if err != nil {
+		return nil, err
+	}
+	if !success {
+		return nil, fmt.Errorf("insufficient boost balance")
+	}
+
+	// 3. Create boost record
+	// Default duration is 60 minutes if not specified in config
+	durationMinutes := 60
+	if s.configSvc != nil {
+		durationMinutes = s.configSvc.GetInt("boost_duration_minutes", 60)
+	}
+
+	now := time.Now()
+	expiredAt := now.Add(time.Duration(durationMinutes) * time.Minute)
+
+	boost := &entities.UserBoost{
+		UserID:    userID,
+		StartedAt: now,
+		ExpiredAt: expiredAt,
+	}
+
+	if err := s.repo.CreateUserBoost(ctx, boost); err != nil {
+		return nil, err
+	}
+
+	// 4. Cache in Redis
+	if s.redisRepo != nil {
+		_ = s.redisRepo.SetUserBoost(ctx, userID, boost.ExpiredAt)
+	}
+
+	return boost, nil
 }

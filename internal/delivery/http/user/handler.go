@@ -40,6 +40,18 @@ type UserHandler struct {
 	verificationUC *usecases.VerificationService
 }
 
+// GetProfile godoc
+// @Summary      Get user profile
+// @Description  Fetches the profile details of a specific user by ID.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      string  true  "User ID"
+// @Success      200  {object}  response.BaseResponse{data=UserResponse} "User profile"
+// @Failure      400  {object}  response.BaseResponse "Invalid request"
+// @Failure      500  {object}  response.BaseResponse "Internal server error"
+// @Router       /users/profile/{id} [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	id := c.Param("id")
 	user, err := h.usecase.GetProfile(id)
@@ -52,9 +64,21 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, ToUserResponse(user))
+	response.OK(c, ToUserResponse(user, h.storageUC))
 }
 
+// UpdateProfile godoc
+// @Summary      Update user profile
+// @Description  Updates the current user's profile information.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body UpdateProfileRequest true "Update profile details"
+// @Success      200  {object}  response.BaseResponse{data=UserResponse} "Updated user profile"
+// @Failure      400  {object}  response.BaseResponse "Invalid request"
+// @Failure      500  {object}  response.BaseResponse "Internal server error"
+// @Router       /users/profile [patch]
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 
@@ -110,9 +134,19 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, ToUserResponse(updatedUser))
+	response.OK(c, ToUserResponse(updatedUser, h.storageUC))
 }
 
+// DeleteAccount godoc
+// @Summary      Delete user account
+// @Description  Permanently deletes the current user's account and all associated data.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  response.BaseResponse "Successfully deleted account"
+// @Failure      500  {object}  response.BaseResponse "Internal server error"
+// @Router       /users/profile [delete]
 func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 
@@ -124,6 +158,16 @@ func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	response.OK(c, nil)
 }
 
+// GetUploadURL godoc
+// @Summary      Get presigned S3 upload URL
+// @Description  Generates a presigned URL for the user to securely upload photos to S3.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  response.BaseResponse{data=UploadURLResponse} "Upload details"
+// @Failure      500  {object}  response.BaseResponse "Internal server error"
+// @Router       /users/upload-url [get]
 func (h *UserHandler) GetUploadURL(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 
@@ -139,6 +183,17 @@ func (h *UserHandler) GetUploadURL(c *gin.Context) {
 	})
 }
 
+// GetUploadURLPublic godoc
+// @Summary      Get public presigned S3 upload URL
+// @Description  Generates a presigned URL for a new (unauthenticated) user during onboarding.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        client_id query string true "Client ID constraint"
+// @Success      200  {object}  response.BaseResponse{data=UploadURLResponse} "Upload details"
+// @Failure      400  {object}  response.BaseResponse "Invalid request"
+// @Failure      500  {object}  response.BaseResponse "Internal server error"
+// @Router       /users/upload-url/public [get]
 func (h *UserHandler) GetUploadURLPublic(c *gin.Context) {
 	clientID := c.Query("client_id")
 	if clientID == "" {
@@ -158,6 +213,19 @@ func (h *UserHandler) GetUploadURLPublic(c *gin.Context) {
 	})
 }
 
+// VerifyFace godoc
+// @Summary      Verify user face
+// @Description  Uploads a photo to perform facial verification heuristics for profile validation.
+// @Tags         users
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     BearerAuth
+// @Param        photo formData file true "Photo to verify"
+// @Success      200  {object}  response.BaseResponse "Verification result"
+// @Failure      400  {object}  response.BaseResponse "Invalid request"
+// @Failure      429  {object}  response.BaseResponse "Too many requests"
+// @Failure      500  {object}  response.BaseResponse "Internal server error"
+// @Router       /users/verify-face [post]
 func (h *UserHandler) VerifyFace(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 

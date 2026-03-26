@@ -2,12 +2,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
+	"github.com/pipigendut/dating-backend/internal/background"
+	"github.com/pipigendut/dating-backend/internal/background/jobs"
 	"github.com/pipigendut/dating-backend/internal/chat/ws"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/admin"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
@@ -19,8 +27,8 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/infra"
 	"github.com/pipigendut/dating-backend/internal/infra/ml"
-	"github.com/pipigendut/dating-backend/internal/infra/seeds"
 	infraStorage "github.com/pipigendut/dating-backend/internal/infra/storage"
+	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/internal/repository/impl"
 	"github.com/pipigendut/dating-backend/internal/services"
 	"github.com/pipigendut/dating-backend/internal/usecases"
@@ -71,15 +79,9 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// 1.1 Run Migrations
-	if err := infra.Migrate(db); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	// 1.2 Run Master Seeders
-	if err := seeds.SeedMasterData(db); err != nil {
-		log.Fatalf("Failed to execute master data seeders: %v", err)
-	}
+	// 1.1 Migrations and Seeding are now Manual (Check README.md)
+	// Run: go run cmd/migrate/main.go up
+	// Run: go run cmd/seed/main.go
 
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
@@ -87,7 +89,7 @@ func main() {
 
 	redisClient, err := infra.NewRedisClient(redisHost, redisPort, redisPass)
 	if err != nil {
-		log.Printf("Warning: Redis not connected: %v", err)
+		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
 	// 1.5 Setup Storage Provider
@@ -123,7 +125,17 @@ func main() {
 	}
 
 	// 1.8 Setup Redis Repository & WebSocket Hub
-	redisRepo := impl.NewRedisRepository(redisClient)
+	var (
+		userRepo         repository.UserRepository
+		sessionRepo      repository.SessionRepository
+		masterRepo       repository.MasterRepository
+		jobRepo          repository.JobRepository
+		swipeRepo        repository.SwipeRepository
+		subscriptionRepo repository.SubscriptionRepository
+		redisRepo        repository.RedisRepository
+	)
+
+	redisRepo = impl.NewRedisRepository(redisClient)
 	chatHub := ws.NewHub(redisRepo)
 	go chatHub.Run(context.Background())
 	if redisClient != nil {
@@ -131,12 +143,51 @@ func main() {
 	}
 
 	// 2. Initialize Layers
-	userRepo := impl.NewUserRepo(db)
-	sessionRepo := impl.NewSessionRepo(db)
-	masterRepo := impl.NewMasterRepository(db)
+	userRepo = impl.NewUserRepo(db)
+	sessionRepo = impl.NewSessionRepo(db)
+	masterRepo = impl.NewMasterRepository(db)
+	jobRepo = impl.NewJobRepository(db)
+	swipeRepo = impl.NewSwipeRepository(db)
+	subscriptionRepo = impl.NewSubscriptionRepository(db)
 
 	storageUC := usecases.NewStorageUsecase(storageImpl)
-	userUC := usecases.NewUserUsecase(userRepo, storageUC)
+
+	// Background Jobs Initialization
+	var asynqClient *asynq.Client
+	var asynqServer *asynq.Server
+
+	if redisClient != nil {
+		redisOpt := asynq.RedisClientOpt{
+			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+			Password: redisPass,
+		}
+
+		asynqClient = asynq.NewClient(redisOpt)
+		defer asynqClient.Close()
+
+		asynqServer = asynq.NewServer(
+			redisOpt,
+			asynq.Config{
+				Concurrency: 5,
+				Queues: map[string]int{
+					"default": 10,
+				},
+			},
+		)
+
+		jobRouter := background.NewJobRouter(jobRepo)
+
+		// Register handlers
+		userCleanupHandler := jobs.NewUserCleanupHandler(db, storageImpl)
+		jobRouter.RegisterHandler(jobs.TaskUserCleanup, userCleanupHandler.ProcessTask)
+
+		// Start Asynq Server non-blocking
+		if err := asynqServer.Start(jobRouter.Mux()); err != nil {
+			log.Fatalf("could not start asynq server: %v", err)
+		}
+	}
+
+	userUC := usecases.NewUserUsecase(userRepo, jobRepo, sessionRepo, asynqClient, storageUC, chatHub)
 	authUC := usecases.NewAuthUsecase(userRepo, sessionRepo, storageUC)
 	masterUC := usecases.NewMasterUsecase(masterRepo)
 
@@ -148,10 +199,8 @@ func main() {
 	chatRepo := impl.NewChatRepository(db)
 	chatSvc := services.NewChatService(chatRepo, redisRepo, chatHub)
 
-	swipeRepo := impl.NewSwipeRepository(db)
-	subscriptionRepo := impl.NewSubscriptionRepository(db)
 
-	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, redisRepo, configSvc)
 	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, subscriptionService, swipeRepo)
 	adminSvc := services.NewAdminService(subscriptionRepo, userRepo)
 
@@ -172,12 +221,12 @@ func main() {
 	}
 
 	user.NewUserHandler(v1, userUC, storageUC, verifyUC, authMiddleware)
-	auth.NewAuthHandler(v1, authUC)
+	auth.NewAuthHandler(v1, authUC, storageUC)
 	master.NewMasterHandler(v1, masterUC)
-	monetization.NewMonetizationHandler(v1, subscriptionService, userRepo, authMiddleware)
+	monetization.NewMonetizationHandler(v1, subscriptionService, userRepo, storageUC, authMiddleware)
 	swipe.NewSwipeHandler(v1, swipeSvc, storageUC, authMiddleware, anticheatMiddleware)
 	chat.NewChatHandler(v1, chatSvc, storageUC, authMiddleware)
-	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo).RegisterRoutes(v1, authMiddleware)
+	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo, storageUC).RegisterRoutes(v1, authMiddleware)
 
 	// WebSocket Route
 	v1.GET("/ws", func(c *gin.Context) {
@@ -198,5 +247,36 @@ func main() {
 		port = "8080"
 	}
 
-	r.Run(":" + port)
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
+	}
+
+	// Run HTTP Server in a goroutine
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down servers...")
+
+	// Graceful shutdown Asynq Server first
+	if asynqServer != nil {
+		asynqServer.Shutdown()
+		log.Println("Asynq server stopped")
+	}
+
+	// Context with timeout to give HTTP server time to finish active requests
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown: ", err)
+	}
+
+	log.Println("Server exiting")
 }
