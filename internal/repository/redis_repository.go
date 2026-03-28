@@ -29,4 +29,6 @@ type RedisRepository interface {
 	SetUserBoost(ctx context.Context, userID uuid.UUID, expiresAt time.Time) error
 	GetBoostExpiration(ctx context.Context, userID uuid.UUID) (*time.Time, error)
 	DeleteUserBoost(ctx context.Context, userID uuid.UUID) error
+	// Generic
+	SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) (bool, error)
 }

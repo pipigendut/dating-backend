@@ -1,73 +1,54 @@
 package swipe
 
 import (
-	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
-	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
+	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/services"
-	"gorm.io/gorm"
 )
 
-func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, storageUC storageUsecase, authMiddleware gin.HandlerFunc, anticheatMiddleware gin.HandlerFunc) {
+func NewSwipeHandler(r *gin.RouterGroup, swipeSvc services.SwipeService, storageService storageUsecase, authMiddleware gin.HandlerFunc) {
 	handler := &SwipeHandler{
-		swipeService: swipeSvc,
-		storageUC:    storageUC,
+		swipeService:   swipeSvc,
+		storageService: storageService,
 	}
 
 	swipeGroup := r.Group("/swipe")
 	swipeGroup.Use(authMiddleware)
 	{
 		swipeGroup.GET("/candidates", handler.GetCandidates)
-
-		// Apply anti-cheat only to create swipe if provided
-		if anticheatMiddleware != nil {
-			swipeGroup.POST("/", anticheatMiddleware, handler.Swipe)
-		} else {
-			swipeGroup.POST("/", handler.Swipe)
-		}
-
+		swipeGroup.POST("/", handler.Swipe)
 		swipeGroup.GET("/likes", handler.GetIncomingLikes)
 		swipeGroup.GET("/likes/sent", handler.GetLikesSent)
-		swipeGroup.POST("/undo", handler.UndoSwipe)
-		swipeGroup.POST("/unmatch/:target_user_id", handler.Unmatch)
-		swipeGroup.DELETE("/unlike", handler.Unlike)
+		swipeGroup.POST("/unmatch/:entity_id", handler.Unmatch)
+		swipeGroup.DELETE("/unlike/:entity_id", handler.Unlike)
+		swipeGroup.GET("/likes/count", handler.GetLikesCount)
 	}
 }
 
-// storageUsecase is a minimal interface for photo URL resolution (avoids circular imports)
 type storageUsecase interface {
 	GetPublicURL(key string) string
 }
 
 type SwipeHandler struct {
-	swipeService services.SwipeService
-	storageUC    storageUsecase
+	swipeService   services.SwipeService
+	storageService storageUsecase
 }
 
-
-
 // GetCandidates godoc
-// @Summary      Get list of users for swipe discovery
-// @Description  Fetches a weighted-random list of active users that the current user hasn't swiped on yet, applying cooldowns and priority scoring.
+// @Summary      Get swipe candidates
+// @Description  Fetches a list of potential entities (solo users or groups) based on entity type and user preferences.
 // @Tags         swipe
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        distance  query  int  false  "Search distance in km (default 50)"
-// @Param        min_age   query  int  false  "Minimum age"
-// @Param        max_age   query  int  false  "Maximum age"
-// @Param        genders   query  []string  false  "Filter by genders (UUIDs)"
-// @Param        interests query  []string  false  "Filter by interests (UUIDs)"
-// @Param        relationship_types query []string false "Filter by relationship types (UUIDs)"
-// @Param        latitude  query  float64  false  "User latitude"
-// @Param        longitude query  float64  false  "User longitude"
-// @Success      200  {object}  response.BaseResponse{data=[]user.UserResponse} "List of swipe candidates"
-// @Failure      500  {object}  response.BaseResponse "Internal server error"
+// @Param        query query SwipeCandidatesFilter false "Filter criteria"
+// @Success      200  {object}  response.BaseResponse{data=[]response.EntityResponse} "Candidate list"
 // @Router       /swipe/candidates [get]
 func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
@@ -78,7 +59,6 @@ func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 		return
 	}
 
-	// Map DTO to Service Filter
 	svcFilter := services.SwipeFilter{
 		Distance:          filter.Distance,
 		MinAge:            filter.MinAge,
@@ -92,45 +72,63 @@ func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 		MaxHeight:         filter.MaxHeight,
 	}
 
+	// Set swiper entity
+	swiperID, err := uuid.Parse(filter.SwiperEntityID)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid swiper_entity_id", err.Error())
+		return
+	}
+	svcFilter.SwiperEntityID = swiperID
+
+	// Set entity type filter if provided
+	if filter.EntityType != "" {
+		et := entities.EntityType(filter.EntityType)
+		svcFilter.EntityType = &et
+	}
+
 	candidates, err := h.swipeService.GetSwipeCandidates(c.Request.Context(), userID, svcFilter, 10)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get swipe candidates", err.Error())
 		return
 	}
 
-	// Record impressions for these candidates immediately since we're returning them to the client
-	// In a real high-scale app, the client might report back which ones were actually viewed
-	var shownIDs []uuid.UUID
-	var respCandidates []user.UserResponse
-	for _, u := range candidates {
-		shownIDs = append(shownIDs, u.ID)
-		uCopy := u // capture loop variable cleanly
-		respCandidates = append(respCandidates, user.ToUserResponse(&uCopy, h.storageUC))
+	respEntities := make([]response.EntityResponse, 0, len(candidates))
+	for _, candidate := range candidates {
+		resp := response.EntityResponse{
+			ID:   candidate.Entity.ID,
+			Type: string(candidate.Entity.Type),
+		}
+
+		switch candidate.Entity.Type {
+		case entities.EntityTypeUser:
+			if candidate.User != nil {
+				userResp := response.ToUserResponse(candidate.User, h.storageService)
+				resp.User = &userResp
+			}
+
+		case entities.EntityTypeGroup:
+			if candidate.Group != nil {
+				groupResp := h.buildGroupResponse(candidate.Group, h.storageService)
+				resp.Group = &groupResp
+			}
+		}
+
+		respEntities = append(respEntities, resp)
 	}
 
-	// Fire and forget impression recording
-	go func() {
-		// Create a background context since the request context will be cancelled when response returns
-		bgCtx := context.Background()
-		h.swipeService.RecordImpressions(bgCtx, userID, shownIDs)
-	}()
-
-	response.OK(c, respCandidates)
+	response.OK(c, respEntities)
 }
 
 // Swipe godoc
-// @Summary      Record a swipe action (LIKE, CRUSH or DISLIKE)
-// @Description  Records a user's swipe interaction with another user. If it's a mutual LIKE or CRUSH, it returns a Match ID.
+// @Summary      Record a swipe
+// @Description  Records a user's swipe (LIKE, DISLIKE, or CRUSH) on a target entity and checks for a mutual match.
 // @Tags         swipe
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body SwipeRequest true "Swipe action details"
-// @Success      200      {object}  response.BaseResponse{data=MatchResponse} "Swipe handled"
-// @Failure      400      {object}  response.BaseResponse "Invalid request"
-// @Failure      429      {object}  response.BaseResponse "Too many requests"
-// @Failure      500      {object}  response.BaseResponse "Internal server error"
-// @Router       /swipe/ [post]
+// @Success      200  {object}  response.BaseResponse{data=MatchResponse} "Swipe recorded result"
+// @Router       /swipe [post]
 func (h *SwipeHandler) Swipe(c *gin.Context) {
 	userID := c.MustGet("userID").(uuid.UUID)
 
@@ -140,22 +138,29 @@ func (h *SwipeHandler) Swipe(c *gin.Context) {
 		return
 	}
 
-	match, matchedUser, err := h.swipeService.CreateSwipe(c.Request.Context(), userID, req.SwipedID, req.Direction)
+	match, matchedEntity, err := h.swipeService.CreateSwipe(c.Request.Context(), userID, req.SwiperEntityID, req.SwipedEntityID, req.Direction)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error(), "Failed to record swipe")
 		return
 	}
 
 	if match != nil {
-		var matchedUserResp *user.UserResponse
-		if matchedUser != nil {
-			ur := user.ToUserResponse(matchedUser, h.storageUC)
-			matchedUserResp = &ur
+		matchedEntResp := &response.EntityResponse{
+			ID:   matchedEntity.ID,
+			Type: string(matchedEntity.Type),
 		}
+
+		if matchedEntity.Type == entities.EntityTypeUser && matchedEntity.User != nil {
+			ur := response.ToUserLiteResponse(matchedEntity.User, h.storageService)
+			matchedEntResp.User = &ur
+		} else if matchedEntity.Type == entities.EntityTypeGroup && matchedEntity.Group != nil {
+			// (Optional: handle group match details if needed)
+		}
+
 		response.OK(c, MatchResponse{
-			IsMatch:     true,
-			MatchID:     match.ID,
-			MatchedUser: matchedUserResp,
+			IsMatch:       true,
+			MatchID:       match.ID,
+			MatchedEntity: matchedEntResp,
 		})
 		return
 	}
@@ -164,29 +169,24 @@ func (h *SwipeHandler) Swipe(c *gin.Context) {
 }
 
 // GetIncomingLikes godoc
-// @Summary      Get list of incoming likes and crushes
-// @Description  Fetches a list of users who have liked or crushed on the current user, ordered by priority score (Crushes first, then Premium likes, then standard likes).
+// @Summary      Get incoming likes
+// @Description  Returns a list of entities that have liked or crushed on the specified entity.
 // @Tags         swipe
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200  {object}  response.BaseResponse{data=[]IncomingLikeResponse} "List of incoming likes"
-// @Failure      500  {object}  response.BaseResponse "Internal server error"
+// @Param        entity_id query string true "Entity ID to get likes for"
+// @Success      200  {object}  response.BaseResponse{data=[]IncomingLikeResponse} "Incoming likes list"
 // @Router       /swipe/likes [get]
 func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
-	userID := c.MustGet("userID").(uuid.UUID)
 
-	var filter PaginationFilter
-	if err := c.ShouldBindQuery(&filter); err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid pagination parameters", err.Error())
+	entityID, err := uuid.Parse(c.Query("entity_id"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid entity_id parameter", err.Error())
 		return
 	}
 
-	if filter.Limit <= 0 {
-		filter.Limit = 20
-	}
-
-	likes, err := h.swipeService.GetIncomingLikes(c.Request.Context(), userID, filter.Limit, filter.Offset)
+	likes, err := h.swipeService.GetIncomingLikes(c.Request.Context(), entityID, 20, 0)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get incoming likes", err.Error())
 		return
@@ -194,102 +194,49 @@ func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
 
 	var respLikes []IncomingLikeResponse
 	for _, like := range likes {
-		userCopy := like.User
-		userResp := user.ToUserResponse(&userCopy, h.storageUC)
+		entResp := response.EntityResponse{
+			ID:   like.Entity.ID,
+			Type: string(like.Entity.Type),
+		}
+		if like.User != nil {
+			ur := response.ToUserResponse(like.User, h.storageService)
+			entResp.User = &ur
+		}
+		if like.Group != nil {
+			gr := h.buildGroupResponse(like.Group, h.storageService)
+			entResp.Group = &gr
+		}
 
 		respLikes = append(respLikes, IncomingLikeResponse{
-			User:         userResp,
-			IsCrush:      like.IsCrush,
-			RankingScore: like.RankingScore,
-			IsBoosted:    like.IsBoosted,
-			SwipeTime:    like.CreatedAt.Format(time.RFC3339),
+			Entity:    entResp,
+			IsCrush:   like.IsCrush,
+			IsBoosted: like.IsBoosted,
+			SwipeTime: like.CreatedAt.Format(time.RFC3339),
 		})
 	}
 
 	response.OK(c, respLikes)
 }
 
-// UndoSwipe godoc
-// @Summary      Undo the last swipe action
-// @Description  Reverts the most recent swipe (like, dislike, or crush). If it was a match, the match is also removed. Returns the details of the undone user so they can be shown again in the UI.
-// @Tags         swipe
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200  {object}  response.BaseResponse{data=user.UserResponse} "Successfully reverted the swipe"
-// @Failure      400  {object}  response.BaseResponse "No swipe history or daily limit reached"
-// @Failure      500  {object}  response.BaseResponse "Internal server error"
-// @Router       /swipe/undo [post]
-func (h *SwipeHandler) UndoSwipe(c *gin.Context) {
-	userID := c.MustGet("userID").(uuid.UUID)
-
-	undoneUser, err := h.swipeService.UndoLastSwipe(c.Request.Context(), userID)
-	if err != nil {
-		if err.Error() == "no swipe history found to undo" || err.Error()[:17] == "daily undo limit" {
-			response.Error(c, http.StatusBadRequest, "Cannot undo swipe", err.Error())
-			return
-		}
-		response.Error(c, http.StatusInternalServerError, "Failed to undo swipe", err.Error())
-		return
-	}
-
-	userResp := user.ToUserResponse(undoneUser, h.storageUC)
-
-	response.OK(c, userResp)
-}
-
-// Unmatch godoc
-// @Summary      Unmatch a user
-// @Description  Soft deletes the match and conversation, and applies a ranking penalty for future discovery.
-// @Tags         swipe
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        target_user_id path string true "Target User ID to unmatch"
-// @Success      200  {object}  response.BaseResponse "Successfully unmatched"
-// @Failure      400  {object}  response.BaseResponse "Invalid ID or no match exists"
-// @Failure      500  {object}  response.BaseResponse "Internal server error"
-// @Router       /swipe/unmatch/{target_user_id} [post]
-func (h *SwipeHandler) Unmatch(c *gin.Context) {
-	userID := c.MustGet("userID").(uuid.UUID)
-	targetUserID, err := uuid.Parse(c.Param("target_user_id"))
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid target user ID", err.Error())
-		return
-	}
-
-	if err := h.swipeService.UnmatchUser(c.Request.Context(), userID, targetUserID); err != nil {
-		response.Error(c, http.StatusInternalServerError, "Failed to unmatch user", err.Error())
-		return
-	}
-
-	response.OK(c, nil)
-}
-
 // GetLikesSent godoc
-// @Summary      Get list of sent likes
-// @Description  Fetches a list of users the current user has liked or crushed on, but who have not yet matched back.
+// @Summary      Get sent likes
+// @Description  Returns a list of entities that the specified entity has liked.
 // @Tags         swipe
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200  {object}  response.BaseResponse{data=[]SentLikeResponse} "List of sent likes"
-// @Failure      500  {object}  response.BaseResponse "Internal server error"
+// @Param        entity_id query string true "Entity ID to get sent likes for"
+// @Success      200  {object}  response.BaseResponse{data=[]SentLikeResponse} "Sent likes list"
 // @Router       /swipe/likes/sent [get]
 func (h *SwipeHandler) GetLikesSent(c *gin.Context) {
-	userID := c.MustGet("userID").(uuid.UUID)
 
-	var filter PaginationFilter
-	if err := c.ShouldBindQuery(&filter); err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid pagination parameters", err.Error())
+	entityID, err := uuid.Parse(c.Query("entity_id"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid entity_id parameter", err.Error())
 		return
 	}
 
-	if filter.Limit <= 0 {
-		filter.Limit = 20
-	}
-
-	likes, err := h.swipeService.GetLikesSent(c.Request.Context(), userID, filter.Limit, filter.Offset)
+	likes, err := h.swipeService.GetLikesSent(c.Request.Context(), entityID, 20, 0)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get sent likes", err.Error())
 		return
@@ -297,11 +244,23 @@ func (h *SwipeHandler) GetLikesSent(c *gin.Context) {
 
 	var respLikes []SentLikeResponse
 	for _, like := range likes {
-		userCopy := like.User
-		userResp := user.ToUserResponse(&userCopy, h.storageUC)
+		entResp := response.EntityResponse{
+			ID:   like.Entity.ID,
+			Type: string(like.Entity.Type),
+		}
+		if like.User != nil {
+			ur := response.ToUserResponse(like.User, h.storageService)
+			entResp.User = &ur
+		}
+		if like.Group != nil {
+			gr := h.buildGroupResponse(like.Group, h.storageService)
+			entResp.Group = &gr
+		}
 
 		respLikes = append(respLikes, SentLikeResponse{
-			User:      userResp,
+			Entity:    entResp,
+			IsCrush:   like.IsCrush,
+			IsBoosted: like.IsBoosted,
 			CreatedAt: like.CreatedAt.Format(time.RFC3339),
 			ExpiresAt: like.ExpiresAt.Format(time.RFC3339),
 		})
@@ -310,42 +269,67 @@ func (h *SwipeHandler) GetLikesSent(c *gin.Context) {
 	response.OK(c, respLikes)
 }
 
-// Unlike godoc
-// @Summary      Unlike a user
-// @Description  Removes a like (or crush) swipe before a mutual match has occurred.
+// Unmatch godoc
+// @Summary      Unmatch an entity
+// @Description  Removes an existing match between the specified swiper entity and another entity.
 // @Tags         swipe
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body UnlikeRequest true "Target user to unlike"
-// @Success      200  {object}  response.BaseResponse "Successfully unliked"
-// @Failure      400  {object}  response.BaseResponse "Invalid request or already matched"
-// @Failure      500  {object}  response.BaseResponse "Internal server error"
-// @Router       /swipe/unlike [delete]
-func (h *SwipeHandler) Unlike(c *gin.Context) {
-	userID := c.MustGet("userID").(uuid.UUID)
-
-	var req UnlikeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
+// @Param        swiper_entity_id query string true "Swiper Entity ID"
+// @Success      200  {object}  response.BaseResponse "Successfully unmatched"
+// @Router       /swipe/unmatch/{entity_id} [post]
+func (h *SwipeHandler) Unmatch(c *gin.Context) {
+	targetEntityID, err := uuid.Parse(c.Param("entity_id"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid entity ID", err.Error())
 		return
 	}
 
-	if err := h.swipeService.UnlikeUser(c.Request.Context(), userID, req.TargetUserID); err != nil {
-		if err == gorm.ErrInvalidDB {
-			response.Error(c, http.StatusBadRequest, "Cannot unlike user", "Users are already matched. Use unmatch instead.")
-			return
-		}
-		response.Error(c, http.StatusInternalServerError, "Failed to unlike user", err.Error())
+	swiperEntityID, err := uuid.Parse(c.Query("swiper_entity_id"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid swiper_entity_id parameter", err.Error())
+		return
+	}
+
+	if err := h.swipeService.DeleteMatch(c.Request.Context(), swiperEntityID, targetEntityID); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to unmatch", err.Error())
 		return
 	}
 
 	response.OK(c, nil)
 }
-
-type PaginationFilter struct {
-	Limit  int `form:"limit"`
-	Offset int `form:"offset"`
+ 
+// Unlike godoc
+// @Summary      Unlike an entity
+// @Description  Removes a one-way swipe from the current active entity to another entity.
+// @Tags         swipe
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        entity_id path string true "Target Entity ID"
+// @Param        swiper_entity_id query string true "Swiper Entity ID"
+// @Success      200  {object}  response.BaseResponse "Successfully unliked"
+// @Router       /swipe/unlike/{entity_id} [delete]
+func (h *SwipeHandler) Unlike(c *gin.Context) {
+	targetEntityID, err := uuid.Parse(c.Param("entity_id"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid entity ID", err.Error())
+		return
+	}
+ 
+	swiperEntityID, err := uuid.Parse(c.Query("swiper_entity_id"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid swiper_entity_id parameter", err.Error())
+		return
+	}
+ 
+	if err := h.swipeService.Unlike(c.Request.Context(), swiperEntityID, targetEntityID); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to unlike", err.Error())
+		return
+	}
+ 
+	response.OK(c, nil)
 }
 
 func (h *SwipeHandler) parseUUIDs(strs []string) []uuid.UUID {
@@ -356,4 +340,56 @@ func (h *SwipeHandler) parseUUIDs(strs []string) []uuid.UUID {
 		}
 	}
 	return uuids
+}
+
+// GetLikesCount godoc
+// @Summary      Get likes summary (count and last photo)
+// @Description  Returns the total count of unexpired likes and the photo of the most recent liker for the specified entity.
+// @Tags         swipe
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        entity_id query string true "Entity ID to get likes summary for"
+// @Success      200  {object}  response.BaseResponse{data=LikesSummaryResponse} "Likes summary data"
+// @Router       /swipe/likes/count [get]
+func (h *SwipeHandler) GetLikesCount(c *gin.Context) {
+	entityID, err := uuid.Parse(c.Query("entity_id"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid entity_id parameter", err.Error())
+		return
+	}
+
+	summary, err := h.swipeService.GetLikesSummary(c.Request.Context(), entityID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to get likes summary", err.Error())
+		return
+	}
+
+	lastPhoto := summary.LastPhoto
+	if lastPhoto != "" && !strings.HasPrefix(lastPhoto, "http") {
+		lastPhoto = h.storageService.GetPublicURL(lastPhoto)
+	}
+
+	response.OK(c, LikesSummaryResponse{
+		Count:     summary.Count,
+		LastPhoto: lastPhoto,
+	})
+}
+
+func (h *SwipeHandler) buildGroupResponse(g *entities.Group, storage storageUsecase) response.GroupResponse {
+	resp := response.GroupResponse{
+		ID:        g.ID,
+		Name:      g.Name,
+		CreatedBy: g.CreatedBy,
+		Members:   make([]response.UserResponse, 0, len(g.Members)),
+	}
+
+	for _, m := range g.Members {
+		if m.User != nil {
+			userResp := response.ToUserResponse(m.User, storage)
+			resp.Members = append(resp.Members, userResp)
+		}
+	}
+
+	return resp
 }

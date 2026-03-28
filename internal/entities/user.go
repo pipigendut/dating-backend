@@ -17,19 +17,20 @@ const (
 
 type User struct {
 	SoftDeleteModel
+	EntityID           uuid.UUID `gorm:"type:uuid;not null;index" json:"entity_id"`
 	Email              *string   `gorm:"uniqueIndex"`
 	PasswordHash       *string
 	FullName           string
 	DateOfBirth        time.Time `gorm:"index"`
-	HeightCM           int
+	HeightCM           int       `gorm:"index"`
 	Bio                string
 	LocationCity       string
 	LocationCountry    string
-	Latitude           *float64
-	Longitude          *float64
+	Latitude           *float64  `gorm:"index"`
+	Longitude          *float64  `gorm:"index"`
 	GenderID           *uuid.UUID `gorm:"type:uuid;index"`
 	RelationshipTypeID *uuid.UUID `gorm:"type:uuid;index"`
-	IsPremium          bool       `gorm:"default:false"`
+	IsPremium          bool       `gorm:"default:false;index"`
 	LastActiveAt       time.Time  `gorm:"index"`
 	Status             UserStatus `gorm:"index"`
 	Age                int        `gorm:"index"`
@@ -37,6 +38,7 @@ type User struct {
 	VerifiedAt         *time.Time `gorm:"index"`
 
 	// Associations
+	Entity           *Entity                 `gorm:"foreignKey:EntityID" json:"entity,omitempty"`
 	Gender           *MasterGender           `gorm:"foreignKey:GenderID"`
 	RelationshipType *MasterRelationshipType `gorm:"foreignKey:RelationshipTypeID"`
 	Photos           []Photo                 `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
@@ -164,61 +166,13 @@ type UserLanguage struct {
 	LanguageID uuid.UUID `gorm:"primaryKey;type:uuid;index"`
 }
 
-// Matching System
-
-type SwipeDirection string
-
-const (
-	SwipeDirectionLike    SwipeDirection = "LIKE"
-	SwipeDirectionDislike SwipeDirection = "DISLIKE"
-	SwipeDirectionCrush   SwipeDirection = "CRUSH"
-)
-
-type Swipe struct {
-	SoftDeleteModel
-	SwiperID     uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_swiper_swiped;index:idx_swiper_direction;index"`
-	SwipedID     uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_swiper_swiped;index:idx_swiped_direction;index"`
-	Direction     SwipeDirection `gorm:"type:varchar(20);index;index:idx_swiper_direction;index:idx_swiped_direction"`
-	IsBoosted     bool           `gorm:"default:false;index"`
-	RankingScore  float64        `gorm:"index"` // Algorithm-based score for ranking
-	PriorityScore int            `gorm:"default:0;index"`
-	ProcessedAt   *time.Time     `gorm:"index"` // For anti-fast match delay
-}
-
-type Match struct {
-	SoftDeleteModel
-	// Use deterministic IDs: UserLowID always < UserHighID to prevent duplicates
-	UserLowID  uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_user_pair;index"`
-	UserHighID uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_user_pair;index"`
-	VisibleAt  time.Time      `gorm:"index"` // When this match becomes visible to users
-}
-
-type Unmatch struct {
-	SoftDeleteModel
-	UserID       uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_target;index;not null"`
-	TargetUserID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_target;index;not null"`
-	MatchID      uuid.UUID `gorm:"type:uuid;index;not null"`
-}
-
-type UserImpression struct {
-	BaseModel
-	ViewerID    uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_viewer_shown;index"`
-	ShownUserID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_viewer_shown;index"`
-}
-
-type UserBoost struct {
-	BaseModel
-	UserID    uuid.UUID `gorm:"type:uuid;index;not null"`
-	StartedAt time.Time `gorm:"index"`
-	ExpiredAt time.Time `gorm:"index"`
-}
-
 type AppConfig struct {
 	BaseModel
 	Key         string    `gorm:"uniqueIndex"`
 	Value       string    `gorm:"type:jsonb"`
 	Description string
 }
+
 
 // Monetization Entities
 
@@ -280,10 +234,4 @@ type ConsumablePackage struct {
 	IsActive bool    `gorm:"default:true" json:"is_active"`
 }
 
-func (Swipe) TableName() string {
-	return "swipes"
-}
 
-func (Match) TableName() string {
-	return "matches"
-}

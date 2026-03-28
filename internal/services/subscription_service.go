@@ -15,13 +15,13 @@ type SubscriptionService interface {
 	HasFeature(ctx context.Context, userID uuid.UUID, featureKey string) (bool, interface{}, error)
 	GetConsumables(ctx context.Context, userID uuid.UUID) (map[string]int, error)
 	UseConsumable(ctx context.Context, userID uuid.UUID, consumableType string) (bool, error)
-	IsBoosted(ctx context.Context, userID uuid.UUID) (bool, *time.Time, error)
+	IsBoosted(ctx context.Context, entityID uuid.UUID) (bool, *time.Time, error)
 	GetPlans(ctx context.Context) ([]entities.SubscriptionPlan, error)
 	GetConsumableItems(ctx context.Context) ([]entities.ConsumablePackage, error)
 	PurchaseConsumable(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) error
 	PurchasePlan(ctx context.Context, userID uuid.UUID, planID uuid.UUID, priceID uuid.UUID) error
 	GetStatus(ctx context.Context, userID uuid.UUID) (*MonetizationStatus, error)
-	ActivateBoost(ctx context.Context, userID uuid.UUID) (*entities.UserBoost, error)
+	ActivateBoost(ctx context.Context, userID, entityID uuid.UUID) (*entities.EntityBoost, error)
 }
 
 type MonetizationStatus struct {
@@ -109,17 +109,8 @@ func (s *subscriptionService) UseConsumable(ctx context.Context, userID uuid.UUI
 	return false, nil
 }
 
-func (s *subscriptionService) IsBoosted(ctx context.Context, userID uuid.UUID) (bool, *time.Time, error) {
-	// 1. Check Redis first
-	// if s.redisRepo != nil {
-	// 	expiresAt, err := s.redisRepo.GetBoostExpiration(ctx, userID)
-	// 	if err == nil && expiresAt != nil {
-	// 		return true, expiresAt, nil
-	// 	}
-	// }
-
-	// 2. Fallback to DB to get the actual boost object
-	boost, err := s.repo.GetActiveBoost(ctx, userID)
+func (s *subscriptionService) IsBoosted(ctx context.Context, entityID uuid.UUID) (bool, *time.Time, error) {
+	boost, err := s.repo.GetActiveBoost(ctx, entityID)
 	if err != nil {
 		return false, nil, err
 	}
@@ -128,12 +119,11 @@ func (s *subscriptionService) IsBoosted(ctx context.Context, userID uuid.UUID) (
 		return false, nil, nil
 	}
 
-	// 3. Backfill Redis if active
 	if s.redisRepo != nil {
-		_ = s.redisRepo.SetUserBoost(ctx, userID, boost.ExpiredAt)
+		_ = s.redisRepo.SetUserBoost(ctx, entityID, boost.ExpiresAt)
 	}
 
-	return true, &boost.ExpiredAt, nil
+	return true, &boost.ExpiresAt, nil
 }
 
 func (s *subscriptionService) GetPlans(ctx context.Context) ([]entities.SubscriptionPlan, error) {
@@ -154,15 +144,11 @@ func (s *subscriptionService) PurchasePlan(ctx context.Context, userID uuid.UUID
 		return err
 	}
 
-	// Deactivate existing subscriptions
-	// Potential future improvement: handle prorated upgrades
-
-	// Create new subscription (simplified for demo: 30 days for any plan purchase)
 	sub := &entities.UserSubscription{
 		UserID:    userID,
 		PlanID:    plan.ID,
 		StartedAt: time.Now(),
-		ExpiredAt: time.Now().AddDate(0, 1, 0), // Default 1 month
+		ExpiredAt: time.Now().AddDate(0, 1, 0),
 		IsActive:  true,
 	}
 
@@ -170,7 +156,6 @@ func (s *subscriptionService) PurchasePlan(ctx context.Context, userID uuid.UUID
 		return err
 	}
 
-	// Update user's premium status
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		return err
@@ -208,17 +193,16 @@ func (s *subscriptionService) GetStatus(ctx context.Context, userID uuid.UUID) (
 	return status, nil
 }
 
-func (s *subscriptionService) ActivateBoost(ctx context.Context, userID uuid.UUID) (*entities.UserBoost, error) {
-	// 1. Check if user already has an active boost
-	active, err := s.repo.GetActiveBoost(ctx, userID)
+func (s *subscriptionService) ActivateBoost(ctx context.Context, userID, entityID uuid.UUID) (*entities.EntityBoost, error) {
+
+	active, err := s.repo.GetActiveBoost(ctx, entityID)
 	if err != nil {
 		return nil, err
 	}
 	if active != nil {
-		return nil, fmt.Errorf("you already have an active boost until %s", active.ExpiredAt.Format(time.Kitchen))
+		return nil, fmt.Errorf("this entity already has an active boost until %s", active.ExpiresAt.Format(time.Kitchen))
 	}
 
-	// 2. Use one boost consumable
 	success, err := s.UseConsumable(ctx, userID, "boost")
 	if err != nil {
 		return nil, err
@@ -227,29 +211,26 @@ func (s *subscriptionService) ActivateBoost(ctx context.Context, userID uuid.UUI
 		return nil, fmt.Errorf("insufficient boost balance")
 	}
 
-	// 3. Create boost record
-	// Default duration is 60 minutes if not specified in config
 	durationMinutes := 60
 	if s.configSvc != nil {
 		durationMinutes = s.configSvc.GetInt("boost_duration_minutes", 60)
 	}
 
 	now := time.Now()
-	expiredAt := now.Add(time.Duration(durationMinutes) * time.Minute)
+	expiresAt := now.Add(time.Duration(durationMinutes) * time.Minute)
 
-	boost := &entities.UserBoost{
-		UserID:    userID,
+	boost := &entities.EntityBoost{
+		EntityID:  entityID,
 		StartedAt: now,
-		ExpiredAt: expiredAt,
+		ExpiresAt: expiresAt,
 	}
 
-	if err := s.repo.CreateUserBoost(ctx, boost); err != nil {
+	if err := s.repo.CreateEntityBoost(ctx, boost); err != nil {
 		return nil, err
 	}
 
-	// 4. Cache in Redis
 	if s.redisRepo != nil {
-		_ = s.redisRepo.SetUserBoost(ctx, userID, boost.ExpiredAt)
+		_ = s.redisRepo.SetUserBoost(ctx, entityID, boost.ExpiresAt)
 	}
 
 	return boost, nil

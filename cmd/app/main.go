@@ -14,8 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
-	"github.com/pipigendut/dating-backend/internal/background"
-	"github.com/pipigendut/dating-backend/internal/background/jobs"
+	"github.com/pipigendut/dating-backend/internal/background/workers"
 	"github.com/pipigendut/dating-backend/internal/chat/ws"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/admin"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
@@ -31,7 +30,6 @@ import (
 	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/internal/repository/impl"
 	"github.com/pipigendut/dating-backend/internal/services"
-	"github.com/pipigendut/dating-backend/internal/usecases"
 
 	_ "github.com/pipigendut/dating-backend/docs"
 	swaggerFiles "github.com/swaggo/files"
@@ -133,6 +131,8 @@ func main() {
 		swipeRepo        repository.SwipeRepository
 		subscriptionRepo repository.SubscriptionRepository
 		redisRepo        repository.RedisRepository
+		entityRepo       repository.EntityRepository
+		groupRepo        repository.GroupRepository
 	)
 
 	redisRepo = impl.NewRedisRepository(redisClient)
@@ -149,12 +149,15 @@ func main() {
 	jobRepo = impl.NewJobRepository(db)
 	swipeRepo = impl.NewSwipeRepository(db)
 	subscriptionRepo = impl.NewSubscriptionRepository(db)
+	entityRepo = impl.NewEntityRepository(db)
+	groupRepo = impl.NewGroupRepository(db)
 
-	storageUC := usecases.NewStorageUsecase(storageImpl)
+	storageService := services.NewStorageService(storageImpl)
 
 	// Background Jobs Initialization
 	var asynqClient *asynq.Client
 	var asynqServer *asynq.Server
+	var notifySvc services.NotificationService
 
 	if redisClient != nil {
 		redisOpt := asynq.RedisClientOpt{
@@ -175,36 +178,41 @@ func main() {
 			},
 		)
 
-		jobRouter := background.NewJobRouter(jobRepo)
+		notifySvc = services.NewNotificationService(asynqClient, redisRepo)
 
-		// Register handlers
-		userCleanupHandler := jobs.NewUserCleanupHandler(db, storageImpl)
-		jobRouter.RegisterHandler(jobs.TaskUserCleanup, userCleanupHandler.ProcessTask)
+		// Setup Worker
+		chatRepo := impl.NewChatRepository(db)
+		notifyWorker := workers.NewNotificationWorker(chatRepo, userRepo, redisRepo)
+
+		mux := asynq.NewServeMux()
+		mux.HandleFunc(services.TaskTypeNotificationGroup, notifyWorker.HandleNotificationGroupTask)
 
 		// Start Asynq Server non-blocking
-		if err := asynqServer.Start(jobRouter.Mux()); err != nil {
-			log.Fatalf("could not start asynq server: %v", err)
-		}
+		go func() {
+			if err := asynqServer.Run(mux); err != nil {
+				log.Fatalf("could not run asynq server: %v", err)
+			}
+		}()
 	}
 
-	userUC := usecases.NewUserUsecase(userRepo, jobRepo, sessionRepo, asynqClient, storageUC, chatHub)
-	authUC := usecases.NewAuthUsecase(userRepo, sessionRepo, storageUC)
-	masterUC := usecases.NewMasterUsecase(masterRepo)
+	userSvc := services.NewUserService(userRepo, jobRepo, sessionRepo, asynqClient, storageService, chatHub)
+	authSvc := services.NewAuthService(userRepo, sessionRepo, entityRepo, storageService)
+	masterSvc := services.NewMasterService(masterRepo)
 
 	configRepo := impl.NewConfigRepository(db)
 	configSvc := services.NewConfigService(configRepo)
 
-	verifyUC := usecases.NewVerificationService(userRepo, storageUC, mlProvider, redisClient, configSvc)
+	verifySvc := services.NewVerificationService(userRepo, storageService, mlProvider, redisClient, configSvc)
 
 	chatRepo := impl.NewChatRepository(db)
-	chatSvc := services.NewChatService(chatRepo, redisRepo, chatHub)
+	chatSvc := services.NewChatService(chatRepo, userRepo, swipeRepo, redisRepo, notifySvc, chatHub)
 
+	entitySvc := services.NewEntityService(entityRepo, userRepo)
+	groupSvc := services.NewGroupService(groupRepo, entityRepo, userRepo)
 
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, redisRepo, configSvc)
-	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, subscriptionService, swipeRepo)
+	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, subscriptionService, swipeRepo, userRepo, entityRepo, groupRepo)
 	adminSvc := services.NewAdminService(subscriptionRepo, userRepo)
-
-
 
 	r := gin.Default()
 
@@ -213,20 +221,63 @@ func main() {
 
 	// Middleware setup
 	authMiddleware := middleware.AuthMiddleware()
-	var anticheatMiddleware gin.HandlerFunc
 	if redisClient != nil {
 		_ = middleware.NewCacheMiddleware(redisClient)
 		acm := middleware.NewAntiCheatMiddleware(redisClient)
-		anticheatMiddleware = acm.RateLimitSwipe()
+		_ = acm.RateLimitSwipe()
 	}
 
-	user.NewUserHandler(v1, userUC, storageUC, verifyUC, authMiddleware)
-	auth.NewAuthHandler(v1, authUC, storageUC)
-	master.NewMasterHandler(v1, masterUC)
-	monetization.NewMonetizationHandler(v1, subscriptionService, userRepo, storageUC, authMiddleware)
-	swipe.NewSwipeHandler(v1, swipeSvc, storageUC, authMiddleware, anticheatMiddleware)
-	chat.NewChatHandler(v1, chatSvc, storageUC, authMiddleware)
-	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo, storageUC).RegisterRoutes(v1, authMiddleware)
+	user.NewUserHandler(v1, userSvc, storageService, verifySvc, entitySvc, groupSvc, authMiddleware)
+	auth.NewAuthHandler(v1, authSvc, storageService)
+	master.NewMasterHandler(v1, masterSvc)
+	monetization.NewMonetizationHandler(v1, subscriptionService, userRepo, storageService, authMiddleware)
+	swipe.NewSwipeHandler(v1, swipeSvc, storageService, authMiddleware)
+	chat.NewChatHandler(v1, chatSvc, swipeSvc, storageService, authMiddleware)
+	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo, storageService).RegisterRoutes(v1, authMiddleware)
+	user.NewInviteHandler(v1, groupSvc, storageService, authMiddleware)
+
+	// Well-known routes for Universal Links (served at root)
+	r.GET("/.well-known/apple-app-site-association", func(c *gin.Context) {
+		teamID := os.Getenv("APPLE_TEAM_ID")
+		bundleID := "com.swipee"
+		
+		// Manual JSON to control content-type precisely
+		aasa := `{
+			"applinks": {
+				"details": [
+					{
+						"appIDs": ["` + teamID + `.` + bundleID + `"],
+						"components": [
+							{
+								"/": "/invite*"
+							}
+						]
+					}
+				]
+			}
+		}`
+		// User requested: No content-type application/json
+		c.Header("Content-Type", "text/plain")
+		c.String(http.StatusOK, aasa)
+	})
+
+	r.GET("/.well-known/assetlinks.json", func(c *gin.Context) {
+		packageName := "com.swipee"
+		sha256 := os.Getenv("ANDROID_SHA256_CERT")
+		
+		assetLinks := `[
+			{
+				"relation": ["delegate_permission/common.handle_all_urls"],
+				"target": {
+					"namespace": "android_app",
+					"package_name": "` + packageName + `",
+					"sha256_cert_fingerprints": ["` + sha256 + `"]
+				}
+			}
+		]`
+		c.Header("Content-Type", "application/json") // Android typically requires it
+		c.String(http.StatusOK, assetLinks)
+	})
 
 	// WebSocket Route
 	v1.GET("/ws", func(c *gin.Context) {

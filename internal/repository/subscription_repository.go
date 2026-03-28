@@ -11,8 +11,8 @@ type SubscriptionRepository interface {
 	GetPlanFeatures(ctx context.Context, planID uuid.UUID) ([]entities.SubscriptionPlanFeature, error)
 	GetConsumables(ctx context.Context, userID uuid.UUID) ([]entities.UserConsumable, error)
 	UpdateConsumable(ctx context.Context, userID uuid.UUID, consumableType string, delta int) error
-	CreateUserBoost(ctx context.Context, boost *entities.UserBoost) error
-	GetActiveBoost(ctx context.Context, userID uuid.UUID) (*entities.UserBoost, error)
+	CreateEntityBoost(ctx context.Context, boost *entities.EntityBoost) error
+	GetActiveBoost(ctx context.Context, entityID uuid.UUID) (*entities.EntityBoost, error)
 
 	// Store / Monetization
 	GetAllPlans(ctx context.Context) ([]entities.SubscriptionPlan, error)

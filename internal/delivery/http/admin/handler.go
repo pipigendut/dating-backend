@@ -8,11 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
-	userDTO "github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/infra/seeds"
 	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/internal/services"
-	"github.com/pipigendut/dating-backend/internal/usecases"
 	"gorm.io/gorm"
 )
 
@@ -21,16 +19,16 @@ type AdminHandler struct {
 	configSvc services.ConfigService
 	adminSvc  services.AdminService
 	userRepo  repository.UserRepository
-	storageUC *usecases.StorageUsecase
+	storageService *services.StorageService
 }
 
-func NewAdminHandler(db *gorm.DB, configSvc services.ConfigService, adminSvc services.AdminService, userRepo repository.UserRepository, storageUC *usecases.StorageUsecase) *AdminHandler {
+func NewAdminHandler(db *gorm.DB, configSvc services.ConfigService, adminSvc services.AdminService, userRepo repository.UserRepository, storageService *services.StorageService) *AdminHandler {
 	return &AdminHandler{
 		db:        db,
 		configSvc: configSvc,
 		adminSvc:  adminSvc,
 		userRepo:  userRepo,
-		storageUC: storageUC,
+		storageService: storageService,
 	}
 }
 
@@ -133,7 +131,7 @@ type AdminConsumableRequest struct {
 // @Produce json
 // @Security Bearer
 // @Param request body AdminSubscribeRequest true "Subscribe Request"
-// @Success 200 {object} userDTO.UserResponse
+// @Success 200 {object} response.UserResponse
 // @Router /admin/subscribe [post]
 func (h *AdminHandler) SubscribeUser(c *gin.Context) {
 	var req AdminSubscribeRequest
@@ -160,7 +158,7 @@ func (h *AdminHandler) SubscribeUser(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, userDTO.ToUserResponse(user, h.storageUC))
+	response.OK(c, response.ToUserResponse(user, h.storageService))
 }
 
 // AddBoost godoc
@@ -170,7 +168,7 @@ func (h *AdminHandler) SubscribeUser(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param request body AdminConsumableRequest true "Boost Request"
-// @Success 200 {object} userDTO.UserResponse
+// @Success 200 {object} response.UserResponse
 // @Router /admin/consumables/boost [post]
 func (h *AdminHandler) AddBoost(c *gin.Context) {
 	var req AdminConsumableRequest
@@ -198,7 +196,7 @@ func (h *AdminHandler) AddBoost(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, userDTO.ToUserResponse(user, h.storageUC))
+	response.OK(c, response.ToUserResponse(user, h.storageService))
 }
 
 // AddCrush godoc
@@ -208,7 +206,7 @@ func (h *AdminHandler) AddBoost(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param request body AdminConsumableRequest true "Crush Request"
-// @Success 200 {object} userDTO.UserResponse
+// @Success 200 {object} response.UserResponse
 // @Router /admin/consumables/crush [post]
 func (h *AdminHandler) AddCrush(c *gin.Context) {
 	var req AdminConsumableRequest
@@ -235,7 +233,7 @@ func (h *AdminHandler) AddCrush(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, userDTO.ToUserResponse(user, h.storageUC))
+	response.OK(c, response.ToUserResponse(user, h.storageService))
 }
 
 // GetAllConfigs godoc

@@ -195,16 +195,16 @@ func SeedMasterData(db *gorm.DB) error {
 		// 8. Seed Subscription Prices
 		priceList := []entities.SubscriptionPrice{
 			// Plus
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000001")}, PlanID: plusID, DurationType: "monthly", Price: 9.99, Currency: "USD", ExternalSlug: "plus_1m"},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000002")}, PlanID: plusID, DurationType: "yearly", Price: 59.99, Currency: "USD", ExternalSlug: "plus_1y"},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000001")}, PlanID: plusID, DurationType: "monthly", Price: 10000, Currency: "IDR", ExternalSlug: "plus_1m"},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000002")}, PlanID: plusID, DurationType: "yearly", Price: 120000, Currency: "IDR", ExternalSlug: "plus_1y"},
 
 			// Premium
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000003")}, PlanID: premiumID, DurationType: "monthly", Price: 19.99, Currency: "USD", ExternalSlug: "premium_1m"},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000004")}, PlanID: premiumID, DurationType: "yearly", Price: 119.99, Currency: "USD", ExternalSlug: "premium_1y"},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000003")}, PlanID: premiumID, DurationType: "monthly", Price: 20000, Currency: "IDR", ExternalSlug: "premium_1m"},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000004")}, PlanID: premiumID, DurationType: "yearly", Price: 240000, Currency: "IDR", ExternalSlug: "premium_1y"},
 
 			// Ultimate
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000005")}, PlanID: ultimateID, DurationType: "monthly", Price: 29.99, Currency: "USD", ExternalSlug: "ultimate_1m"},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000006")}, PlanID: ultimateID, DurationType: "yearly", Price: 179.99, Currency: "USD", ExternalSlug: "ultimate_1y"},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000005")}, PlanID: ultimateID, DurationType: "monthly", Price: 30000, Currency: "IDR", ExternalSlug: "ultimate_1m"},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("e1000000-0000-0000-0000-000000000006")}, PlanID: ultimateID, DurationType: "yearly", Price: 360000, Currency: "IDR", ExternalSlug: "ultimate_1y"},
 		}
 
 		for _, pr := range priceList {
@@ -219,14 +219,14 @@ func SeedMasterData(db *gorm.DB) error {
 		// 9. Seed Consumable Packets
 		consumables := []entities.ConsumablePackage{
 			// Boosts
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000001")}, Name: "1 Boost", ItemType: "boost", Amount: 1, Price: 89000, IsActive: true},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002")}, Name: "5 Boosts", ItemType: "boost", Amount: 5, Price: 249000, IsActive: true},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000003")}, Name: "15 Boosts", ItemType: "boost", Amount: 15, Price: 499000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000001")}, Name: "1 Boost", ItemType: "boost", Amount: 1, Price: 5000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000002")}, Name: "5 Boosts", ItemType: "boost", Amount: 5, Price: 25000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000003")}, Name: "15 Boosts", ItemType: "boost", Amount: 15, Price: 75000, IsActive: true},
 
 			// Crushes
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000004")}, Name: "3 Crushes", ItemType: "crush", Amount: 3, Price: 49000, IsActive: true},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000005")}, Name: "15 Crushes", ItemType: "crush", Amount: 15, Price: 149000, IsActive: true},
-			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000006")}, Name: "30 Crushes", ItemType: "crush", Amount: 30, Price: 249000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000004")}, Name: "3 Crushes", ItemType: "crush", Amount: 3, Price: 15000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000005")}, Name: "15 Crushes", ItemType: "crush", Amount: 15, Price: 75000, IsActive: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("c1000000-0000-0000-0000-000000000006")}, Name: "30 Crushes", ItemType: "crush", Amount: 30, Price: 150000, IsActive: true},
 		}
 
 		for _, ci := range consumables {

@@ -6,15 +6,25 @@ import (
 	"github.com/google/uuid"
 )
 
+type ConversationType string
+
+const (
+	ConversationTypeDirect ConversationType = "direct"
+	ConversationTypeGroup  ConversationType = "group"
+)
+
 type Conversation struct {
 	SoftDeleteModel
-	LastMessageID *uuid.UUID     `gorm:"type:uuid;index"`
-	LastMessageAt time.Time      `gorm:"index"`
-	VisibleAt     time.Time      `gorm:"index"` // When this conversation becomes visible
+	Type          ConversationType `gorm:"type:varchar(20);default:'direct';index" json:"type"`
+	EntityID      *uuid.UUID       `gorm:"type:uuid;index" json:"entity_id"` // Associated entity (match)
+	LastMessageID *uuid.UUID       `gorm:"type:uuid;index" json:"last_message_id"`
+	LastMessageAt time.Time        `gorm:"index" json:"last_message_at"`
+	VisibleAt     time.Time        `gorm:"index" json:"visible_at"` // When this conversation becomes visible
 
-	Participants []ConversationParticipant `gorm:"foreignKey:ConversationID"`
-	Messages     []Message                 `gorm:"foreignKey:ConversationID"`
+	Participants []ConversationParticipant `gorm:"foreignKey:ConversationID" json:"participants,omitempty"`
+	Messages     []Message                 `gorm:"foreignKey:ConversationID" json:"messages,omitempty"`
 }
+
 
 type ConversationParticipant struct {
 	BaseModel

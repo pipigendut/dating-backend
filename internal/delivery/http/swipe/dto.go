@@ -3,36 +3,38 @@ package swipe
 import (
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/entities"
-	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
 )
 
 type SwipeRequest struct {
-	SwipedID  uuid.UUID               `json:"swiped_id" binding:"required"`
-	Direction entities.SwipeDirection `json:"direction" binding:"required,oneof=LIKE DISLIKE CRUSH" swaggertype:"string"`
+	SwiperEntityID uuid.UUID               `json:"swiper_entity_id" binding:"required"`
+	SwipedEntityID uuid.UUID               `json:"swiped_entity_id" binding:"required"`
+	Direction      entities.SwipeDirection `json:"direction" binding:"required,oneof=LIKE DISLIKE CRUSH" swaggertype:"string"`
 }
 
 type MatchResponse struct {
-	IsMatch     bool               `json:"is_match"`
-	MatchID     uuid.UUID          `json:"match_id,omitempty"`
-	MatchedUser *user.UserResponse `json:"matched_user,omitempty"`
+	IsMatch       bool                    `json:"is_match"`
+	MatchID       uuid.UUID               `json:"match_id,omitempty"`
+	MatchedEntity *response.EntityResponse `json:"matched_entity,omitempty"`
 }
 
 type IncomingLikeResponse struct {
-	User          user.UserResponse `json:"user"`
-	IsCrush       bool              `json:"is_crush"`
-	RankingScore  float64           `json:"ranking_score"`
-	IsBoosted     bool              `json:"is_boosted"`
-	SwipeTime     string            `json:"swipe_time"`
+	Entity    response.EntityResponse `json:"entity"`
+	IsCrush   bool                    `json:"is_crush"`
+	IsBoosted bool                    `json:"is_boosted"`
+	SwipeTime string                  `json:"swipe_time"`
 }
 
 type SentLikeResponse struct {
-	User      user.UserResponse `json:"user"`
-	CreatedAt string            `json:"created_at"`
-	ExpiresAt string            `json:"expires_at"`
+	Entity    response.EntityResponse `json:"entity"`
+	IsCrush   bool                    `json:"is_crush"`
+	IsBoosted bool                    `json:"is_boosted"`
+	CreatedAt string                  `json:"created_at"`
+	ExpiresAt string                  `json:"expires_at"`
 }
 
 type UnlikeRequest struct {
-	TargetUserID uuid.UUID `json:"target_user_id" binding:"required"`
+	TargetEntityID uuid.UUID `json:"target_entity_id" binding:"required"`
 }
 
 type SwipeCandidatesFilter struct {
@@ -46,4 +48,11 @@ type SwipeCandidatesFilter struct {
 	Longitude         *float64 `json:"longitude" form:"longitude"`
 	MinHeight         *int     `json:"min_height" form:"min_height"`
 	MaxHeight         *int     `json:"max_height" form:"max_height"`
+	SwiperEntityID    string   `form:"swiper_entity_id" binding:"required"`
+	EntityType        string   `json:"entity_type" form:"entity_type"` // "user" or "group", empty = all
+}
+
+type LikesSummaryResponse struct {
+	Count     int    `json:"count"`
+	LastPhoto string `json:"last_photo"`
 }

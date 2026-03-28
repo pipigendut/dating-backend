@@ -39,7 +39,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -117,7 +117,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_admin.AdminConsumableRequest"
+                            "$ref": "#/definitions/admin.AdminConsumableRequest"
                         }
                     }
                 ],
@@ -125,7 +125,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                            "$ref": "#/definitions/response.UserResponse"
                         }
                     }
                 }
@@ -155,7 +155,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_admin.AdminConsumableRequest"
+                            "$ref": "#/definitions/admin.AdminConsumableRequest"
                         }
                     }
                 ],
@@ -163,7 +163,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                            "$ref": "#/definitions/response.UserResponse"
                         }
                     }
                 }
@@ -193,7 +193,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_admin.AdminSubscribeRequest"
+                            "$ref": "#/definitions/admin.AdminSubscribeRequest"
                         }
                     }
                 ],
@@ -201,7 +201,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                            "$ref": "#/definitions/response.UserResponse"
                         }
                     }
                 }
@@ -227,7 +227,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_auth.CheckEmailRequest"
+                            "$ref": "#/definitions/auth.CheckEmailRequest"
                         }
                     }
                 ],
@@ -237,13 +237,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_auth.CheckEmailResponse"
+                                            "$ref": "#/definitions/auth.CheckEmailResponse"
                                         }
                                     }
                                 }
@@ -253,7 +253,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -279,7 +279,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_auth.GoogleLoginRequest"
+                            "$ref": "#/definitions/auth.GoogleLoginRequest"
                         }
                     }
                 ],
@@ -289,13 +289,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_auth.AuthResponse"
+                                            "$ref": "#/definitions/auth.AuthResponse"
                                         }
                                     }
                                 }
@@ -305,7 +305,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -331,7 +331,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_auth.LoginEmailRequest"
+                            "$ref": "#/definitions/auth.LoginEmailRequest"
                         }
                     }
                 ],
@@ -341,13 +341,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_auth.AuthResponse"
+                                            "$ref": "#/definitions/auth.AuthResponse"
                                         }
                                     }
                                 }
@@ -357,7 +357,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -388,7 +388,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_auth.LogoutRequest"
+                            "$ref": "#/definitions/auth.LogoutRequest"
                         }
                     }
                 ],
@@ -396,13 +396,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -428,7 +428,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_auth.RefreshTokenRequest"
+                            "$ref": "#/definitions/auth.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -438,13 +438,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_auth.TokenResponse"
+                                            "$ref": "#/definitions/auth.TokenResponse"
                                         }
                                     }
                                 }
@@ -454,7 +454,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -480,7 +480,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_auth.RegisterEmailRequest"
+                            "$ref": "#/definitions/auth.RegisterEmailRequest"
                         }
                     }
                 ],
@@ -490,13 +490,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_auth.AuthResponse"
+                                            "$ref": "#/definitions/auth.AuthResponse"
                                         }
                                     }
                                 }
@@ -506,7 +506,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -526,11 +526,22 @@ const docTemplate = `{
                     "Monetization"
                 ],
                 "summary": "Activate a boost for the user",
+                "parameters": [
+                    {
+                        "description": "Boost activation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/monetization.ActivateBoostRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -554,7 +565,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -567,7 +578,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a list of all active conversations for the authenticated user",
+                "description": "Fetches a list of chat conversations (active matches) for the authenticated user, including unread counts and typing status.",
                 "consumes": [
                     "application/json"
                 ],
@@ -575,16 +586,30 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Chat"
+                    "chat"
                 ],
-                "summary": "List user conversations",
+                "summary": "Get user conversations",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Limit (default 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor (RFC3339 time format)",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Conversations list",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -592,57 +617,8 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/internal_delivery_http_chat.ConversationResponse"
+                                                "$ref": "#/definitions/chat.ConversationResponse"
                                             }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/chat/conversations/match/{target_user_id}": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get or create a 1:1 conversation between matched users",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Chat"
-                ],
-                "summary": "Initialize conversation with a match",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Target User ID",
-                        "name": "target_user_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_chat.ConversationResponse"
                                         }
                                     }
                                 }
@@ -659,7 +635,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get paginated message history for a specific conversation",
+                "description": "Fetches the message history for a specific conversation with pagination support.",
                 "consumes": [
                     "application/json"
                 ],
@@ -667,7 +643,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Chat"
+                    "chat"
                 ],
                 "summary": "Get conversation messages",
                 "parameters": [
@@ -680,26 +656,24 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "default": 50,
-                        "description": "Limit",
+                        "description": "Limit (default 50)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "Offset",
+                        "description": "Offset (default 0)",
                         "name": "offset",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Message history",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -707,7 +681,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/internal_delivery_http_chat.MessageResponse"
+                                                "$ref": "#/definitions/chat.MessageResponse"
                                             }
                                         }
                                     }
@@ -725,7 +699,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Generate a presigned S3/Oracle URL for uploading chat attachments",
+                "description": "Provides a temporary upload URL for media attachments in chat.",
                 "consumes": [
                     "application/json"
                 ],
@@ -733,14 +707,79 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Chat"
+                    "chat"
                 ],
-                "summary": "Get presigned upload URL for chat media",
+                "summary": "Get chat media upload URL",
+                "responses": {
+                    "501": {
+                        "description": "Not implemented",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/group-invites/accept": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Uses a valid token to join a group and update the user's active entity.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Accept group invitation",
+                "parameters": [
+                    {
+                        "description": "Token payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/group-invites/validate": {
+            "get": {
+                "description": "Checks if an invite token is valid, not expired, and not used.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Validate invite token",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Conversation ID",
-                        "name": "conversation_id",
+                        "description": "Invite Token",
+                        "name": "token",
                         "in": "query",
                         "required": true
                     }
@@ -751,13 +790,63 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_chat.ChatUploadURLResponse"
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/groups/{id}/invite-link": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a secure, single-use invite link for a group.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Generate group invite link",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invite Link",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
                                         }
                                     }
                                 }
@@ -783,7 +872,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -791,7 +880,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/internal_delivery_http_master.MasterItemResponse"
+                                                "$ref": "#/definitions/response.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -802,7 +891,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -824,7 +913,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -832,7 +921,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/internal_delivery_http_master.MasterItemResponse"
+                                                "$ref": "#/definitions/response.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -843,7 +932,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -865,7 +954,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -873,7 +962,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/internal_delivery_http_master.MasterItemResponse"
+                                                "$ref": "#/definitions/response.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -884,7 +973,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -906,7 +995,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -914,7 +1003,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/internal_delivery_http_master.MasterItemResponse"
+                                                "$ref": "#/definitions/response.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -925,7 +1014,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -945,7 +1034,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -965,7 +1054,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -990,7 +1079,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_monetization.PurchaseRequest"
+                            "$ref": "#/definitions/monetization.PurchaseRequest"
                         }
                     }
                 ],
@@ -998,7 +1087,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -1023,7 +1112,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_monetization.PurchaseRequest"
+                            "$ref": "#/definitions/monetization.PurchaseRequest"
                         }
                     }
                 ],
@@ -1031,7 +1120,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -1055,20 +1144,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
             }
         },
-        "/swipe/": {
+        "/swipe": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Records a user's swipe interaction with another user. If it's a mutual LIKE or CRUSH, it returns a Match ID.",
+                "description": "Records a user's swipe (LIKE, DISLIKE, or CRUSH) on a target entity and checks for a mutual match.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1078,7 +1167,7 @@ const docTemplate = `{
                 "tags": [
                     "swipe"
                 ],
-                "summary": "Record a swipe action (LIKE, CRUSH or DISLIKE)",
+                "summary": "Record a swipe",
                 "parameters": [
                     {
                         "description": "Swipe action details",
@@ -1086,45 +1175,27 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_swipe.SwipeRequest"
+                            "$ref": "#/definitions/swipe.SwipeRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Swipe handled",
+                        "description": "Swipe recorded result",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_swipe.MatchResponse"
+                                            "$ref": "#/definitions/swipe.MatchResponse"
                                         }
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "429": {
-                        "description": "Too many requests",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1137,7 +1208,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Fetches a weighted-random list of active users that the current user hasn't swiped on yet, applying cooldowns and priority scoring.",
+                "description": "Fetches a list of potential entities (solo users or groups) based on entity type and user preferences.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1147,24 +1218,17 @@ const docTemplate = `{
                 "tags": [
                     "swipe"
                 ],
-                "summary": "Get list of users for swipe discovery",
+                "summary": "Get swipe candidates",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Search distance in km (default 50)",
                         "name": "distance",
                         "in": "query"
                     },
                     {
-                        "type": "integer",
-                        "description": "Minimum age",
-                        "name": "min_age",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Maximum age",
-                        "name": "max_age",
+                        "type": "string",
+                        "description": "\"user\" or \"group\", empty = all",
+                        "name": "entity_type",
                         "in": "query"
                     },
                     {
@@ -1173,7 +1237,6 @@ const docTemplate = `{
                             "type": "string"
                         },
                         "collectionFormat": "csv",
-                        "description": "Filter by genders (UUIDs)",
                         "name": "genders",
                         "in": "query"
                     },
@@ -1183,8 +1246,37 @@ const docTemplate = `{
                             "type": "string"
                         },
                         "collectionFormat": "csv",
-                        "description": "Filter by interests (UUIDs)",
                         "name": "interests",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "name": "latitude",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "name": "longitude",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "max_age",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "max_height",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "min_age",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "min_height",
                         "in": "query"
                     },
                     {
@@ -1193,32 +1285,23 @@ const docTemplate = `{
                             "type": "string"
                         },
                         "collectionFormat": "csv",
-                        "description": "Filter by relationship types (UUIDs)",
                         "name": "relationship_types",
                         "in": "query"
                     },
                     {
-                        "type": "number",
-                        "format": "float64",
-                        "description": "User latitude",
-                        "name": "latitude",
-                        "in": "query"
-                    },
-                    {
-                        "type": "number",
-                        "format": "float64",
-                        "description": "User longitude",
-                        "name": "longitude",
-                        "in": "query"
+                        "type": "string",
+                        "name": "swiper_entity_id",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of swipe candidates",
+                        "description": "Candidate list",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1226,18 +1309,12 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                                                "$ref": "#/definitions/response.EntityResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1250,7 +1327,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Fetches a list of users who have liked or crushed on the current user, ordered by priority score (Crushes first, then Premium likes, then standard likes).",
+                "description": "Returns a list of entities that have liked or crushed on the specified entity.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1260,14 +1337,23 @@ const docTemplate = `{
                 "tags": [
                     "swipe"
                 ],
-                "summary": "Get list of incoming likes and crushes",
+                "summary": "Get incoming likes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity ID to get likes for",
+                        "name": "entity_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "List of incoming likes",
+                        "description": "Incoming likes list",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1275,18 +1361,12 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/internal_delivery_http_swipe.IncomingLikeResponse"
+                                                "$ref": "#/definitions/swipe.IncomingLikeResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1299,7 +1379,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Fetches a list of users the current user has liked or crushed on, but who have not yet matched back.",
+                "description": "Returns a list of entities that the specified entity has liked.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1309,14 +1389,23 @@ const docTemplate = `{
                 "tags": [
                     "swipe"
                 ],
-                "summary": "Get list of sent likes",
+                "summary": "Get sent likes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity ID to get sent likes for",
+                        "name": "entity_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "List of sent likes",
+                        "description": "Sent likes list",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1324,83 +1413,25 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/internal_delivery_http_swipe.SentLikeResponse"
+                                                "$ref": "#/definitions/swipe.SentLikeResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
                         }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
                     }
                 }
             }
         },
-        "/swipe/undo": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Reverts the most recent swipe (like, dislike, or crush). If it was a match, the match is also removed. Returns the details of the undone user so they can be shown again in the UI.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "swipe"
-                ],
-                "summary": "Undo the last swipe action",
-                "responses": {
-                    "200": {
-                        "description": "Successfully reverted the swipe",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "No swipe history or daily limit reached",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/swipe/unlike": {
+        "/swipe/unlike/{entity_id}": {
             "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Removes a like (or crush) swipe before a mutual match has occurred.",
+                "description": "Removes a one-way swipe from the current active entity to another entity.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1410,48 +1441,41 @@ const docTemplate = `{
                 "tags": [
                     "swipe"
                 ],
-                "summary": "Unlike a user",
+                "summary": "Unlike an entity",
                 "parameters": [
                     {
-                        "description": "Target user to unlike",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_swipe.UnlikeRequest"
-                        }
+                        "type": "string",
+                        "description": "Target Entity ID",
+                        "name": "entity_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Swiper Entity ID",
+                        "name": "swiper_entity_id",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Successfully unliked",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request or already matched",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
             }
         },
-        "/swipe/unmatch/{target_user_id}": {
+        "/swipe/unmatch/{entity_id}": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Soft deletes the match and conversation, and applies a ranking penalty for future discovery.",
+                "description": "Removes an existing match between the specified swiper entity and another entity.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1461,13 +1485,13 @@ const docTemplate = `{
                 "tags": [
                     "swipe"
                 ],
-                "summary": "Unmatch a user",
+                "summary": "Unmatch an entity",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Target User ID to unmatch",
-                        "name": "target_user_id",
-                        "in": "path",
+                        "description": "Swiper Entity ID",
+                        "name": "swiper_entity_id",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -1475,19 +1499,150 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully unmatched",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/groups": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new group entity with the authenticated user as the owner.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Create a group",
+                "parameters": [
+                    {
+                        "description": "Group details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.CreateGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Created group details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/entities.Group"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/users/groups/{id}/invite": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Invites another user to join a specific group.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Invite user to group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Invite details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.InviteToGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully invited",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/my-group": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches the details of the single group the authenticated user belongs to, including its members.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user's group",
+                "responses": {
+                    "200": {
+                        "description": "Group details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.GroupResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
-                    "400": {
-                        "description": "Invalid ID or no match exists",
+                    "404": {
+                        "description": "Group not found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -1500,28 +1655,16 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Permanently deletes the current user's account and all associated data.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
+                "description": "Permanently deletes the authenticated user's account and all associated data.",
                 "tags": [
                     "users"
                 ],
                 "summary": "Delete user account",
                 "responses": {
                     "200": {
-                        "description": "Successfully deleted account",
+                        "description": "Successfully deleted",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -1532,7 +1675,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates the current user's profile information.",
+                "description": "Updates the authenticated user's profile information, including photos and preferences.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1545,44 +1688,32 @@ const docTemplate = `{
                 "summary": "Update user profile",
                 "parameters": [
                     {
-                        "description": "Update profile details",
+                        "description": "Profile update details",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_delivery_http_user.UpdateProfileRequest"
+                            "$ref": "#/definitions/user.UpdateProfileRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Updated user profile",
+                        "description": "Updated profile",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_user.UserResponse"
+                                            "$ref": "#/definitions/response.UserResponse"
                                         }
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1621,13 +1752,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_user.UserResponse"
+                                            "$ref": "#/definitions/response.UserResponse"
                                         }
                                     }
                                 }
@@ -1637,13 +1768,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -1656,40 +1787,28 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Generates a presigned URL for the user to securely upload photos to S3.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
+                "description": "Generates a temporary S3 upload URL for private user media.",
                 "tags": [
                     "users"
                 ],
-                "summary": "Get presigned S3 upload URL",
+                "summary": "Get private upload URL",
                 "responses": {
                     "200": {
-                        "description": "Upload details",
+                        "description": "Upload URL details",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_user.UploadURLResponse"
+                                            "$ref": "#/definitions/user.UploadURLResponse"
                                         }
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1697,21 +1816,15 @@ const docTemplate = `{
         },
         "/users/upload-url/public": {
             "get": {
-                "description": "Generates a presigned URL for a new (unauthenticated) user during onboarding.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
+                "description": "Generates a temporary S3 upload URL for publicly accessible assets (e.g., registration photos).",
                 "tags": [
                     "users"
                 ],
-                "summary": "Get public presigned S3 upload URL",
+                "summary": "Get public upload URL",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Client ID constraint",
+                        "description": "Client Identifier",
                         "name": "client_id",
                         "in": "query",
                         "required": true
@@ -1719,33 +1832,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Upload details",
+                        "description": "Upload URL details",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                                    "$ref": "#/definitions/response.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_delivery_http_user.UploadURLResponse"
+                                            "$ref": "#/definitions/user.UploadURLResponse"
                                         }
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
                         }
                     }
                 }
@@ -1758,7 +1859,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Uploads a photo to perform facial verification heuristics for profile validation.",
+                "description": "Performs facial verification by comparing an uploaded snapshot against the user's profile photo.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1772,7 +1873,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Photo to verify",
+                        "description": "Face snapshot",
                         "name": "photo",
                         "in": "formData",
                         "required": true
@@ -1782,25 +1883,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Verification result",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "429": {
-                        "description": "Too many requests",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.VerificationResult"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -1808,229 +1903,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse": {
-            "type": "object",
-            "properties": {
-                "icon": {
-                    "type": "string",
-                    "example": "✈️"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "bd0a597a-2d88-44e2-a0b4-eb416c1f2115"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Travel"
-                }
-            }
-        },
-        "github_com_pipigendut_dating-backend_internal_delivery_http_response.BaseResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "errors": {},
-                "message": {
-                    "type": "string",
-                    "example": "Success"
-                },
-                "status": {
-                    "type": "integer",
-                    "example": 200
-                }
-            }
-        },
-        "github_com_pipigendut_dating-backend_internal_delivery_http_user.ConsumableItemResponse": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "integer"
-                },
-                "item_type": {
-                    "description": "boost, crush",
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_pipigendut_dating-backend_internal_delivery_http_user.PhotoResponse": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "is_main": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "url": {
-                    "type": "string",
-                    "example": "https://example.com/photo.jpg"
-                }
-            }
-        },
-        "github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse": {
-            "type": "object",
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "bio": {
-                    "type": "string",
-                    "example": "Avid hiker and coffee lover."
-                },
-                "consumables": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.ConsumableItemResponse"
-                    }
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2023-01-01T00:00:00Z"
-                },
-                "date_of_birth": {
-                    "type": "string",
-                    "example": "1995-01-01T00:00:00Z"
-                },
-                "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                },
-                "full_name": {
-                    "type": "string",
-                    "example": "John Doe"
-                },
-                "gender": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                },
-                "height_cm": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "interested_genders": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                    }
-                },
-                "interests": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                    }
-                },
-                "languages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                    }
-                },
-                "latitude": {
-                    "type": "number"
-                },
-                "location_city": {
-                    "type": "string"
-                },
-                "location_country": {
-                    "type": "string"
-                },
-                "longitude": {
-                    "type": "number"
-                },
-                "photos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.PhotoResponse"
-                    }
-                },
-                "relationship_type": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                },
-                "status": {
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_entities.UserStatus"
-                        }
-                    ],
-                    "example": "active"
-                },
-                "subscription": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserSubscriptionResponse"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2023-01-01T00:00:00Z"
-                },
-                "verified_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_pipigendut_dating-backend_internal_delivery_http_user.UserSubscriptionResponse": {
-            "type": "object",
-            "properties": {
-                "expired_at": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "plan_id": {
-                    "type": "string"
-                },
-                "plan_name": {
-                    "type": "string"
-                },
-                "started_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_pipigendut_dating-backend_internal_entities.MessageMetadata": {
-            "type": "object",
-            "properties": {
-                "gif_provider": {
-                    "type": "string"
-                },
-                "image_height": {
-                    "type": "integer"
-                },
-                "image_width": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_pipigendut_dating-backend_internal_entities.MessageType": {
-            "type": "string",
-            "enum": [
-                "text",
-                "image",
-                "gif"
-            ],
-            "x-enum-varnames": [
-                "MessageTypeText",
-                "MessageTypeImage",
-                "MessageTypeGif"
-            ]
-        },
-        "github_com_pipigendut_dating-backend_internal_entities.UserStatus": {
-            "type": "string",
-            "enum": [
-                "onboarding",
-                "active",
-                "banned"
-            ],
-            "x-enum-varnames": [
-                "UserStatusOnboarding",
-                "UserStatusActive",
-                "UserStatusBanned"
-            ]
-        },
-        "internal_delivery_http_admin.AdminConsumableRequest": {
+        "admin.AdminConsumableRequest": {
             "type": "object",
             "required": [
                 "package_id",
@@ -2045,7 +1918,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_admin.AdminSubscribeRequest": {
+        "admin.AdminSubscribeRequest": {
             "type": "object",
             "required": [
                 "plan_id",
@@ -2060,7 +1933,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_auth.AuthResponse": {
+        "auth.AuthResponse": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -2072,11 +1945,11 @@ const docTemplate = `{
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 },
                 "user": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                    "$ref": "#/definitions/response.UserResponse"
                 }
             }
         },
-        "internal_delivery_http_auth.CheckEmailRequest": {
+        "auth.CheckEmailRequest": {
             "type": "object",
             "required": [
                 "email"
@@ -2088,7 +1961,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_auth.CheckEmailResponse": {
+        "auth.CheckEmailResponse": {
             "type": "object",
             "properties": {
                 "exists": {
@@ -2097,7 +1970,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_auth.DeviceRequest": {
+        "auth.DeviceRequest": {
             "type": "object",
             "required": [
                 "device_id"
@@ -2123,7 +1996,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_auth.GoogleLoginRequest": {
+        "auth.GoogleLoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -2137,7 +2010,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "device": {
-                    "$ref": "#/definitions/internal_delivery_http_auth.DeviceRequest"
+                    "$ref": "#/definitions/auth.DeviceRequest"
                 },
                 "email": {
                     "type": "string",
@@ -2193,7 +2066,7 @@ const docTemplate = `{
                 "photos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_delivery_http_auth.PhotoRequest"
+                        "$ref": "#/definitions/auth.PhotoRequest"
                     }
                 },
                 "profile_picture": {
@@ -2202,7 +2075,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_auth.LoginEmailRequest": {
+        "auth.LoginEmailRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -2210,7 +2083,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "device": {
-                    "$ref": "#/definitions/internal_delivery_http_auth.DeviceRequest"
+                    "$ref": "#/definitions/auth.DeviceRequest"
                 },
                 "email": {
                     "type": "string",
@@ -2222,7 +2095,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_auth.LogoutRequest": {
+        "auth.LogoutRequest": {
             "type": "object",
             "required": [
                 "device_id"
@@ -2233,7 +2106,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_auth.PhotoRequest": {
+        "auth.PhotoRequest": {
             "type": "object",
             "required": [
                 "url"
@@ -2247,7 +2120,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_auth.RefreshTokenRequest": {
+        "auth.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "device_id",
@@ -2262,7 +2135,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_auth.RegisterEmailRequest": {
+        "auth.RegisterEmailRequest": {
             "type": "object",
             "required": [
                 "date_of_birth",
@@ -2279,7 +2152,7 @@ const docTemplate = `{
                     "example": "1995-01-01"
                 },
                 "device": {
-                    "$ref": "#/definitions/internal_delivery_http_auth.DeviceRequest"
+                    "$ref": "#/definitions/auth.DeviceRequest"
                 },
                 "email": {
                     "type": "string",
@@ -2336,12 +2209,12 @@ const docTemplate = `{
                 "photos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_delivery_http_auth.PhotoRequest"
+                        "$ref": "#/definitions/auth.PhotoRequest"
                     }
                 }
             }
         },
-        "internal_delivery_http_auth.TokenResponse": {
+        "auth.TokenResponse": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -2354,22 +2227,17 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_chat.ChatUploadURLResponse": {
+        "chat.ConversationResponse": {
             "type": "object",
             "properties": {
-                "file_key": {
+                "avatar_url": {
                     "type": "string"
                 },
-                "upload_url": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_delivery_http_chat.ConversationResponse": {
-            "type": "object",
-            "properties": {
                 "created_at": {
                     "type": "string"
+                },
+                "entity": {
+                    "$ref": "#/definitions/response.EntityResponse"
                 },
                 "id": {
                     "type": "string"
@@ -2378,17 +2246,21 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "last_message": {
-                    "$ref": "#/definitions/internal_delivery_http_chat.MessageResponse"
+                    "$ref": "#/definitions/chat.MessageResponse"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"direct\" or \"group\"",
+                    "type": "string"
                 },
                 "unread_count": {
                     "type": "integer"
-                },
-                "user": {
-                    "$ref": "#/definitions/internal_delivery_http_chat.ParticipantPreviewResponse"
                 }
             }
         },
-        "internal_delivery_http_chat.MessageResponse": {
+        "chat.MessageResponse": {
             "type": "object",
             "properties": {
                 "content": {
@@ -2407,60 +2279,706 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "metadata": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_entities.MessageMetadata"
+                    "$ref": "#/definitions/entities.MessageMetadata"
                 },
                 "sender_id": {
                     "type": "string"
                 },
                 "type": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_entities.MessageType"
+                    "$ref": "#/definitions/entities.MessageType"
                 }
             }
         },
-        "internal_delivery_http_chat.ParticipantPreviewResponse": {
+        "entities.AuthProvider": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "providerUserID": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.Device": {
+            "type": "object",
+            "properties": {
+                "appVersion": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deviceID": {
+                    "type": "string"
+                },
+                "deviceModel": {
+                    "type": "string"
+                },
+                "deviceName": {
+                    "type": "string"
+                },
+                "fcmtoken": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "lastIP": {
+                    "type": "string"
+                },
+                "lastLogin": {
+                    "type": "string"
+                },
+                "osversion": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.Entity": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "group": {
+                    "$ref": "#/definitions/entities.Group"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/entities.EntityType"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "description": "Associations for preloading",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entities.User"
+                        }
+                    ]
+                }
+            }
+        },
+        "entities.EntityType": {
+            "type": "string",
+            "enum": [
+                "user",
+                "group"
+            ],
+            "x-enum-varnames": [
+                "EntityTypeUser",
+                "EntityTypeGroup"
+            ]
+        },
+        "entities.Group": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "entity": {
+                    "description": "Associations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entities.Entity"
+                        }
+                    ]
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "members": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.GroupMember"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.GroupMember": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "group_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_admin": {
+                    "type": "boolean"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "description": "Associations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entities.User"
+                        }
+                    ]
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.MasterGender": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.MasterInterest": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.MasterLanguage": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.MasterRelationshipType": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.MessageMetadata": {
+            "type": "object",
+            "properties": {
+                "gif_provider": {
+                    "type": "string"
+                },
+                "image_height": {
+                    "type": "integer"
+                },
+                "image_width": {
+                    "type": "integer"
+                }
+            }
+        },
+        "entities.MessageType": {
+            "type": "string",
+            "enum": [
+                "text",
+                "image",
+                "gif"
+            ],
+            "x-enum-varnames": [
+                "MessageTypeText",
+                "MessageTypeImage",
+                "MessageTypeGif"
+            ]
+        },
+        "entities.Photo": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isMain": {
+                    "type": "boolean"
+                },
+                "sortOrder": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.RefreshToken": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "deviceID": {
+                    "type": "string"
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "revokedAt": {
+                    "type": "string"
+                },
+                "tokenHash": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.SubscriptionPlan": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "features": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.SubscriptionPlanFeature"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "prices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.SubscriptionPrice"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.SubscriptionPlanFeature": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "display_title": {
+                    "type": "string"
+                },
+                "feature_key": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_consumable": {
+                    "type": "boolean"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.SubscriptionPrice": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "duration_type": {
+                    "description": "weekly, monthly, quarterly, yearly",
+                    "type": "string"
+                },
+                "external_slug": {
+                    "description": "For App Store / Play Store Product ID",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.User": {
             "type": "object",
             "properties": {
                 "age": {
                     "type": "integer"
                 },
-                "full_name": {
+                "authProviders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.AuthProvider"
+                    }
+                },
+                "bio": {
                     "type": "string"
+                },
+                "consumables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.UserConsumable"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "dateOfBirth": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "devices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.Device"
+                    }
+                },
+                "email": {
+                    "type": "string"
+                },
+                "entity": {
+                    "description": "Associations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entities.Entity"
+                        }
+                    ]
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "gender": {
+                    "$ref": "#/definitions/entities.MasterGender"
+                },
+                "genderID": {
+                    "type": "string"
+                },
+                "heightCM": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "string"
                 },
-                "is_online": {
+                "interestedGenders": {
+                    "description": "Many-to-Many Associations via pivot tables",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.MasterGender"
+                    }
+                },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.MasterInterest"
+                    }
+                },
+                "isPremium": {
                     "type": "boolean"
                 },
-                "is_verified": {
-                    "type": "boolean"
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.MasterLanguage"
+                    }
                 },
-                "profile_picture": {
+                "lastActiveAt": {
                     "type": "string"
                 },
-                "verified_at": {
+                "latitude": {
+                    "type": "number"
+                },
+                "locationCity": {
+                    "type": "string"
+                },
+                "locationCountry": {
+                    "type": "string"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "passwordHash": {
+                    "type": "string"
+                },
+                "photos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.Photo"
+                    }
+                },
+                "refreshTokens": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.RefreshToken"
+                    }
+                },
+                "relationshipType": {
+                    "$ref": "#/definitions/entities.MasterRelationshipType"
+                },
+                "relationshipTypeID": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/entities.UserStatus"
+                },
+                "subscriptions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entities.UserSubscription"
+                    }
+                },
+                "swipeCountToday": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "verifiedAt": {
                     "type": "string"
                 }
             }
         },
-        "internal_delivery_http_master.MasterItemResponse": {
+        "entities.UserConsumable": {
             "type": "object",
             "properties": {
-                "icon": {
-                    "type": "string",
-                    "example": "✈️"
+                "amount": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "bd0a597a-2d88-44e2-a0b4-eb416c1f2115"
+                    "type": "string"
                 },
-                "name": {
-                    "type": "string",
-                    "example": "Travel"
+                "item_type": {
+                    "description": "boost, crush",
+                    "type": "string"
+                },
+                "last_used_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
-        "internal_delivery_http_monetization.PurchaseRequest": {
+        "entities.UserStatus": {
+            "type": "string",
+            "enum": [
+                "onboarding",
+                "active",
+                "banned"
+            ],
+            "x-enum-varnames": [
+                "UserStatusOnboarding",
+                "UserStatusActive",
+                "UserStatusBanned"
+            ]
+        },
+        "entities.UserSubscription": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "expired_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "plan": {
+                    "$ref": "#/definitions/entities.SubscriptionPlan"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "monetization.ActivateBoostRequest": {
+            "type": "object",
+            "required": [
+                "entity_id"
+            ],
+            "properties": {
+                "entity_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "monetization.PurchaseRequest": {
             "type": "object",
             "properties": {
                 "item_id": {
@@ -2474,24 +2992,247 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_swipe.IncomingLikeResponse": {
+        "response.BaseResponse": {
             "type": "object",
             "properties": {
-                "is_crush": {
-                    "type": "boolean"
+                "data": {},
+                "errors": {},
+                "message": {
+                    "type": "string",
+                    "example": "Success"
                 },
-                "ranking_score": {
-                    "type": "number"
-                },
-                "swipe_time": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                "status": {
+                    "type": "integer",
+                    "example": 200
                 }
             }
         },
-        "internal_delivery_http_swipe.MatchResponse": {
+        "response.ConsumableItemResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "item_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.EntityResponse": {
+            "type": "object",
+            "properties": {
+                "group": {
+                    "$ref": "#/definitions/response.GroupResponse"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/response.UserResponse"
+                }
+            }
+        },
+        "response.GroupResponse": {
+            "type": "object",
+            "properties": {
+                "created_by": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "members": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.UserResponse"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.MasterItemResponse": {
+            "type": "object",
+            "properties": {
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.PhotoResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "is_main": {
+                    "type": "boolean"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.UserResponse": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "consumables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.ConsumableItemResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "$ref": "#/definitions/response.MasterItemResponse"
+                },
+                "height_cm": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "interested_genders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.MasterItemResponse"
+                    }
+                },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.MasterItemResponse"
+                    }
+                },
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.MasterItemResponse"
+                    }
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "location_city": {
+                    "type": "string"
+                },
+                "location_country": {
+                    "type": "string"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "main_photo": {
+                    "type": "string"
+                },
+                "photos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.PhotoResponse"
+                    }
+                },
+                "relationship_type": {
+                    "$ref": "#/definitions/response.MasterItemResponse"
+                },
+                "status": {
+                    "$ref": "#/definitions/entities.UserStatus"
+                },
+                "subscription": {
+                    "$ref": "#/definitions/response.UserSubscriptionResponse"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.UserSubscriptionResponse": {
+            "type": "object",
+            "properties": {
+                "expired_at": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.VerificationResult": {
+            "type": "object",
+            "properties": {
+                "confidence": {
+                    "type": "number"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "is_match": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "swipe.IncomingLikeResponse": {
+            "type": "object",
+            "properties": {
+                "entity": {
+                    "$ref": "#/definitions/response.EntityResponse"
+                },
+                "is_boosted": {
+                    "type": "boolean"
+                },
+                "is_crush": {
+                    "type": "boolean"
+                },
+                "swipe_time": {
+                    "type": "string"
+                }
+            }
+        },
+        "swipe.MatchResponse": {
             "type": "object",
             "properties": {
                 "is_match": {
@@ -2500,30 +3241,37 @@ const docTemplate = `{
                 "match_id": {
                     "type": "string"
                 },
-                "matched_user": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                "matched_entity": {
+                    "$ref": "#/definitions/response.EntityResponse"
                 }
             }
         },
-        "internal_delivery_http_swipe.SentLikeResponse": {
+        "swipe.SentLikeResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "string"
                 },
+                "entity": {
+                    "$ref": "#/definitions/response.EntityResponse"
+                },
                 "expires_at": {
                     "type": "string"
                 },
-                "user": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_user.UserResponse"
+                "is_boosted": {
+                    "type": "boolean"
+                },
+                "is_crush": {
+                    "type": "boolean"
                 }
             }
         },
-        "internal_delivery_http_swipe.SwipeRequest": {
+        "swipe.SwipeRequest": {
             "type": "object",
             "required": [
                 "direction",
-                "swiped_id"
+                "swiped_entity_id",
+                "swiper_entity_id"
             ],
             "properties": {
                 "direction": {
@@ -2534,35 +3282,37 @@ const docTemplate = `{
                         "CRUSH"
                     ]
                 },
-                "swiped_id": {
+                "swiped_entity_id": {
+                    "type": "string"
+                },
+                "swiper_entity_id": {
                     "type": "string"
                 }
             }
         },
-        "internal_delivery_http_swipe.UnlikeRequest": {
+        "user.CreateGroupRequest": {
             "type": "object",
             "required": [
-                "target_user_id"
+                "name"
             ],
             "properties": {
-                "target_user_id": {
+                "name": {
                     "type": "string"
                 }
             }
         },
-        "internal_delivery_http_user.ConsumableItemResponse": {
+        "user.InviteToGroupRequest": {
             "type": "object",
+            "required": [
+                "user_id"
+            ],
             "properties": {
-                "amount": {
-                    "type": "integer"
-                },
-                "item_type": {
-                    "description": "boost, crush",
+                "user_id": {
                     "type": "string"
                 }
             }
         },
-        "internal_delivery_http_user.PhotoRequest": {
+        "user.PhotoRequest": {
             "type": "object",
             "required": [
                 "url"
@@ -2582,24 +3332,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_user.PhotoResponse": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "is_main": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "url": {
-                    "type": "string",
-                    "example": "https://example.com/photo.jpg"
-                }
-            }
-        },
-        "internal_delivery_http_user.UpdateProfileRequest": {
+        "user.UpdateProfileRequest": {
             "type": "object",
             "properties": {
                 "bio": {
@@ -2649,7 +3382,7 @@ const docTemplate = `{
                     "description": "List of photo objects",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_delivery_http_user.PhotoRequest"
+                        "$ref": "#/definitions/user.PhotoRequest"
                     }
                 },
                 "relationship_type": {
@@ -2661,134 +3394,13 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_delivery_http_user.UploadURLResponse": {
+        "user.UploadURLResponse": {
             "type": "object",
             "properties": {
                 "file_key": {
                     "type": "string"
                 },
                 "upload_url": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_delivery_http_user.UserResponse": {
-            "type": "object",
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "bio": {
-                    "type": "string",
-                    "example": "Avid hiker and coffee lover."
-                },
-                "consumables": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_delivery_http_user.ConsumableItemResponse"
-                    }
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2023-01-01T00:00:00Z"
-                },
-                "date_of_birth": {
-                    "type": "string",
-                    "example": "1995-01-01T00:00:00Z"
-                },
-                "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                },
-                "full_name": {
-                    "type": "string",
-                    "example": "John Doe"
-                },
-                "gender": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                },
-                "height_cm": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "interested_genders": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                    }
-                },
-                "interests": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                    }
-                },
-                "languages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                    }
-                },
-                "latitude": {
-                    "type": "number"
-                },
-                "location_city": {
-                    "type": "string"
-                },
-                "location_country": {
-                    "type": "string"
-                },
-                "longitude": {
-                    "type": "number"
-                },
-                "photos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_delivery_http_user.PhotoResponse"
-                    }
-                },
-                "relationship_type": {
-                    "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_delivery_http_master.MasterItemResponse"
-                },
-                "status": {
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/github_com_pipigendut_dating-backend_internal_entities.UserStatus"
-                        }
-                    ],
-                    "example": "active"
-                },
-                "subscription": {
-                    "$ref": "#/definitions/internal_delivery_http_user.UserSubscriptionResponse"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2023-01-01T00:00:00Z"
-                },
-                "verified_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_delivery_http_user.UserSubscriptionResponse": {
-            "type": "object",
-            "properties": {
-                "expired_at": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "plan_id": {
-                    "type": "string"
-                },
-                "plan_name": {
-                    "type": "string"
-                },
-                "started_at": {
                     "type": "string"
                 }
             }

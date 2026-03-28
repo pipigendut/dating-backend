@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"github.com/pipigendut/dating-backend/internal/entities"
 )
 
 type Config struct {
@@ -39,6 +40,55 @@ func NewPostgresDB(cfg Config) (*gorm.DB, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	// Auto Migration
+	err = db.AutoMigrate(
+		// Core
+		&entities.Entity{},
+		&entities.User{},
+		&entities.Group{},
+		&entities.GroupMember{},
+		// Interactions
+		&entities.Swipe{},
+		&entities.Match{},
+		&entities.EntityBoost{},
+		&entities.EntityImpression{},
+		&entities.EntityUnmatch{},
+		// Chat
+		&entities.Conversation{},
+		&entities.ConversationParticipant{},
+		&entities.Message{},
+		&entities.MessageRead{},
+		&entities.GroupInvite{},
+		&entities.UserPresence{},
+		// User Profile
+		&entities.AuthProvider{},
+		&entities.Photo{},
+		&entities.Device{},
+		&entities.RefreshToken{},
+		// Master Tables
+		&entities.MasterGender{},
+		&entities.MasterRelationshipType{},
+		&entities.MasterInterest{},
+		&entities.MasterLanguage{},
+		// Pivot Tables (many-to-many)
+		&entities.UserInterestedGender{},
+		&entities.UserInterest{},
+		&entities.UserLanguage{},
+		// Config & Monetization
+		&entities.AppConfig{},
+		&entities.SubscriptionPlan{},
+		&entities.SubscriptionPrice{},
+		&entities.SubscriptionPlanFeature{},
+		&entities.UserSubscription{},
+		&entities.UserConsumable{},
+		&entities.ConsumablePackage{},
+		// Background Jobs
+		&entities.Job{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to auto migrate: %v", err)
 	}
 
 	sqlDB, err := db.DB()

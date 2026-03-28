@@ -8,17 +8,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
-	userHandler "github.com/pipigendut/dating-backend/internal/delivery/http/user"
-	"github.com/pipigendut/dating-backend/internal/usecases"
+	"github.com/pipigendut/dating-backend/internal/services"
 )
 
 type AuthHandler struct {
-	usecase   *usecases.AuthUsecase
-	storageUC *usecases.StorageUsecase
+	svc            *services.AuthService
+	storageService *services.StorageService
 }
 
-func NewAuthHandler(r *gin.RouterGroup, usecase *usecases.AuthUsecase, storageUC *usecases.StorageUsecase) {
-	handler := &AuthHandler{usecase: usecase, storageUC: storageUC}
+func NewAuthHandler(r *gin.RouterGroup, svc *services.AuthService, storageService *services.StorageService) {
+	handler := &AuthHandler{svc: svc, storageService: storageService}
 	group := r.Group("/auth")
 	{
 		group.POST("/check-email", handler.CheckEmail)
@@ -51,7 +50,7 @@ func (h *AuthHandler) CheckEmail(c *gin.Context) {
 		return
 	}
 
-	exists, err := h.usecase.CheckEmail(req.Email)
+	exists, err := h.svc.CheckEmail(req.Email)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Internal server error", err.Error())
 		return
@@ -77,16 +76,16 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	var photosDTO *[]usecases.PhotoDTO
+	var photosDTO *[]services.PhotoDTO
 	if req.Photos != nil {
-		mapped := make([]usecases.PhotoDTO, len(*req.Photos))
+		mapped := make([]services.PhotoDTO, len(*req.Photos))
 		for i, p := range *req.Photos {
-			mapped[i] = usecases.PhotoDTO{URL: p.URL, IsMain: p.IsMain}
+			mapped[i] = services.PhotoDTO{URL: p.URL, IsMain: p.IsMain}
 		}
 		photosDTO = &mapped
 	}
 
-	dto := usecases.RegisterEmailDTO{
+	dto := services.RegisterEmailDTO{
 		ID:              req.ID,
 		Email:           req.Email,
 		Password:        req.Password,
@@ -104,7 +103,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Interests:       req.Interests,
 		Languages:       req.Languages,
 		Photos:          photosDTO,
-		Device: usecases.DeviceDTO{
+		Device: services.DeviceDTO{
 			DeviceID:    req.Device.DeviceID,
 			DeviceName:  req.Device.DeviceName,
 			DeviceModel: req.Device.DeviceModel,
@@ -115,13 +114,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		},
 	}
 
-	token, refresh, user, err := h.usecase.RegisterEmail(dto)
+	token, refresh, user, err := h.svc.RegisterEmail(dto)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
 
-	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user, h.storageUC)})
+	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: response.ToUserResponse(user, h.storageService)})
 }
 
 // Login godoc
@@ -141,10 +140,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	dto := usecases.LoginEmailDTO{
+	dto := services.LoginEmailDTO{
 		Email:    req.Email,
 		Password: req.Password,
-		Device: usecases.DeviceDTO{
+		Device: services.DeviceDTO{
 			DeviceID:    req.Device.DeviceID,
 			DeviceName:  req.Device.DeviceName,
 			DeviceModel: req.Device.DeviceModel,
@@ -155,13 +154,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		},
 	}
 
-	token, refresh, user, err := h.usecase.LoginEmail(dto)
+	token, refresh, user, err := h.svc.LoginEmail(dto)
 	if err != nil {
 		response.Error(c, http.StatusUnauthorized, err.Error(), nil)
 		return
 	}
 
-	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user, h.storageUC)})
+	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: response.ToUserResponse(user, h.storageService)})
 }
 
 // GoogleLogin godoc
@@ -181,16 +180,16 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	var photosDTO *[]usecases.PhotoDTO
+	var photosDTO *[]services.PhotoDTO
 	if req.Photos != nil {
-		mapped := make([]usecases.PhotoDTO, len(*req.Photos))
+		mapped := make([]services.PhotoDTO, len(*req.Photos))
 		for i, p := range *req.Photos {
-			mapped[i] = usecases.PhotoDTO{URL: p.URL, IsMain: p.IsMain}
+			mapped[i] = services.PhotoDTO{URL: p.URL, IsMain: p.IsMain}
 		}
 		photosDTO = &mapped
 	}
 
-	dto := usecases.GoogleLoginDTO{
+	dto := services.GoogleLoginDTO{
 		ID:              req.ID,
 		Email:           req.Email,
 		GoogleID:        req.GoogleID,
@@ -209,7 +208,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		Interests:       req.Interests,
 		Languages:       req.Languages,
 		Photos:          photosDTO,
-		Device: usecases.DeviceDTO{
+		Device: services.DeviceDTO{
 			DeviceID:    req.Device.DeviceID,
 			DeviceName:  req.Device.DeviceName,
 			DeviceModel: req.Device.DeviceModel,
@@ -220,14 +219,14 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		},
 	}
 
-	token, refresh, user, err := h.usecase.LoginWithGoogle(dto)
+	token, refresh, user, err := h.svc.LoginWithGoogle(dto)
 	if err != nil {
 		log.Printf("[GoogleLogin Error] %v", err)
 		response.Error(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: userHandler.ToUserResponse(user, h.storageUC)})
+	response.OK(c, AuthResponse{Token: token, RefreshToken: refresh, User: response.ToUserResponse(user, h.storageService)})
 }
 
 // Refresh godoc
@@ -247,7 +246,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	token, refresh, err := h.usecase.RefreshToken(req.RefreshToken, req.DeviceID)
+	token, refresh, err := h.svc.RefreshToken(req.RefreshToken, req.DeviceID)
 	if err != nil {
 		response.Error(c, http.StatusUnauthorized, err.Error(), nil)
 		return
@@ -296,7 +295,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	err := h.usecase.Logout(req.DeviceID, uid)
+	err := h.svc.Logout(req.DeviceID, uid)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error(), nil)
 		return

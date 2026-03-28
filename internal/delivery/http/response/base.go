@@ -9,7 +9,7 @@ import (
 type BaseResponse struct {
 	Status  int         `json:"status" example:"200"`
 	Message string      `json:"message" example:"Success"`
-	Data    interface{} `json:"data,omitempty"`
+	Data    interface{} `json:"data"`
 	Errors  interface{} `json:"errors,omitempty"`
 }
 

@@ -53,7 +53,6 @@ func (r *subscriptionRepository) GetConsumables(ctx context.Context, userID uuid
 }
 
 func (r *subscriptionRepository) UpdateConsumable(ctx context.Context, userID uuid.UUID, consumableType string, delta int) error {
-	// Delta < 0 means use consumable
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var cons entities.UserConsumable
 		err := tx.
@@ -79,15 +78,15 @@ func (r *subscriptionRepository) UpdateConsumable(ctx context.Context, userID uu
 	})
 }
 
-func (r *subscriptionRepository) CreateUserBoost(ctx context.Context, boost *entities.UserBoost) error {
+func (r *subscriptionRepository) CreateEntityBoost(ctx context.Context, boost *entities.EntityBoost) error {
 	return r.db.WithContext(ctx).Create(boost).Error
 }
 
-func (r *subscriptionRepository) GetActiveBoost(ctx context.Context, userID uuid.UUID) (*entities.UserBoost, error) {
-	var boost entities.UserBoost
+func (r *subscriptionRepository) GetActiveBoost(ctx context.Context, entityID uuid.UUID) (*entities.EntityBoost, error) {
+	var boost entities.EntityBoost
 	now := time.Now()
 	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND started_at <= ? AND expired_at > ?", userID, now, now).
+		Where("entity_id = ? AND started_at <= ? AND expires_at > ?", entityID, now, now).
 		First(&boost).Error
 
 	if err != nil {
@@ -139,8 +138,6 @@ func (r *subscriptionRepository) GetConsumablePackageByID(ctx context.Context, i
 
 func (r *subscriptionRepository) CreateUserSubscription(ctx context.Context, sub *entities.UserSubscription) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// Single query UPSERT using OnConflict.
-		// If user_id exists, we ONLY update the plan_id (preserving expired_at).
 		return tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_id"}},
 			DoUpdates: clause.AssignmentColumns([]string{"plan_id", "is_active", "updated_at"}),
@@ -161,7 +158,6 @@ func (r *subscriptionRepository) AddUserConsumablePackage(ctx context.Context, u
 			Amount:   pkg.Amount,
 		}
 
-		// Atomic Upsert: If (userID, itemType) exists, increment amount.
 		return tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "user_id"}, {Name: "item_type"}},
 			DoUpdates: clause.Assignments(map[string]interface{}{

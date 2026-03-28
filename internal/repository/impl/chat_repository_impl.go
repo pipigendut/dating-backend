@@ -23,17 +23,44 @@ func (r *chatRepository) CreateConversation(ctx context.Context, conversation *e
 	return r.db.WithContext(ctx).Create(conversation).Error
 }
 
+func (r *chatRepository) GetNewMatches(ctx context.Context, userID uuid.UUID, limit int, cursor *time.Time) ([]entities.Conversation, error) {
+	var convs []entities.Conversation
+	query := r.db.WithContext(ctx).
+		Preload("Participants", "user_id != ?", userID).
+		Preload("Participants.User.Photos").
+		Preload("Participants.Presence").
+		Table("conversations").
+		Select("conversations.*").
+		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").
+		Where("cp.user_id = ? AND conversations.last_message_id IS NULL AND conversations.visible_at <= ?", userID, time.Now()).
+		Order("conversations.created_at DESC").
+		Limit(limit)
+
+	if cursor != nil {
+		query = query.Where("conversations.created_at < ?", cursor)
+	}
+
+	err := query.Find(&convs).Error
+	
+	return convs, err
+}
+
 func (r *chatRepository) GetConversationByID(ctx context.Context, id uuid.UUID) (*entities.Conversation, error) {
 	var conv entities.Conversation
 	err := r.db.WithContext(ctx).
 		Preload("Participants.User.Photos").
 		Preload("Participants.Presence").
-		// Preload only the last message for the summary
-		Preload("Messages", func(db *gorm.DB) *gorm.DB {
-			return db.Order("messages.created_at DESC").Limit(1)
-		}).
 		Where("id = ?", id).
 		First(&conv).Error
+	
+	if err == nil {
+		// Fetch last message separately to avoid the Limit(1) bug on Preload
+		var lastMsg entities.Message
+		if err := r.db.WithContext(ctx).Where("conversation_id = ?", conv.ID).Order("created_at DESC").First(&lastMsg).Error; err == nil {
+			conv.Messages = []entities.Message{lastMsg}
+		}
+	}
+	
 	return &conv, err
 }
 
@@ -46,7 +73,7 @@ func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.U
 		Table("conversations").
 		Select("conversations.*").
 		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").
-		Where("cp.user_id = ? AND conversations.visible_at <= ?", userID, time.Now()).
+		Where("cp.user_id = ? AND conversations.last_message_id IS NOT NULL AND conversations.visible_at <= ?", userID, time.Now()).
 		Order("conversations.last_message_at DESC").
 		Limit(limit)
 
@@ -59,7 +86,6 @@ func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.U
 		return nil, err
 	}
 
-	// Fetch last message for each conversation to avoid GORM's Limit(1) bug on Preload
 	for i := range convs {
 		var lastMsg entities.Message
 		if err := r.db.WithContext(ctx).Where("conversation_id = ?", convs[i].ID).Order("created_at DESC").First(&lastMsg).Error; err == nil {
@@ -77,7 +103,7 @@ func (r *chatRepository) GetConversationBetweenUsers(ctx context.Context, user1I
 			SELECT c.* FROM conversations c
 			JOIN conversation_participants cp1 ON c.id = cp1.conversation_id
 			JOIN conversation_participants cp2 ON c.id = cp2.conversation_id
-			WHERE cp1.user_id = ? AND cp2.user_id = ?
+			WHERE cp1.user_id = ? AND cp2.user_id = ? AND c.type = 'direct'
 		`, user1ID, user2ID).
 		First(&conv).Error
 	if err != nil {
@@ -86,9 +112,17 @@ func (r *chatRepository) GetConversationBetweenUsers(ctx context.Context, user1I
 	return &conv, nil
 }
 
+func (r *chatRepository) GetConversationByEntityID(ctx context.Context, entityID uuid.UUID) (*entities.Conversation, error) {
+	var conv entities.Conversation
+	err := r.db.WithContext(ctx).Where("entity_id = ?", entityID).First(&conv).Error
+	if err != nil {
+		return nil, err
+	}
+	return &conv, nil
+}
+
 func (r *chatRepository) GetUnreadCount(ctx context.Context, conversationID, userID uuid.UUID) (int, error) {
 	var count int64
-	// Simple query to count messages sent by others after last read
 	err := r.db.WithContext(ctx).Table("messages m").
 		Joins("JOIN conversation_participants cp ON cp.conversation_id = m.conversation_id").
 		Where("cp.conversation_id = ? AND cp.user_id = ?", conversationID, userID).
@@ -114,7 +148,6 @@ func (r *chatRepository) GetConversationMessages(ctx context.Context, conversati
 }
 
 func (r *chatRepository) MarkMessagesAsRead(ctx context.Context, conversationID, userID uuid.UUID, messageID uuid.UUID) error {
-	// 1. Update Participant's LastReadMessageID (Scalable Approach)
 	err := r.db.WithContext(ctx).Model(&entities.ConversationParticipant{}).
 		Where("conversation_id = ? AND user_id = ?", conversationID, userID).
 		Update("last_read_message_id", messageID).Error
@@ -122,7 +155,6 @@ func (r *chatRepository) MarkMessagesAsRead(ctx context.Context, conversationID,
 		return err
 	}
 
-	// 2. Also keep MessageRead for audit if needed, but primary check is above
 	read := entities.MessageRead{
 		MessageID:      messageID,
 		UserID:         userID,

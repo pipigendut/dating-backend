@@ -137,3 +137,7 @@ func (r *redisRepository) Get(ctx context.Context, key string) (string, error) {
 func (r *redisRepository) Del(ctx context.Context, key string) error {
 	return r.client.Del(ctx, key).Err()
 }
+
+func (r *redisRepository) SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) (bool, error) {
+	return r.client.SetNX(ctx, key, value, expiration).Result()
+}

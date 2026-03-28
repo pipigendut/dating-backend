@@ -47,7 +47,7 @@ func (r *userRepo) GetWithRelations(id uuid.UUID) (*entities.User, error) {
 func (r *userRepo) Update(user *entities.User) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// Save base user fields, ignoring associations
-		if err := tx.Omit("Photos", "InterestedGenders", "Interests", "Languages", "AuthProviders", "Devices", "RefreshTokens", "Gender", "RelationshipType").Save(user).Error; err != nil {
+		if err := tx.Omit("Photos", "InterestedGenders", "Interests", "Languages", "AuthProviders", "Devices", "RefreshTokens", "Gender", "RelationshipType", "Entity").Save(user).Error; err != nil {
 			return err
 		}
 
@@ -141,8 +141,18 @@ func (r *userRepo) LinkProvider(userID uuid.UUID, provider, providerUserID strin
 
 func (r *userRepo) CreateWithRelations(user *entities.User) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// Omit associations to handle them manually below and avoid GORM's "smart" upsert issues
-		if err := tx.Omit("Photos", "AuthProviders").Create(user).Error; err != nil {
+		// 0. Create the solo Entity first so that the FK on users(entity_id) is satisfied.
+		//    Every new user gets their own Entity of type "user" (solo mode).
+		soloEntity := entities.Entity{
+			Type: entities.EntityTypeUser,
+		}
+		if err := tx.Create(&soloEntity).Error; err != nil {
+			return err
+		}
+		user.EntityID = soloEntity.ID
+
+		// 1. Create the user row (omit association tables handled below)
+		if err := tx.Omit("Photos", "AuthProviders", "Entity").Create(user).Error; err != nil {
 			return err
 		}
 
@@ -168,6 +178,7 @@ func (r *userRepo) CreateWithRelations(user *entities.User) error {
 	})
 }
 
+
 func (r *userRepo) UpdatePremiumStatus(id uuid.UUID, isPremium bool) error {
 	return r.db.Model(&entities.User{}).Where("id = ?", id).Update("is_premium", isPremium).Error
 }
@@ -181,3 +192,4 @@ func (r *userRepo) Delete(id uuid.UUID) error {
 func (r *userRepo) DeletePhoto(photoID uuid.UUID) error {
 	return r.db.Delete(&entities.Photo{}, "id = ?", photoID).Error
 }
+

@@ -6,23 +6,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/response"
-	userDTO "github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/internal/services"
-	"github.com/pipigendut/dating-backend/internal/usecases"
 )
 
 type MonetizationHandler struct {
 	subService services.SubscriptionService
 	userRepo   repository.UserRepository
-	storageUC  *usecases.StorageUsecase
+	storageService  *services.StorageService
 }
 
-func NewMonetizationHandler(r *gin.RouterGroup, subService services.SubscriptionService, userRepo repository.UserRepository, storageUC *usecases.StorageUsecase, authMiddleware gin.HandlerFunc) {
+func NewMonetizationHandler(r *gin.RouterGroup, subService services.SubscriptionService, userRepo repository.UserRepository, storageService *services.StorageService, authMiddleware gin.HandlerFunc) {
 	handler := &MonetizationHandler{
 		subService: subService,
 		userRepo:   userRepo,
-		storageUC:  storageUC,
+		storageService:  storageService,
 	}
 
 	monGroup := r.Group("/monetization")
@@ -107,7 +105,7 @@ func (h *MonetizationHandler) PurchaseConsumable(c *gin.Context) {
 		response.Error(c, http.StatusInternalServerError, "Failed to get updated user", err.Error())
 		return
 	}
-	response.OK(c, userDTO.ToUserResponse(updatedUser, h.storageUC))
+	response.OK(c, response.ToUserResponse(updatedUser, h.storageService))
 }
 
 // PurchasePlan godoc
@@ -136,7 +134,7 @@ func (h *MonetizationHandler) PurchasePlan(c *gin.Context) {
 		response.Error(c, http.StatusInternalServerError, "Failed to get updated user", err.Error())
 		return
 	}
-	response.OK(c, userDTO.ToUserResponse(updatedUser, h.storageUC))
+	response.OK(c, response.ToUserResponse(updatedUser, h.storageService))
 }
 
 // GetStatus godoc
@@ -181,6 +179,12 @@ func (h *MonetizationHandler) GetBoostAvailability(c *gin.Context) {
 		return
 	}
 	userID := val.(uuid.UUID)
+ 
+	entityID, err := uuid.Parse(c.Query("entity_id"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid entity_id parameter", err.Error())
+		return
+	}
 
 	status, err := h.subService.GetStatus(c.Request.Context(), userID)
 	if err != nil {
@@ -188,7 +192,7 @@ func (h *MonetizationHandler) GetBoostAvailability(c *gin.Context) {
 		return
 	}
 
-	isBoosted, expiredAt, err := h.subService.IsBoosted(c.Request.Context(), userID)
+	isBoosted, expiresAt, err := h.subService.IsBoosted(c.Request.Context(), entityID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to check boost status", err.Error())
 		return
@@ -199,7 +203,7 @@ func (h *MonetizationHandler) GetBoostAvailability(c *gin.Context) {
 		"has_boost":    boostAmount > 0,
 		"boost_amount": boostAmount,
 		"is_boosted":   isBoosted,
-		"expired_at":   expiredAt,
+		"expires_at":   expiresAt,
 	})
 }
 
@@ -208,6 +212,7 @@ func (h *MonetizationHandler) GetBoostAvailability(c *gin.Context) {
 // @Tags Monetization
 // @Produce json
 // @Security BearerAuth
+// @Param request body ActivateBoostRequest true "Boost activation details"
 // @Success 200 {object} response.BaseResponse
 // @Router /boosts/activate [post]
 func (h *MonetizationHandler) ActivateBoost(c *gin.Context) {
@@ -217,8 +222,14 @@ func (h *MonetizationHandler) ActivateBoost(c *gin.Context) {
 		return
 	}
 	userID := val.(uuid.UUID)
-
-	boost, err := h.subService.ActivateBoost(c.Request.Context(), userID)
+ 
+	var req ActivateBoostRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
+		return
+	}
+ 
+	boost, err := h.subService.ActivateBoost(c.Request.Context(), userID, req.EntityID)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, "Failed to activate boost", err.Error())
 		return
@@ -226,6 +237,9 @@ func (h *MonetizationHandler) ActivateBoost(c *gin.Context) {
 
 	response.OK(c, gin.H{
 		"message":    "Boost activated successfully",
-		"expired_at": boost.ExpiredAt,
+		"expires_at": boost.ExpiresAt,
 	})
+}
+type ActivateBoostRequest struct {
+	EntityID uuid.UUID `json:"entity_id" binding:"required"`
 }
