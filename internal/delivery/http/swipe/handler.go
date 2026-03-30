@@ -80,13 +80,19 @@ func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 	}
 	svcFilter.SwiperEntityID = swiperID
 
-	// Set entity type filter if provided
-	if filter.EntityType != "" {
-		et := entities.EntityType(filter.EntityType)
-		svcFilter.EntityType = &et
+	// Route to the correct service method based on entity_type
+	var candidates []services.SwipeCandidate
+	if filter.EntityType == "group" {
+		if filter.EntityType != "" {
+			et := entities.EntityType(filter.EntityType)
+			svcFilter.EntityType = &et
+		}
+		candidates, err = h.swipeService.GetSwipeGroupCandidates(c.Request.Context(), userID, svcFilter, 10)
+	} else {
+		// Default: user swiper fetching user candidates
+		candidates, err = h.swipeService.GetSwipeUserCandidates(c.Request.Context(), userID, svcFilter, 10)
 	}
 
-	candidates, err := h.swipeService.GetSwipeCandidates(c.Request.Context(), userID, svcFilter, 10)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get swipe candidates", err.Error())
 		return
@@ -118,6 +124,7 @@ func (h *SwipeHandler) GetCandidates(c *gin.Context) {
 
 	response.OK(c, respEntities)
 }
+
 
 // Swipe godoc
 // @Summary      Record a swipe
@@ -154,7 +161,8 @@ func (h *SwipeHandler) Swipe(c *gin.Context) {
 			ur := response.ToUserLiteResponse(matchedEntity.User, h.storageService)
 			matchedEntResp.User = &ur
 		} else if matchedEntity.Type == entities.EntityTypeGroup && matchedEntity.Group != nil {
-			// (Optional: handle group match details if needed)
+			gr := h.buildGroupResponse(matchedEntity.Group, h.storageService)
+			matchedEntResp.Group = &gr
 		}
 
 		response.OK(c, MatchResponse{
@@ -179,14 +187,9 @@ func (h *SwipeHandler) Swipe(c *gin.Context) {
 // @Success      200  {object}  response.BaseResponse{data=[]IncomingLikeResponse} "Incoming likes list"
 // @Router       /swipe/likes [get]
 func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
+	userID := c.MustGet("userID").(uuid.UUID)
 
-	entityID, err := uuid.Parse(c.Query("entity_id"))
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid entity_id parameter", err.Error())
-		return
-	}
-
-	likes, err := h.swipeService.GetIncomingLikes(c.Request.Context(), entityID, 20, 0)
+	likes, err := h.swipeService.GetIncomingLikes(c.Request.Context(), userID, 20, 0)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get incoming likes", err.Error())
 		return
@@ -208,10 +211,11 @@ func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
 		}
 
 		respLikes = append(respLikes, IncomingLikeResponse{
-			Entity:    entResp,
-			IsCrush:   like.IsCrush,
-			IsBoosted: like.IsBoosted,
-			SwipeTime: like.CreatedAt.Format(time.RFC3339),
+			Entity:         entResp,
+			IsCrush:        like.IsCrush,
+			IsBoosted:      like.IsBoosted,
+			SwipeTime:      like.CreatedAt.Format(time.RFC3339),
+			TargetEntityID: like.TargetEntityID.String(),
 		})
 	}
 
@@ -229,14 +233,9 @@ func (h *SwipeHandler) GetIncomingLikes(c *gin.Context) {
 // @Success      200  {object}  response.BaseResponse{data=[]SentLikeResponse} "Sent likes list"
 // @Router       /swipe/likes/sent [get]
 func (h *SwipeHandler) GetLikesSent(c *gin.Context) {
+	userID := c.MustGet("userID").(uuid.UUID)
 
-	entityID, err := uuid.Parse(c.Query("entity_id"))
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid entity_id parameter", err.Error())
-		return
-	}
-
-	likes, err := h.swipeService.GetLikesSent(c.Request.Context(), entityID, 20, 0)
+	likes, err := h.swipeService.GetLikesSent(c.Request.Context(), userID, 20, 0)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get sent likes", err.Error())
 		return
@@ -258,11 +257,12 @@ func (h *SwipeHandler) GetLikesSent(c *gin.Context) {
 		}
 
 		respLikes = append(respLikes, SentLikeResponse{
-			Entity:    entResp,
-			IsCrush:   like.IsCrush,
-			IsBoosted: like.IsBoosted,
-			CreatedAt: like.CreatedAt.Format(time.RFC3339),
-			ExpiresAt: like.ExpiresAt.Format(time.RFC3339),
+			Entity:         entResp,
+			IsCrush:        like.IsCrush,
+			IsBoosted:      like.IsBoosted,
+			CreatedAt:      like.CreatedAt.Format(time.RFC3339),
+			ExpiresAt:      like.ExpiresAt.Format(time.RFC3339),
+			SwiperEntityID: like.SwiperEntityID.String(),
 		})
 	}
 
@@ -353,13 +353,9 @@ func (h *SwipeHandler) parseUUIDs(strs []string) []uuid.UUID {
 // @Success      200  {object}  response.BaseResponse{data=LikesSummaryResponse} "Likes summary data"
 // @Router       /swipe/likes/count [get]
 func (h *SwipeHandler) GetLikesCount(c *gin.Context) {
-	entityID, err := uuid.Parse(c.Query("entity_id"))
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid entity_id parameter", err.Error())
-		return
-	}
+	userID := c.MustGet("userID").(uuid.UUID)
 
-	summary, err := h.swipeService.GetLikesSummary(c.Request.Context(), entityID)
+	summary, err := h.swipeService.GetLikesSummary(c.Request.Context(), userID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to get likes summary", err.Error())
 		return
@@ -388,6 +384,9 @@ func (h *SwipeHandler) buildGroupResponse(g *entities.Group, storage storageUsec
 		if m.User != nil {
 			userResp := response.ToUserResponse(m.User, storage)
 			resp.Members = append(resp.Members, userResp)
+			if userResp.MainPhoto != "" {
+				resp.MainPhotos = append(resp.MainPhotos, userResp.MainPhoto)
+			}
 		}
 	}
 

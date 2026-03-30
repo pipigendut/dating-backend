@@ -1,7 +1,6 @@
 package user
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -11,16 +10,14 @@ import (
 	"github.com/pipigendut/dating-backend/internal/entities"
 	appErrors "github.com/pipigendut/dating-backend/internal/infra/errors"
 	"github.com/pipigendut/dating-backend/internal/services"
-	"gorm.io/gorm"
 )
 
-func NewUserHandler(r *gin.RouterGroup, userService *services.UserService, storageService *services.StorageService, verifyService *services.VerificationService, entitySvc services.EntityService, groupSvc services.GroupService, authMiddleware gin.HandlerFunc) {
+func NewUserHandler(r *gin.RouterGroup, userService *services.UserService, storageService *services.StorageService, verifyService *services.VerificationService, entitySvc services.EntityService, authMiddleware gin.HandlerFunc) {
 	handler := &UserHandler{
 		userService:    userService,
 		storageService: storageService,
 		verifyService:  verifyService,
 		entityService:  entitySvc,
-		groupService:   groupSvc,
 	}
 	users := r.Group("/users")
 
@@ -35,11 +32,6 @@ func NewUserHandler(r *gin.RouterGroup, userService *services.UserService, stora
 		users.DELETE("/profile", handler.DeleteAccount)
 		users.GET("/upload-url", handler.GetUploadURL)
 		users.POST("/verify-face", handler.VerifyFace)
-
-		// Entity Management
-		users.POST("/groups", handler.CreateGroup)
-		users.GET("/my-group", handler.GetMyGroup)
-		users.POST("/groups/:id/invite", handler.InviteToGroup)
 	}
 }
 
@@ -48,7 +40,6 @@ type UserHandler struct {
 	storageService *services.StorageService
 	verifyService  *services.VerificationService
 	entityService  services.EntityService
-	groupService   services.GroupService
 }
 
 // GetProfile godoc
@@ -253,64 +244,6 @@ func (h *UserHandler) VerifyFace(c *gin.Context) {
 	response.OK(c, result)
 }
 
-// CreateGroup godoc
-// @Summary      Create a group
-// @Description  Creates a new group entity with the authenticated user as the owner.
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        request body CreateGroupRequest true "Group details"
-// @Success      200  {object}  response.BaseResponse{data=entities.Group} "Created group details"
-// @Router       /users/groups [post]
-func (h *UserHandler) CreateGroup(c *gin.Context) {
-	userID := c.MustGet("userID").(uuid.UUID)
-	var req CreateGroupRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
-		return
-	}
-
-	group, err := h.groupService.CreateGroup(c.Request.Context(), userID, req.Name)
-	if err != nil {
-		response.Error(c, http.StatusInternalServerError, "Failed to create group", err.Error())
-		return
-	}
-
-	response.OK(c, group)
-}
-
-// InviteToGroup godoc
-// @Summary      Invite user to group
-// @Description  Invites another user to join a specific group.
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        id path string true "Group ID"
-// @Param        request body InviteToGroupRequest true "Invite details"
-// @Success      200  {object}  response.BaseResponse "Successfully invited"
-// @Router       /users/groups/{id}/invite [post]
-func (h *UserHandler) InviteToGroup(c *gin.Context) {
-	groupID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid group ID", err.Error())
-		return
-	}
-
-	var req InviteToGroupRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
-		return
-	}
-
-	if err := h.groupService.InviteToGroup(c.Request.Context(), groupID, req.UserID); err != nil {
-		response.Error(c, http.StatusInternalServerError, "Failed to invite to group", err.Error())
-		return
-	}
-
-	response.OK(c, nil)
-}
 
 func (h *UserHandler) parseUUIDs(strs []string) []uuid.UUID {
 	var uuids []uuid.UUID
@@ -322,50 +255,6 @@ func (h *UserHandler) parseUUIDs(strs []string) []uuid.UUID {
 	return uuids
 }
 
-type StorageURLProvider interface {
-	GetPublicURL(key string) string
-}
 
-// GetMyGroup godoc
-// @Summary      Get user's group
-// @Description  Fetches the details of the single group the authenticated user belongs to, including its members.
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200  {object}  response.BaseResponse{data=response.GroupResponse} "Group details"
-// @Failure      404  {object}  response.BaseResponse "Group not found"
-// @Router       /users/my-group [get]
-func (h *UserHandler) GetMyGroup(c *gin.Context) {
-	userID := c.MustGet("userID").(uuid.UUID)
-
-	group, err := h.groupService.GetMyGroup(c.Request.Context(), userID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			response.OK(c, nil)
-			return
-		}
-		response.Error(c, http.StatusInternalServerError, "Failed to fetch group", err.Error())
-		return
-	}
-
-	// Map members
-	members := make([]response.UserResponse, len(group.Members))
-	for i, m := range group.Members {
-		if m.User != nil {
-			members[i] = response.ToUserResponse(m.User, h.storageService)
-		}
-	}
-
-	resp := response.GroupResponse{
-		ID:        group.ID,
-		EntityID:  group.EntityID,
-		Name:      group.Name,
-		CreatedBy: group.CreatedBy,
-		Members:   members,
-	}
-
-	response.OK(c, resp)
-}
 
 

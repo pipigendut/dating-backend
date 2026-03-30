@@ -38,35 +38,36 @@ func (r *swipeRepository) GetMatch(ctx context.Context, entity1ID, entity2ID uui
 	return &match, nil
 }
 
-func (r *swipeRepository) GetLikesSent(ctx context.Context, entityID uuid.UUID, limit, offset, expiryHours int) ([]entities.Swipe, error) {
+func (r *swipeRepository) GetLikesSent(ctx context.Context, entityIDs []uuid.UUID, limit, offset, expiryHours int) ([]entities.Swipe, error) {
 	var swipes []entities.Swipe
 	err := r.db.WithContext(ctx).
-		Where("swiper_entity_id = ? AND direction IN ?", entityID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
-		Where("created_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 hour'", expiryHours).
+		Debug().
+		Where("swiper_entity_id IN ? AND direction IN ?", entityIDs, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
+		Where("updated_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 hour'", expiryHours).
 		Where("NOT EXISTS (SELECT 1 FROM matches m WHERE (m.entity1_id = swipes.swiper_entity_id AND m.entity2_id = swipes.swiped_entity_id) OR (m.entity1_id = swipes.swiped_entity_id AND m.entity2_id = swipes.swiper_entity_id))").
-		Order("created_at DESC").
+		Order("updated_at DESC").
 		Limit(limit).Offset(offset).
 		Find(&swipes).Error
 	return swipes, err
 }
 
-func (r *swipeRepository) GetLikesYou(ctx context.Context, entityID uuid.UUID, limit, offset, expiryHours int) ([]entities.Swipe, error) {
+func (r *swipeRepository) GetLikesYou(ctx context.Context, entityIDs []uuid.UUID, limit, offset, expiryHours int) ([]entities.Swipe, error) {
 	var swipes []entities.Swipe
 	err := r.db.WithContext(ctx).
-		Where("swiped_entity_id = ? AND direction IN ?", entityID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
-		Where("created_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 hour'", expiryHours).
+		Where("swiped_entity_id IN ? AND direction IN ?", entityIDs, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
+		Where("updated_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 hour'", expiryHours).
 		Where("NOT EXISTS (SELECT 1 FROM matches m WHERE (m.entity1_id = swipes.swiper_entity_id AND m.entity2_id = swipes.swiped_entity_id) OR (m.entity1_id = swipes.swiped_entity_id AND m.entity2_id = swipes.swiper_entity_id))").
-		Order("created_at DESC").
+		Order("updated_at DESC").
 		Limit(limit).Offset(offset).
 		Find(&swipes).Error
 	return swipes, err
 }
 
-func (r *swipeRepository) CountLikesYou(ctx context.Context, entityID uuid.UUID, expiryHours int) (int64, error) {
+func (r *swipeRepository) CountLikesYou(ctx context.Context, entityIDs []uuid.UUID, expiryHours int) (int64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
 		Model(&entities.Swipe{}).
-		Where("swiped_entity_id = ? AND direction IN ?", entityID, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
+		Where("swiped_entity_id IN ? AND direction IN ?", entityIDs, []entities.SwipeDirection{entities.SwipeDirectionLike, entities.SwipeDirectionCrush}).
 		Where("created_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 hour'", expiryHours).
 		Where("NOT EXISTS (SELECT 1 FROM matches m WHERE (m.entity1_id = swipes.swiper_entity_id AND m.entity2_id = swipes.swiped_entity_id) OR (m.entity1_id = swipes.swiped_entity_id AND m.entity2_id = swipes.swiper_entity_id))").
 		Count(&count).Error
@@ -78,7 +79,7 @@ func (r *swipeRepository) DeleteMatch(ctx context.Context, entity1ID, entity2ID 
 	if id1.String() > id2.String() {
 		id1, id2 = entity2ID, entity1ID
 	}
-	
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 1. Find Match to get ID
 		var match entities.Match
@@ -91,7 +92,7 @@ func (r *swipeRepository) DeleteMatch(ctx context.Context, entity1ID, entity2ID 
 				tx.Unscoped().Where("conversation_id = ?", conv.ID).Delete(&entities.Message{})
 				tx.Unscoped().Delete(&conv)
 			}
-			
+
 			// 3. Delete Match
 			if err := tx.Unscoped().Delete(&match).Error; err != nil {
 				return err
@@ -105,7 +106,7 @@ func (r *swipeRepository) DeleteMatch(ctx context.Context, entity1ID, entity2ID 
 		return nil
 	})
 }
- 
+
 func (r *swipeRepository) DeleteSwipe(ctx context.Context, swiperEntityID, targetEntityID uuid.UUID) error {
 	return r.db.WithContext(ctx).
 		Where("swiper_entity_id = ? AND swiped_entity_id = ?", swiperEntityID, targetEntityID).

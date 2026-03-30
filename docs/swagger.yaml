@@ -224,6 +224,10 @@ definitions:
     properties:
       avatar_url:
         type: string
+      avatar_urls:
+        items:
+          type: string
+        type: array
       created_at:
         type: string
       entity:
@@ -234,6 +238,8 @@ definitions:
         type: boolean
       last_message:
         $ref: '#/definitions/chat.MessageResponse'
+      swiper_entity_id:
+        type: string
       title:
         type: string
       type:
@@ -707,6 +713,27 @@ definitions:
       user_id:
         type: string
     type: object
+  groups.AcceptInviteRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  groups.CreateGroupRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  groups.InviteToGroupRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
   monetization.ActivateBoostRequest:
     properties:
       entity_id:
@@ -760,6 +787,10 @@ definitions:
         type: string
       id:
         type: string
+      main_photos:
+        items:
+          type: string
+        type: array
       members:
         items:
           $ref: '#/definitions/response.UserResponse'
@@ -880,6 +911,15 @@ definitions:
         type: boolean
       swipe_time:
         type: string
+      target_entity_id:
+        type: string
+    type: object
+  swipe.LikesSummaryResponse:
+    properties:
+      count:
+        type: integer
+      last_photo:
+        type: string
     type: object
   swipe.MatchResponse:
     properties:
@@ -902,6 +942,8 @@ definitions:
         type: boolean
       is_crush:
         type: boolean
+      swiper_entity_id:
+        type: string
     type: object
   swipe.SwipeRequest:
     properties:
@@ -919,20 +961,6 @@ definitions:
     - direction
     - swiped_entity_id
     - swiper_entity_id
-    type: object
-  user.CreateGroupRequest:
-    properties:
-      name:
-        type: string
-    required:
-    - name
-    type: object
-  user.InviteToGroupRequest:
-    properties:
-      user_id:
-        type: string
-    required:
-    - user_id
     type: object
   user.PhotoRequest:
     properties:
@@ -1345,8 +1373,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Fetches a list of chat conversations (active matches) for the authenticated
-        user, including unread counts and typing status.
+      description: Fetches a list of chat conversations with existing messages for
+        the authenticated user.
       parameters:
       - description: Limit (default 20)
         in: query
@@ -1372,7 +1400,7 @@ paths:
               type: object
       security:
       - BearerAuth: []
-      summary: Get user conversations
+      summary: Get user conversations (Active)
       tags:
       - chat
   /chat/conversations/{id}/messages:
@@ -1414,6 +1442,68 @@ paths:
       summary: Get conversation messages
       tags:
       - chat
+  /chat/conversations/match/{matchId}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the conversation associated with a specific match ID.
+      parameters:
+      - description: Match ID
+        in: path
+        name: matchId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Conversation details
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/chat.ConversationResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get conversation by match ID
+      tags:
+      - chat
+  /chat/new-matches:
+    get:
+      consumes:
+      - application/json
+      description: Returns a paginated list of conversations with no messages, intended
+        for the "New Matches" horizontal row.
+      parameters:
+      - description: Limit (default 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor (RFC3339 time format)
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New matches list
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/chat.ConversationResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get new matches (no messages)
+      tags:
+      - chat
   /chat/upload-url:
     get:
       consumes:
@@ -1431,6 +1521,47 @@ paths:
       summary: Get chat media upload URL
       tags:
       - chat
+  /entities/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the complete profile details of an entity (solo user or
+        group) by ID.
+      parameters:
+      - description: Entity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Entity profile
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.EntityResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "404":
+          description: Entity not found
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Get entity details
+      tags:
+      - entities
   /group-invites/accept:
     post:
       consumes:
@@ -1443,9 +1574,7 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/groups.AcceptInviteRequest'
       produces:
       - application/json
       responses:
@@ -1485,6 +1614,138 @@ paths:
       summary: Validate invite token
       tags:
       - groups
+  /groups:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new group entity with the authenticated user as the owner.
+      parameters:
+      - description: Group details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/groups.CreateGroupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Created group details
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entities.Group'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a group
+      tags:
+      - groups
+  /groups/{group_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Owner deletes the entire group
+      parameters:
+      - description: Group ID
+        in: path
+        name: group_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Disband group
+      tags:
+      - groups
+  /groups/{group_id}/leave:
+    post:
+      consumes:
+      - application/json
+      description: Member leaves their group
+      parameters:
+      - description: Group ID
+        in: path
+        name: group_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Leave group
+      tags:
+      - groups
+  /groups/{group_id}/members/{user_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Allows owner to kick a specific member
+      parameters:
+      - description: Group ID
+        in: path
+        name: group_id
+        required: true
+        type: string
+      - description: User ID to Kick
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Kick group member
+      tags:
+      - groups
+  /groups/{id}/invite:
+    post:
+      consumes:
+      - application/json
+      description: Invites another user to join a specific group.
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Invite details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/groups.InviteToGroupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully invited
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Invite user to group
+      tags:
+      - groups
   /groups/{id}/invite-link:
     post:
       consumes:
@@ -1511,6 +1772,33 @@ paths:
       security:
       - BearerAuth: []
       summary: Generate group invite link
+      tags:
+      - groups
+  /groups/me:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the details of the single group the authenticated user
+        belongs to, including its members.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Group details
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.GroupResponse'
+              type: object
+        "404":
+          description: Group not found
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user's group
       tags:
       - groups
   /master/genders:
@@ -1827,6 +2115,35 @@ paths:
       summary: Get incoming likes
       tags:
       - swipe
+  /swipe/likes/count:
+    get:
+      consumes:
+      - application/json
+      description: Returns the total count of unexpired likes and the photo of the
+        most recent liker for the specified entity.
+      parameters:
+      - description: Entity ID to get likes summary for
+        in: query
+        name: entity_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Likes summary data
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/swipe.LikesSummaryResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get likes summary (count and last photo)
+      tags:
+      - swipe
   /swipe/likes/sent:
     get:
       consumes:
@@ -1910,91 +2227,6 @@ paths:
       summary: Unmatch an entity
       tags:
       - swipe
-  /users/groups:
-    post:
-      consumes:
-      - application/json
-      description: Creates a new group entity with the authenticated user as the owner.
-      parameters:
-      - description: Group details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/user.CreateGroupRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Created group details
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/entities.Group'
-              type: object
-      security:
-      - BearerAuth: []
-      summary: Create a group
-      tags:
-      - users
-  /users/groups/{id}/invite:
-    post:
-      consumes:
-      - application/json
-      description: Invites another user to join a specific group.
-      parameters:
-      - description: Group ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Invite details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/user.InviteToGroupRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully invited
-          schema:
-            $ref: '#/definitions/response.BaseResponse'
-      security:
-      - BearerAuth: []
-      summary: Invite user to group
-      tags:
-      - users
-  /users/my-group:
-    get:
-      consumes:
-      - application/json
-      description: Fetches the details of the single group the authenticated user
-        belongs to, including its members.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Group details
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.GroupResponse'
-              type: object
-        "404":
-          description: Group not found
-          schema:
-            $ref: '#/definitions/response.BaseResponse'
-      security:
-      - BearerAuth: []
-      summary: Get user's group
-      tags:
-      - users
   /users/profile:
     delete:
       description: Permanently deletes the authenticated user's account and all associated

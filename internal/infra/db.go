@@ -42,6 +42,9 @@ func NewPostgresDB(cfg Config) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	// Fix: Drop incorrect unique index for messages if it exists
+	db.Migrator().DropIndex(&entities.Message{}, "idx_conv_created")
+ 
 	// Auto Migration
 	err = db.AutoMigrate(
 		// Core

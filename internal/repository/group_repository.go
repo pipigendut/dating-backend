@@ -21,4 +21,8 @@ type GroupRepository interface {
 	CreateInvite(ctx context.Context, invite *entities.GroupInvite) error
 	GetInviteByToken(ctx context.Context, token string) (*entities.GroupInvite, error)
 	MarkInviteUsed(ctx context.Context, token string) error
+
+	// Lifecycle Methods
+	RemoveUserFromGroupConversations(ctx context.Context, groupEntityID uuid.UUID, userID uuid.UUID) error
+	DisbandGroup(ctx context.Context, groupID uuid.UUID, entityID uuid.UUID) error
 }

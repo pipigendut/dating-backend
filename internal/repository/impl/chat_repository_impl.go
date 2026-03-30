@@ -29,6 +29,13 @@ func (r *chatRepository) GetNewMatches(ctx context.Context, userID uuid.UUID, li
 		Preload("Participants", "user_id != ?", userID).
 		Preload("Participants.User.Photos").
 		Preload("Participants.Presence").
+		Preload("Match").
+		Preload("Match.Entity1.User").
+		Preload("Match.Entity1.Group.Members").
+		Preload("Match.Entity1.Group").
+		Preload("Match.Entity2.User").
+		Preload("Match.Entity2.Group.Members").
+		Preload("Match.Entity2.Group").
 		Table("conversations").
 		Select("conversations.*").
 		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").
@@ -50,6 +57,13 @@ func (r *chatRepository) GetConversationByID(ctx context.Context, id uuid.UUID) 
 	err := r.db.WithContext(ctx).
 		Preload("Participants.User.Photos").
 		Preload("Participants.Presence").
+		Preload("Match").
+		Preload("Match.Entity1.User").
+		Preload("Match.Entity1.Group.Members").
+		Preload("Match.Entity1.Group").
+		Preload("Match.Entity2.User").
+		Preload("Match.Entity2.Group.Members").
+		Preload("Match.Entity2.Group").
 		Where("id = ?", id).
 		First(&conv).Error
 	
@@ -70,6 +84,13 @@ func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.U
 		Preload("Participants", "user_id != ?", userID).
 		Preload("Participants.User.Photos").
 		Preload("Participants.Presence").
+		Preload("Match").
+		Preload("Match.Entity1.User").
+		Preload("Match.Entity1.Group.Members").
+		Preload("Match.Entity1.Group").
+		Preload("Match.Entity2.User").
+		Preload("Match.Entity2.Group.Members").
+		Preload("Match.Entity2.Group").
 		Table("conversations").
 		Select("conversations.*").
 		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").

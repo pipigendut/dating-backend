@@ -17,6 +17,7 @@ type Conversation struct {
 	SoftDeleteModel
 	Type          ConversationType `gorm:"type:varchar(20);default:'direct';index" json:"type"`
 	EntityID      *uuid.UUID       `gorm:"type:uuid;index" json:"entity_id"` // Associated entity (match)
+	Match         *Match           `gorm:"foreignKey:EntityID" json:"match,omitempty"`
 	LastMessageID *uuid.UUID       `gorm:"type:uuid;index" json:"last_message_id"`
 	LastMessageAt time.Time        `gorm:"index" json:"last_message_at"`
 	VisibleAt     time.Time        `gorm:"index" json:"visible_at"` // When this conversation becomes visible
@@ -55,7 +56,7 @@ const (
 
 type Message struct {
 	SoftDeleteModel
-	ConversationID uuid.UUID      `gorm:"type:uuid;uniqueIndex:idx_conv_created;index;not null"`
+	ConversationID uuid.UUID      `gorm:"type:uuid;index:idx_conv_created;index;not null"`
 	SenderID       uuid.UUID      `gorm:"type:uuid;index;not null"`
 	Type           MessageType    `gorm:"type:varchar(20);not null"`
 	Status         MessageStatus  `gorm:"type:varchar(20);default:'sent';index"`

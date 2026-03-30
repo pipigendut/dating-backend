@@ -13,12 +13,13 @@ import (
 )
 
 type SwipeService interface {
-	GetSwipeCandidates(ctx context.Context, userID uuid.UUID, filter SwipeFilter, limit int) ([]SwipeCandidate, error)
+	GetSwipeUserCandidates(ctx context.Context, userID uuid.UUID, filter SwipeFilter, limit int) ([]SwipeCandidate, error)
+	GetSwipeGroupCandidates(ctx context.Context, userID uuid.UUID, filter SwipeFilter, limit int) ([]SwipeCandidate, error)
 	CreateSwipe(ctx context.Context, swiperUserID, swiperEntityID, swipedEntityID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, *entities.Entity, error)
-	GetIncomingLikes(ctx context.Context, entityID uuid.UUID, limit, offset int) ([]IncomingLike, error)
-	GetLikesSent(ctx context.Context, entityID uuid.UUID, limit, offset int) ([]SentLike, error)
+	GetIncomingLikes(ctx context.Context, userID uuid.UUID, limit, offset int) ([]IncomingLike, error)
+	GetLikesSent(ctx context.Context, userID uuid.UUID, limit, offset int) ([]SentLike, error)
 	DeleteMatch(ctx context.Context, entity1ID, entity2ID uuid.UUID) error
-	GetLikesSummary(ctx context.Context, entityID uuid.UUID) (*LikesSummary, error)
+	GetLikesSummary(ctx context.Context, userID uuid.UUID) (*LikesSummary, error)
 	Unlike(ctx context.Context, swiperEntityID, targetEntityID uuid.UUID) error
 }
 
@@ -82,47 +83,26 @@ func NewSwipeService(
 	}
 }
 
-func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID, filter SwipeFilter, limit int) ([]SwipeCandidate, error) {
+// GetSwipeUserCandidates returns only User-type candidates for a user swiper.
+// Clean implementation without any group-swiper logic.
+func (s *swipeService) GetSwipeUserCandidates(ctx context.Context, userID uuid.UUID, filter SwipeFilter, limit int) ([]SwipeCandidate, error) {
 	if filter.SwiperEntityID == uuid.Nil {
 		return nil, errors.New("swiper_entity_id is required")
 	}
 
-	// 1. Get configs for cooldown durations (in minutes)
+	// 1. Configs
 	cooldownBoost := s.config.GetFloat("swipe_impression_cooldown_boost", 3.0)
 	cooldownPremium := s.config.GetFloat("swipe_impression_cooldown_premium", 10.0)
 	cooldownFree := s.config.GetFloat("swipe_impression_cooldown_free", 1.0)
 	recycleMinutes := s.config.GetFloat("dislike_recycle_minutes", 4320.0)
 
-	// 2. Identify swiper members to exclude
-	var swiperUserIDs []uuid.UUID
-	var swiperEnt entities.Entity
-	if err := s.db.WithContext(ctx).First(&swiperEnt, "id = ?", filter.SwiperEntityID).Error; err != nil {
+	// 2. Get swiper user
+	var swiperUser entities.User
+	if err := s.db.WithContext(ctx).Preload("InterestedGenders").First(&swiperUser, "entity_id = ?", filter.SwiperEntityID).Error; err != nil {
 		return nil, err
 	}
 
-	var swiperUser entities.User
-	if swiperEnt.Type == entities.EntityTypeUser {
-		if err := s.db.WithContext(ctx).Preload("InterestedGenders").First(&swiperUser, "entity_id = ?", filter.SwiperEntityID).Error; err != nil {
-			return nil, err
-		}
-		swiperUserIDs = append(swiperUserIDs, swiperUser.ID)
-	} else {
-		var g entities.Group
-		if err := s.db.WithContext(ctx).First(&g, "entity_id = ?", filter.SwiperEntityID).Error; err != nil {
-			return nil, err
-		}
-		if err := s.db.WithContext(ctx).Preload("InterestedGenders").First(&swiperUser, "id = ?", g.CreatedBy).Error; err != nil {
-			return nil, err
-		}
-
-		var members []entities.GroupMember
-		s.db.WithContext(ctx).Where("group_id = ?", g.ID).Find(&members)
-		for _, m := range members {
-			swiperUserIDs = append(swiperUserIDs, m.UserID)
-		}
-	}
-
-	// 3. Build complex query parameters
+	// 3. Build location params
 	lat := 0.0
 	lng := 0.0
 	if filter.Latitude != nil {
@@ -130,27 +110,22 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 	} else if swiperUser.Latitude != nil {
 		lat = *swiperUser.Latitude
 	}
-
 	if filter.Longitude != nil {
 		lng = *filter.Longitude
 	} else if swiperUser.Longitude != nil {
 		lng = *swiperUser.Longitude
 	}
 
-	distLimit := 50 // Default 50km
+	distLimit := 50
 	if filter.Distance != nil {
 		distLimit = *filter.Distance
 	}
 
-	// Automatic Gender Interest Matching
+	// 4. Auto gender matching
 	if len(filter.Genders) == 0 {
 		for _, g := range swiperUser.InterestedGenders {
 			filter.Genders = append(filter.Genders, g.ID)
 		}
-	}
-	// Fallback to "other" if no interests set and no filter provided (prevents empty results for misconfigured users)
-	if len(filter.Genders) == 0 && len(swiperUser.InterestedGenders) == 0 {
-		// Just don't filter gender if everything is empty
 	}
 
 	query := `
@@ -169,20 +144,238 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 			SELECT 
 				e.id,
 				(
-					-- Base Activity Score (decaying up to 100 hours, max 100 points)
-					GREATEST(0, 100 - EXTRACT(EPOCH FROM (NOW() - COALESCE(u.last_active_at, uo.last_active_at, e.updated_at)))/3600) +
-					-- Premium Score
-					CASE WHEN (u.is_premium = true OR uo.is_premium = true) THEN 50 ELSE 0 END +
-					-- Boost Score
+					GREATEST(0, 100 - EXTRACT(EPOCH FROM (NOW() - COALESCE(u.last_active_at, e.updated_at)))/3600) +
+					CASE WHEN u.is_premium = true THEN 50 ELSE 0 END +
 					CASE WHEN EXISTS (SELECT 1 FROM entity_boosts eb WHERE eb.entity_id = e.id AND eb.expires_at > NOW()) THEN 200 ELSE 0 END -
-					-- Unmatch Penalty
+					CASE WHEN ru.id IS NOT NULL THEN 1000 ELSE 0 END
+				) as raw_score,
+				ri.last_shown
+			FROM entities e
+			JOIN users u ON (e.type = 'user' AND u.entity_id = e.id AND u.deleted_at IS NULL AND u.status = 'active')
+			LEFT JOIN recent_impressions ri ON ri.shown_entity_id = e.id
+			LEFT JOIN recent_unmatches ru ON ru.target_entity_id = e.id
+			WHERE e.id != ?
+			AND e.type = 'user'
+			AND u.id != ?
+			AND NOT EXISTS (
+				SELECT 1 FROM swipes s 
+				WHERE s.swiper_entity_id = ? 
+				AND s.swiped_entity_id = e.id 
+				AND (
+					(s.direction IN ('LIKE', 'CRUSH') AND s.updated_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 hour') 
+					OR (s.direction = 'PASS' AND s.updated_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 minute')
+				)
+			)
+			AND NOT EXISTS (
+				SELECT 1 FROM matches m
+				WHERE (m.entity1_id = ? AND m.entity2_id = e.id)
+				   OR (m.entity1_id = e.id AND m.entity2_id = ?)
+			)
+	`
+
+	args := []interface{}{
+		filter.SwiperEntityID,                    // recent_impressions
+		filter.SwiperEntityID,                    // recent_unmatches
+		filter.SwiperEntityID,                    // e.id != swiper
+		swiperUser.ID,                            // u.id != swiper user
+		filter.SwiperEntityID,                    // NOT EXISTS swipe
+		s.config.GetInt("like_expiry_hours", 24), // like expiry
+		recycleMinutes,                           // recycle duration
+		filter.SwiperEntityID,                    // NOT EXISTS matches side 1
+		filter.SwiperEntityID,                    // NOT EXISTS matches side 2
+	}
+
+	// Location filter
+	query += `
+		AND (
+			(6371 * acos(least(1.0, cos(radians(?)) * cos(radians(u.latitude)) * cos(radians(u.longitude) - radians(?)) + sin(radians(?)) * sin(radians(u.latitude))))) <= ?
+		)
+	`
+	args = append(args, lat, lng, lat, distLimit)
+
+	// Profile filters
+	if filter.MinAge != nil {
+		query += " AND u.age >= ? "
+		args = append(args, *filter.MinAge)
+	}
+	if filter.MaxAge != nil {
+		query += " AND u.age <= ? "
+		args = append(args, *filter.MaxAge)
+	}
+	if len(filter.Genders) > 0 {
+		query += " AND u.gender_id IN (?) "
+		args = append(args, filter.Genders)
+	}
+	if filter.MinHeight != nil {
+		query += " AND u.height_cm >= ? "
+		args = append(args, *filter.MinHeight)
+	}
+	if filter.MaxHeight != nil {
+		query += " AND u.height_cm <= ? "
+		args = append(args, *filter.MaxHeight)
+	}
+	if len(filter.RelationshipTypes) > 0 {
+		query += " AND u.relationship_type_id IN (?) "
+		args = append(args, filter.RelationshipTypes)
+	}
+	if len(filter.Interests) > 0 {
+		query += " AND EXISTS (SELECT 1 FROM user_interests ui WHERE ui.user_id = u.id AND ui.interest_id IN (?)) "
+		args = append(args, filter.Interests)
+	}
+
+	// Impression cooldown
+	query += `
+		AND (
+			ri.last_shown IS NULL OR 
+			NOW() - ri.last_shown > (
+				CASE 
+					WHEN EXISTS (SELECT 1 FROM entity_boosts eb WHERE eb.entity_id = e.id AND eb.expires_at > NOW()) THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
+					WHEN u.is_premium = true THEN CAST(? AS FLOAT) * INTERVAL '1 minute'
+					ELSE CAST(? AS FLOAT) * INTERVAL '1 minute'
+				END
+			)
+		)
+	`
+	args = append(args, cooldownBoost, cooldownPremium, cooldownFree)
+
+	query += `
+		)
+		SELECT id FROM candidate_entities
+		ORDER BY (raw_score * 0.7) + (RANDOM() * 100 * 0.3) DESC
+		LIMIT ?
+	`
+	args = append(args, limit)
+
+	var resultIDs []uuid.UUID
+	if err := s.db.WithContext(ctx).Raw(query, args...).Scan(&resultIDs).Error; err != nil {
+		return nil, err
+	}
+
+	// Record impressions
+	if len(resultIDs) > 0 {
+		impressions := make([]entities.EntityImpression, 0, len(resultIDs))
+		for _, id := range resultIDs {
+			impressions = append(impressions, entities.EntityImpression{
+				ViewerEntityID: filter.SwiperEntityID,
+				ShownEntityID:  id,
+				ShownAt:        time.Now(),
+			})
+		}
+		s.db.WithContext(ctx).Create(&impressions)
+	}
+
+	// Fetch and enrich with user data
+	candidates := make([]SwipeCandidate, 0, len(resultIDs))
+	for _, id := range resultIDs {
+		var ent entities.Entity
+		if err := s.db.WithContext(ctx).First(&ent, "id = ?", id).Error; err != nil {
+			continue
+		}
+		candidate := SwipeCandidate{Entity: ent}
+		var u entities.User
+		err := s.db.WithContext(ctx).
+			Preload("Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).
+			Preload("Gender").
+			Preload("RelationshipType").
+			Preload("InterestedGenders").
+			Preload("Interests").
+			Preload("Languages").
+			Preload("Subscriptions", "is_active = ?", true).
+			Preload("Subscriptions.Plan").
+			Preload("Consumables").
+			First(&u, "entity_id = ?", ent.ID).Error
+		if err == nil {
+			candidate.User = &u
+		}
+		candidates = append(candidates, candidate)
+	}
+
+	return candidates, nil
+}
+
+// GetSwipeGroupCandidates returns candidates (users and/or groups) for a group swiper.
+// Includes full group-member exclusion logic.
+func (s *swipeService) GetSwipeGroupCandidates(ctx context.Context, userID uuid.UUID, filter SwipeFilter, limit int) ([]SwipeCandidate, error) {
+	if filter.SwiperEntityID == uuid.Nil {
+		return nil, errors.New("swiper_entity_id is required")
+	}
+
+	// 1. Configs
+	cooldownBoost := s.config.GetFloat("swipe_impression_cooldown_boost", 3.0)
+	cooldownPremium := s.config.GetFloat("swipe_impression_cooldown_premium", 10.0)
+	cooldownFree := s.config.GetFloat("swipe_impression_cooldown_free", 1.0)
+	recycleMinutes := s.config.GetFloat("dislike_recycle_minutes", 4320.0)
+
+	// 2. Get group swiper and all member user IDs
+	var g entities.Group
+	if err := s.db.WithContext(ctx).First(&g, "entity_id = ?", filter.SwiperEntityID).Error; err != nil {
+		return nil, errors.New("group not found for swiper entity")
+	}
+
+	var swiperUser entities.User
+	if err := s.db.WithContext(ctx).Preload("InterestedGenders").First(&swiperUser, "id = ?", g.CreatedBy).Error; err != nil {
+		return nil, err
+	}
+
+	var swiperUserIDs []uuid.UUID
+	var members []entities.GroupMember
+	s.db.WithContext(ctx).Where("group_id = ?", g.ID).Find(&members)
+	for _, m := range members {
+		swiperUserIDs = append(swiperUserIDs, m.UserID)
+	}
+
+	// 3. Location params
+	lat := 0.0
+	lng := 0.0
+	if filter.Latitude != nil {
+		lat = *filter.Latitude
+	} else if swiperUser.Latitude != nil {
+		lat = *swiperUser.Latitude
+	}
+	if filter.Longitude != nil {
+		lng = *filter.Longitude
+	} else if swiperUser.Longitude != nil {
+		lng = *swiperUser.Longitude
+	}
+
+	distLimit := 50
+	if filter.Distance != nil {
+		distLimit = *filter.Distance
+	}
+
+	// 4. Auto gender matching from group owner
+	if len(filter.Genders) == 0 {
+		for _, gi := range swiperUser.InterestedGenders {
+			filter.Genders = append(filter.Genders, gi.ID)
+		}
+	}
+
+	query := `
+		WITH recent_impressions AS (
+			SELECT shown_entity_id, MAX(shown_at) as last_shown
+			FROM entity_impressions
+			WHERE viewer_entity_id = ?
+			GROUP BY shown_entity_id
+		),
+		recent_unmatches AS (
+			SELECT target_entity_id, id 
+			FROM entity_unmatches
+			WHERE swiper_entity_id = ?
+		),
+		candidate_entities AS (
+			SELECT 
+				e.id,
+				(
+					GREATEST(0, 100 - EXTRACT(EPOCH FROM (NOW() - COALESCE(u.last_active_at, uo.last_active_at, e.updated_at)))/3600) +
+					CASE WHEN (u.is_premium = true OR uo.is_premium = true) THEN 50 ELSE 0 END +
+					CASE WHEN EXISTS (SELECT 1 FROM entity_boosts eb WHERE eb.entity_id = e.id AND eb.expires_at > NOW()) THEN 200 ELSE 0 END -
 					CASE WHEN ru.id IS NOT NULL THEN 1000 ELSE 0 END
 				) as raw_score,
 				ri.last_shown
 			FROM entities e
 			LEFT JOIN users u ON (e.type = 'user' AND u.entity_id = e.id AND u.deleted_at IS NULL)
-			LEFT JOIN groups g ON (e.type = 'group' AND g.entity_id = e.id)
-			LEFT JOIN users uo ON (e.type = 'group' AND uo.id = g.created_by AND uo.deleted_at IS NULL)
+			LEFT JOIN groups gr ON (e.type = 'group' AND gr.entity_id = e.id)
+			LEFT JOIN users uo ON (e.type = 'group' AND uo.id = gr.created_by AND uo.deleted_at IS NULL)
 			LEFT JOIN recent_impressions ri ON ri.shown_entity_id = e.id
 			LEFT JOIN recent_unmatches ru ON ru.target_entity_id = e.id
 			WHERE e.id != ?
@@ -195,45 +388,51 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 				WHERE s.swiper_entity_id = ? 
 				AND s.swiped_entity_id = e.id 
 				AND (
-					(s.direction IN ('LIKE', 'CRUSH') AND s.created_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 hour') 
-					OR (s.direction = 'PASS' AND s.created_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 minute')
+					(s.direction IN ('LIKE', 'CRUSH') AND s.updated_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 hour') 
+					OR (s.direction = 'PASS' AND s.updated_at > NOW() - CAST(? AS FLOAT) * INTERVAL '1 minute')
 				)
+			)
+			AND NOT EXISTS (
+				SELECT 1 FROM matches m
+				WHERE (m.entity1_id = ? AND m.entity2_id = e.id)
+				   OR (m.entity1_id = e.id AND m.entity2_id = ?)
 			)
 	`
 
 	args := []interface{}{
-		filter.SwiperEntityID, // recent_impressions
-		filter.SwiperEntityID, // recent_unmatches
-		filter.SwiperEntityID, // e.id != ?
-		filter.SwiperEntityID, // NOT EXISTS swipe (swiper_entity_id)
-		s.config.GetInt("like_expiry_hours", 24), // NOT EXISTS swipe (like expiry)
-		recycleMinutes,        // NOT EXISTS swipe (recycle duration)
+		filter.SwiperEntityID,
+		filter.SwiperEntityID,
+		filter.SwiperEntityID,
+		filter.SwiperEntityID,
+		s.config.GetInt("like_expiry_hours", 24),
+		recycleMinutes,
+		filter.SwiperEntityID,
+		filter.SwiperEntityID,
 	}
 
-	// Dynamic Exclusions (Squad members)
+	// Exclude group members from user results and exclude own group from group results
 	if len(swiperUserIDs) > 0 {
 		query += " AND NOT (e.type = 'user' AND u.id IN (?)) "
 		args = append(args, swiperUserIDs)
-
-		query += " AND NOT (e.type = 'group' AND e.id IN (SELECT g.entity_id FROM groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id IN (?))) "
+		query += " AND NOT (e.type = 'group' AND e.id IN (SELECT gr2.entity_id FROM groups gr2 JOIN group_members gm ON gm.group_id = gr2.id WHERE gm.user_id IN (?))) "
 		args = append(args, swiperUserIDs)
 	}
 
-	// Filter by entity type
+	// Explicit entity type filter (e.g. only show 'group' if specified)
 	if filter.EntityType != nil {
 		query += " AND e.type = ? "
 		args = append(args, *filter.EntityType)
 	}
 
-	// Location Filter (measure from swiper to active profile of candidate)
-	query += ` 
+	// Location filter
+	query += `
 		AND (
 			(6371 * acos(least(1.0, cos(radians(?)) * cos(radians(COALESCE(u.latitude, uo.latitude))) * cos(radians(COALESCE(u.longitude, uo.longitude)) - radians(?)) + sin(radians(?)) * sin(radians(COALESCE(u.latitude, uo.latitude)))))) <= ?
 		)
 	`
 	args = append(args, lat, lng, lat, distLimit)
 
-	// Profile Filters (Auto-selecting u or uo)
+	// Profile filters
 	if filter.MinAge != nil {
 		query += " AND COALESCE(u.age, uo.age) >= ? "
 		args = append(args, *filter.MinAge)
@@ -254,20 +453,16 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 		query += " AND COALESCE(u.height_cm, uo.height_cm) <= ? "
 		args = append(args, *filter.MaxHeight)
 	}
-
-	// Relationship Type Filter
 	if len(filter.RelationshipTypes) > 0 {
 		query += " AND COALESCE(u.relationship_type_id, uo.relationship_type_id) IN (?) "
 		args = append(args, filter.RelationshipTypes)
 	}
-
-	// Interests Filter (at least one matching interest)
 	if len(filter.Interests) > 0 {
 		query += " AND EXISTS (SELECT 1 FROM user_interests ui WHERE ui.user_id = COALESCE(u.id, uo.id) AND ui.interest_id IN (?)) "
 		args = append(args, filter.Interests)
 	}
 
-	// Impression Cool-down Logic
+	// Impression cooldown
 	query += `
 		AND (
 			ri.last_shown IS NULL OR 
@@ -295,7 +490,7 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 		return nil, err
 	}
 
-	// 4. Record impressions
+	// Record impressions
 	if len(resultIDs) > 0 {
 		impressions := make([]entities.EntityImpression, 0, len(resultIDs))
 		for _, id := range resultIDs {
@@ -308,7 +503,7 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 		s.db.WithContext(ctx).Create(&impressions)
 	}
 
-	// 5. Fetch full details (same logic as before, but using resultIDs)
+	// Fetch full entity details
 	var entitiesRes []entities.Entity
 	if len(resultIDs) > 0 {
 		if err := s.db.WithContext(ctx).Where("id IN ?", resultIDs).Find(&entitiesRes).Error; err != nil {
@@ -316,7 +511,6 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 		}
 	}
 
-	// Enrich each entity with User or Group data (Mapping order based on resultIDs)
 	idMap := make(map[uuid.UUID]entities.Entity)
 	for _, ent := range entitiesRes {
 		idMap[ent.ID] = ent
@@ -349,14 +543,19 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 			}
 
 		case entities.EntityTypeGroup:
-			var g entities.Group
+			var grp entities.Group
 			err := s.db.WithContext(ctx).
 				Preload("Members").
 				Preload("Members.User").
+				Preload("Members.User.Gender").
+				Preload("Members.User.RelationshipType").
+				Preload("Members.User.InterestedGenders").
+				Preload("Members.User.Interests").
+				Preload("Members.User.Languages").
 				Preload("Members.User.Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).
-				First(&g, "entity_id = ?", ent.ID).Error
+				First(&grp, "entity_id = ?", ent.ID).Error
 			if err == nil {
-				candidate.Group = &g
+				candidate.Group = &grp
 			}
 		}
 
@@ -365,6 +564,7 @@ func (s *swipeService) GetSwipeCandidates(ctx context.Context, userID uuid.UUID,
 
 	return candidates, nil
 }
+
 
 func (s *swipeService) CreateSwipe(ctx context.Context, swiperUserID, swiperEntityID, swipedEntityID uuid.UUID, direction entities.SwipeDirection) (*entities.Match, *entities.Entity, error) {
 	// 1. Verify user has permission to swipe as this entity
@@ -580,14 +780,38 @@ type IncomingLike struct {
 	Entity    entities.Entity
 	User      *entities.User
 	Group     *entities.Group
-	IsCrush   bool
-	IsBoosted bool
-	CreatedAt time.Time
+	IsCrush        bool
+	IsBoosted      bool
+	CreatedAt      time.Time
+	TargetEntityID uuid.UUID
 }
 
-func (s *swipeService) GetIncomingLikes(ctx context.Context, entityID uuid.UUID, limit, offset int) ([]IncomingLike, error) {
+func (s *swipeService) getUserEntityIDs(ctx context.Context, userID uuid.UUID) []uuid.UUID {
+	var uuids []uuid.UUID
+
+	var u entities.User
+	if err := s.db.WithContext(ctx).First(&u, "id = ?", userID).Error; err == nil && u.EntityID != uuid.Nil {
+		uuids = append(uuids, u.EntityID)
+	}
+
+	var members []entities.GroupMember
+	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&members).Error; err == nil {
+		for _, m := range members {
+			var g entities.Group
+			if err := s.db.WithContext(ctx).First(&g, "id = ?", m.GroupID).Error; err == nil && g.EntityID != uuid.Nil {
+				uuids = append(uuids, g.EntityID)
+			}
+		}
+	}
+
+	return uuids
+}
+
+func (s *swipeService) GetIncomingLikes(ctx context.Context, userID uuid.UUID, limit, offset int) ([]IncomingLike, error) {
 	expiryHours := s.config.GetInt("like_expiry_hours", 24)
-	swipes, err := s.swipeRepo.GetLikesYou(ctx, entityID, limit, offset, expiryHours)
+	entityIDs := s.getUserEntityIDs(ctx, userID)
+
+	swipes, err := s.swipeRepo.GetLikesYou(ctx, entityIDs, limit, offset, expiryHours)
 	if err != nil {
 		return nil, err
 	}
@@ -597,10 +821,11 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, entityID uuid.UUID,
 		var ent entities.Entity
 		if err := s.db.First(&ent, "id = ?", sw.SwiperEntityID).Error; err == nil {
 			item := IncomingLike{
-				Entity:    ent,
-				IsCrush:   sw.Direction == entities.SwipeDirectionCrush,
-				IsBoosted: sw.IsBoosted,
-				CreatedAt: sw.CreatedAt,
+				Entity:         ent,
+				IsCrush:        sw.Direction == entities.SwipeDirectionCrush,
+				IsBoosted:      sw.IsBoosted,
+				CreatedAt:      sw.CreatedAt,
+				TargetEntityID: sw.SwipedEntityID,
 			}
 
 			if ent.Type == entities.EntityTypeUser {
@@ -611,7 +836,15 @@ func (s *swipeService) GetIncomingLikes(ctx context.Context, entityID uuid.UUID,
 				}
 			} else if ent.Type == entities.EntityTypeGroup {
 				var g entities.Group
-				if err := s.db.Preload("Members.User.Gender").Preload("Members.User.Photos").
+				if err := s.db.
+					Preload("Members").
+					Preload("Members.User").
+					Preload("Members.User.Gender").
+					Preload("Members.User.RelationshipType").
+					Preload("Members.User.InterestedGenders").
+					Preload("Members.User.Interests").
+					Preload("Members.User.Languages").
+					Preload("Members.User.Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).
 					First(&g, "entity_id = ?", ent.ID).Error; err == nil {
 					item.Group = &g
 				}
@@ -628,14 +861,17 @@ type SentLike struct {
 	User      *entities.User
 	Group     *entities.Group
 	IsCrush   bool
-	IsBoosted bool
-	CreatedAt time.Time
-	ExpiresAt time.Time
+	IsBoosted      bool
+	CreatedAt      time.Time
+	ExpiresAt      time.Time
+	SwiperEntityID uuid.UUID
 }
 
-func (s *swipeService) GetLikesSent(ctx context.Context, entityID uuid.UUID, limit, offset int) ([]SentLike, error) {
+func (s *swipeService) GetLikesSent(ctx context.Context, userID uuid.UUID, limit, offset int) ([]SentLike, error) {
 	expiryHours := s.config.GetInt("like_expiry_hours", 24)
-	swipes, err := s.swipeRepo.GetLikesSent(ctx, entityID, limit, offset, expiryHours)
+	entityIDs := s.getUserEntityIDs(ctx, userID)
+
+	swipes, err := s.swipeRepo.GetLikesSent(ctx, entityIDs, limit, offset, expiryHours)
 	if err != nil {
 		return nil, err
 	}
@@ -646,11 +882,12 @@ func (s *swipeService) GetLikesSent(ctx context.Context, entityID uuid.UUID, lim
 		var ent entities.Entity
 		if err := s.db.First(&ent, "id = ?", sw.SwipedEntityID).Error; err == nil {
 			item := SentLike{
-				Entity:    ent,
-				IsCrush:   sw.Direction == entities.SwipeDirectionCrush,
-				IsBoosted: sw.IsBoosted,
-				CreatedAt: sw.CreatedAt,
-				ExpiresAt: sw.CreatedAt.Add(time.Duration(expiryHours) * time.Hour),
+				Entity:         ent,
+				IsCrush:        sw.Direction == entities.SwipeDirectionCrush,
+				IsBoosted:      sw.IsBoosted,
+				CreatedAt:      sw.CreatedAt,
+				ExpiresAt:      sw.UpdatedAt.Add(time.Duration(expiryHours) * time.Hour),
+				SwiperEntityID: sw.SwiperEntityID,
 			}
 
 			if ent.Type == entities.EntityTypeUser {
@@ -661,7 +898,15 @@ func (s *swipeService) GetLikesSent(ctx context.Context, entityID uuid.UUID, lim
 				}
 			} else if ent.Type == entities.EntityTypeGroup {
 				var g entities.Group
-				if err := s.db.Preload("Members.User.Gender").Preload("Members.User.Photos").
+				if err := s.db.
+					Preload("Members").
+					Preload("Members.User").
+					Preload("Members.User.Gender").
+					Preload("Members.User.RelationshipType").
+					Preload("Members.User.InterestedGenders").
+					Preload("Members.User.Interests").
+					Preload("Members.User.Languages").
+					Preload("Members.User.Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).
 					First(&g, "entity_id = ?", ent.ID).Error; err == nil {
 					item.Group = &g
 				}
@@ -689,16 +934,17 @@ func (s *swipeService) DeleteMatch(ctx context.Context, swiperEntityID, targetEn
 	})
 }
 
-func (s *swipeService) GetLikesSummary(ctx context.Context, entityID uuid.UUID) (*LikesSummary, error) {
+func (s *swipeService) GetLikesSummary(ctx context.Context, userID uuid.UUID) (*LikesSummary, error) {
 	expiryHours := s.config.GetInt("like_expiry_hours", 24)
-	
-	count, err := s.swipeRepo.CountLikesYou(ctx, entityID, expiryHours)
+	entityIDs := s.getUserEntityIDs(ctx, userID)
+
+	count, err := s.swipeRepo.CountLikesYou(ctx, entityIDs, expiryHours)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the last liker photo
-	lastLikes, err := s.swipeRepo.GetLikesYou(ctx, entityID, 1, 0, expiryHours)
+	lastLikes, err := s.swipeRepo.GetLikesYou(ctx, entityIDs, 1, 0, expiryHours)
 	lastPhoto := ""
 	if err == nil && len(lastLikes) > 0 {
 		var lastLikerEnt entities.Entity

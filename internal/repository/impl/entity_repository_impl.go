@@ -22,7 +22,11 @@ func (r *entityRepository) Create(ctx context.Context, entity *entities.Entity) 
 
 func (r *entityRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Entity, error) {
 	var ent entities.Entity
-	err := r.db.WithContext(ctx).First(&ent, "id = ?", id).Error
+	query := r.db.WithContext(ctx)
+	query = ApplyFullUserPreload(query, "User")
+	query = ApplyFullUserPreload(query, "Group.Members.User")
+	
+	err := query.First(&ent, "id = ?", id).Error
 	return &ent, err
 }
 

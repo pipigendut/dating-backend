@@ -1,6 +1,7 @@
 package impl
 
 import (
+	"context"
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/repository"
@@ -30,17 +31,9 @@ func (r *userRepo) GetByID(id uuid.UUID) (*entities.User, error) {
 }
 func (r *userRepo) GetWithRelations(id uuid.UUID) (*entities.User, error) {
 	var user entities.User
-	err := r.db.Preload("Photos", func(db *gorm.DB) *gorm.DB { return db.Order("is_main DESC, created_at ASC") }).
-		Preload("Gender").
-		Preload("RelationshipType").
-		Preload("InterestedGenders").
-		Preload("Interests").
-		Preload("Languages").
-		Preload("Subscriptions", "is_active = ?", true).
-		Preload("Subscriptions.Plan").
-		Preload("Consumables").
-		First(&user, "id = ?", id).Error
-		
+	query := r.db.WithContext(context.Background())
+	query = ApplyFullUserPreload(query, "")
+	err := query.First(&user, "id = ?", id).Error
 	return &user, err
 }
 
@@ -110,13 +103,13 @@ func (r *userRepo) Update(user *entities.User) error {
 
 func (r *userRepo) GetByEmail(email string) (*entities.User, error) {
 	var user entities.User
-	err := r.db.First(&user, "email = ?", email).Error
+	err := r.db.First(&user, "LOWER(email) = LOWER(?)", email).Error
 	return &user, err
 }
 
 func (r *userRepo) GetByEmailUnscoped(email string) (*entities.User, error) {
 	var user entities.User
-	err := r.db.Unscoped().First(&user, "email = ?", email).Error
+	err := r.db.Unscoped().First(&user, "LOWER(email) = LOWER(?)", email).Error
 	return &user, err
 }
 

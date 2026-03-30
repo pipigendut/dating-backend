@@ -578,7 +578,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Fetches a list of chat conversations (active matches) for the authenticated user, including unread counts and typing status.",
+                "description": "Fetches a list of chat conversations with existing messages for the authenticated user.",
                 "consumes": [
                     "application/json"
                 ],
@@ -588,7 +588,7 @@ const docTemplate = `{
                 "tags": [
                     "chat"
                 ],
-                "summary": "Get user conversations",
+                "summary": "Get user conversations (Active)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -619,6 +619,55 @@ const docTemplate = `{
                                             "items": {
                                                 "$ref": "#/definitions/chat.ConversationResponse"
                                             }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/conversations/match/{matchId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches the conversation associated with a specific match ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Get conversation by match ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Match ID",
+                        "name": "matchId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Conversation details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/chat.ConversationResponse"
                                         }
                                     }
                                 }
@@ -692,6 +741,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/chat/new-matches": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a paginated list of conversations with no messages, intended for the \"New Matches\" horizontal row.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Get new matches (no messages)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Limit (default 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor (RFC3339 time format)",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "New matches list",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/chat.ConversationResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/chat/upload-url": {
             "get": {
                 "security": [
@@ -713,6 +819,73 @@ const docTemplate = `{
                 "responses": {
                     "501": {
                         "description": "Not implemented",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/entities/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches the complete profile details of an entity (solo user or group) by ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "entities"
+                ],
+                "summary": "Get entity details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Entity profile",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.EntityResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Entity not found",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/response.BaseResponse"
                         }
@@ -745,10 +918,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/groups.AcceptInviteRequest"
                         }
                     }
                 ],
@@ -802,6 +972,267 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/groups": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new group entity with the authenticated user as the owner.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Create a group",
+                "parameters": [
+                    {
+                        "description": "Group details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/groups.CreateGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Created group details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/entities.Group"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/groups/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches the details of the single group the authenticated user belongs to, including its members.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Get user's group",
+                "responses": {
+                    "200": {
+                        "description": "Group details",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.GroupResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Group not found",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/groups/{group_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Owner deletes the entire group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Disband group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "group_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/groups/{group_id}/leave": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Member leaves their group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Leave group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "group_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/groups/{group_id}/members/{user_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows owner to kick a specific member",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Kick group member",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "group_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID to Kick",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/groups/{id}/invite": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Invites another user to join a specific group.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Invite user to group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Invite details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/groups.InviteToGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully invited",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
                         }
                     }
                 }
@@ -1372,6 +1803,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/swipe/likes/count": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the total count of unexpired likes and the photo of the most recent liker for the specified entity.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "swipe"
+                ],
+                "summary": "Get likes summary (count and last photo)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity ID to get likes summary for",
+                        "name": "entity_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Likes summary data",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/swipe.LikesSummaryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/swipe/likes/sent": {
             "get": {
                 "security": [
@@ -1498,149 +1978,6 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "Successfully unmatched",
-                        "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/groups": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a new group entity with the authenticated user as the owner.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Create a group",
-                "parameters": [
-                    {
-                        "description": "Group details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user.CreateGroupRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Created group details",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/entities.Group"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/users/groups/{id}/invite": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Invites another user to join a specific group.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Invite user to group",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Group ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Invite details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user.InviteToGroupRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully invited",
-                        "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/my-group": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Fetches the details of the single group the authenticated user belongs to, including its members.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get user's group",
-                "responses": {
-                    "200": {
-                        "description": "Group details",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.GroupResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "404": {
-                        "description": "Group not found",
                         "schema": {
                             "$ref": "#/definitions/response.BaseResponse"
                         }
@@ -2233,6 +2570,12 @@ const docTemplate = `{
                 "avatar_url": {
                     "type": "string"
                 },
+                "avatar_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -2247,6 +2590,9 @@ const docTemplate = `{
                 },
                 "last_message": {
                     "$ref": "#/definitions/chat.MessageResponse"
+                },
+                "swiper_entity_id": {
+                    "type": "string"
                 },
                 "title": {
                     "type": "string"
@@ -2967,6 +3313,39 @@ const docTemplate = `{
                 }
             }
         },
+        "groups.AcceptInviteRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "groups.CreateGroupRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "groups.InviteToGroupRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "monetization.ActivateBoostRequest": {
             "type": "object",
             "required": [
@@ -3046,6 +3425,12 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "main_photos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "members": {
                     "type": "array",
@@ -3229,6 +3614,20 @@ const docTemplate = `{
                 },
                 "swipe_time": {
                     "type": "string"
+                },
+                "target_entity_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "swipe.LikesSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "last_photo": {
+                    "type": "string"
                 }
             }
         },
@@ -3263,6 +3662,9 @@ const docTemplate = `{
                 },
                 "is_crush": {
                     "type": "boolean"
+                },
+                "swiper_entity_id": {
+                    "type": "string"
                 }
             }
         },
@@ -3286,28 +3688,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "swiper_entity_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.CreateGroupRequest": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.InviteToGroupRequest": {
-            "type": "object",
-            "required": [
-                "user_id"
-            ],
-            "properties": {
-                "user_id": {
                     "type": "string"
                 }
             }

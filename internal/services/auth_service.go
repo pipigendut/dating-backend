@@ -224,11 +224,7 @@ func (u *AuthService) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 		}
 	}
 
-	status := entities.UserStatusOnboarding
-	// If it's from the last step, it should be active
-	if dto.Languages != nil && len(*dto.Languages) > 0 {
-		status = entities.UserStatusActive
-	}
+	status := entities.UserStatusActive
 
 	newUser := &entities.User{
 		Email:           &dto.Email,
@@ -451,10 +447,7 @@ func (u *AuthService) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 
 	dob, _ := time.Parse("2006-01-02", dto.DateOfBirth)
 
-	status := entities.UserStatusOnboarding
-	if dto.Languages != nil && len(*dto.Languages) > 0 {
-		status = entities.UserStatusActive
-	}
+	status := entities.UserStatusActive
 
 	user := &entities.User{
 		Email:           &dto.Email,

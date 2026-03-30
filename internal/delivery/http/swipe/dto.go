@@ -19,18 +19,20 @@ type MatchResponse struct {
 }
 
 type IncomingLikeResponse struct {
-	Entity    response.EntityResponse `json:"entity"`
-	IsCrush   bool                    `json:"is_crush"`
-	IsBoosted bool                    `json:"is_boosted"`
-	SwipeTime string                  `json:"swipe_time"`
+	Entity         response.EntityResponse `json:"entity"`
+	IsCrush        bool                    `json:"is_crush"`
+	IsBoosted      bool                    `json:"is_boosted"`
+	SwipeTime      string                  `json:"swipe_time"`
+	TargetEntityID string                  `json:"target_entity_id"`
 }
 
 type SentLikeResponse struct {
-	Entity    response.EntityResponse `json:"entity"`
-	IsCrush   bool                    `json:"is_crush"`
-	IsBoosted bool                    `json:"is_boosted"`
-	CreatedAt string                  `json:"created_at"`
-	ExpiresAt string                  `json:"expires_at"`
+	Entity         response.EntityResponse `json:"entity"`
+	IsCrush        bool                    `json:"is_crush"`
+	IsBoosted      bool                    `json:"is_boosted"`
+	CreatedAt      string                  `json:"created_at"`
+	ExpiresAt      string                  `json:"expires_at"`
+	SwiperEntityID string                  `json:"swiper_entity_id"`
 }
 
 type UnlikeRequest struct {

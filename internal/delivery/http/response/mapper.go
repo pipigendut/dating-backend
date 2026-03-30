@@ -42,9 +42,13 @@ func ToUserResponse(u *entities.User, storage StorageURLProvider) UserResponse {
 	}
 
 	if u.RelationshipType != nil {
-		resp.RelationshipType = &MasterItemResponse{ID: u.RelationshipType.ID, Name: u.RelationshipType.Name, Icon: u.RelationshipType.Icon}
+		rt := &MasterItemResponse{ID: u.RelationshipType.ID, Name: u.RelationshipType.Name, Icon: u.RelationshipType.Icon}
+		resp.RelationshipType = rt
+		resp.RelationshipTypeCamel = rt
 	} else if u.RelationshipTypeID != nil {
-		resp.RelationshipType = &MasterItemResponse{ID: *u.RelationshipTypeID}
+		rt := &MasterItemResponse{ID: *u.RelationshipTypeID}
+		resp.RelationshipType = rt
+		resp.RelationshipTypeCamel = rt
 	}
 
 	for _, g := range u.InterestedGenders {
@@ -111,3 +115,27 @@ func ToUserLiteResponse(u *entities.User, storage StorageURLProvider) UserRespon
 
 	return resp
 }
+
+func ToGroupResponse(g *entities.Group, storage StorageURLProvider) GroupResponse {
+	resp := GroupResponse{
+		ID:         g.ID,
+		EntityID:   g.EntityID,
+		Name:       g.Name,
+		CreatedBy:  g.CreatedBy,
+		Members:    make([]UserResponse, 0),
+		MainPhotos: make([]string, 0),
+	}
+
+	for _, m := range g.Members {
+		if m.User != nil {
+			userResp := ToUserResponse(m.User, storage)
+			resp.Members = append(resp.Members, userResp)
+			if userResp.MainPhoto != "" {
+				resp.MainPhotos = append(resp.MainPhotos, userResp.MainPhoto)
+			}
+		}
+	}
+
+	return resp
+}
+

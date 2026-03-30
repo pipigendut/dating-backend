@@ -99,6 +99,24 @@ The project uses Swagger for API documentation.
    swag init -g cmd/app/main.go
    ```
 
+## 🌐 Environment & Development
+
+This project supports separate **development** and **production** environments.
+
+### 🏁 Running the App
+
+Using the **Makefile**:
+- **Development**: `make dev` (Uses `.env.development` and `swipee://` deep links)
+- **Production**: `make prod` (Uses `.env.production` and `https://swipee.app` universal links)
+
+### 🛠 Development with ngrok
+
+Whenever you restart ngrok, you must update the tunnel URLs:
+
+1.  **Backend**: Update `BASE_URL` in `dating-backend/.env.development` and restart with `make dev`.
+2.  **Mobile**: Update `EXPO_PUBLIC_API_URL` in `dating-mobile/.env.development`.
+3.  **Mobile Switch**: Use `npm run start:dev` to load the development environment.
+
 ## 🧪 Testing
 
 ```bash

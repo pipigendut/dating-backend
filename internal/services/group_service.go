@@ -19,6 +19,10 @@ type GroupService interface {
 	ValidateInvite(ctx context.Context, token string) (*entities.GroupInvite, error)
 	AcceptInvite(ctx context.Context, token string, userID uuid.UUID) error
 	GetMyGroup(ctx context.Context, userID uuid.UUID) (*entities.Group, error)
+
+	KickMember(ctx context.Context, groupID, ownerID, targetUserID uuid.UUID) error
+	LeaveGroup(ctx context.Context, groupID, userID uuid.UUID) error
+	DisbandGroup(ctx context.Context, groupID, ownerID uuid.UUID) error
 }
 
 type groupService struct {
@@ -139,6 +143,16 @@ func (s *groupService) AcceptInvite(ctx context.Context, token string, userID uu
 	if isMember {
 		return errors.New("already a member of this group")
 	}
+	
+	// Gender check: only users of same gender can join
+	acceptor, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return err
+	}
+	
+	if invite.Inviter == nil || acceptor.GenderID == nil || *invite.Inviter.GenderID != *acceptor.GenderID {
+		return errors.New("only users of the same gender can join this group")
+	}
 
 	// Add member
 	member := &entities.GroupMember{
@@ -160,4 +174,60 @@ func (s *groupService) GetMyGroup(ctx context.Context, userID uuid.UUID) (*entit
 		return nil, err
 	}
 	return group, nil
+}
+
+func (s *groupService) KickMember(ctx context.Context, groupID, ownerID, targetUserID uuid.UUID) error {
+	group, err := s.groupRepo.GetGroupByID(ctx, groupID)
+	if err != nil {
+		return errors.New("group not found")
+	}
+
+	if group.CreatedBy != ownerID {
+		return errors.New("unauthorized: only owner can kick members")
+	}
+
+	if ownerID == targetUserID {
+		return errors.New("owner cannot kick themselves; use disband instead")
+	}
+
+	// Remove from group_members
+	if err := s.groupRepo.RemoveMember(ctx, groupID, targetUserID); err != nil {
+		return err
+	}
+
+	// Remove user from conversation participants linked to the group entity
+	return s.groupRepo.RemoveUserFromGroupConversations(ctx, group.EntityID, targetUserID)
+}
+
+func (s *groupService) LeaveGroup(ctx context.Context, groupID, userID uuid.UUID) error {
+	group, err := s.groupRepo.GetGroupByID(ctx, groupID)
+	if err != nil {
+		return errors.New("group not found")
+	}
+
+	if group.CreatedBy == userID {
+		return errors.New("owner cannot leave the group; use disband instead")
+	}
+
+	// Remove from group_members
+	if err := s.groupRepo.RemoveMember(ctx, groupID, userID); err != nil {
+		return err
+	}
+
+	// Remove user from conversation participants
+	return s.groupRepo.RemoveUserFromGroupConversations(ctx, group.EntityID, userID)
+}
+
+func (s *groupService) DisbandGroup(ctx context.Context, groupID, ownerID uuid.UUID) error {
+	group, err := s.groupRepo.GetGroupByID(ctx, groupID)
+	if err != nil {
+		return errors.New("group not found")
+	}
+
+	if group.CreatedBy != ownerID {
+		return errors.New("unauthorized: only owner can disband the group")
+	}
+
+	// Trigger full disband deletion cascade
+	return s.groupRepo.DisbandGroup(ctx, groupID, group.EntityID)
 }

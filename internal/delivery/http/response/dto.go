@@ -41,8 +41,9 @@ type UserResponse struct {
 	Bio                string                      `json:"bio"`
 	HeightCM           int                         `json:"height_cm"`
 	Gender             *MasterItemResponse         `json:"gender,omitempty"`
-	RelationshipType   *MasterItemResponse         `json:"relationship_type,omitempty"`
-	InterestedGenders  []MasterItemResponse        `json:"interested_genders,omitempty"`
+	RelationshipType      *MasterItemResponse         `json:"relationship_type,omitempty"`
+	RelationshipTypeCamel *MasterItemResponse         `json:"relationshipType,omitempty"`
+	InterestedGenders     []MasterItemResponse        `json:"interested_genders,omitempty"`
 	Interests          []MasterItemResponse        `json:"interests,omitempty"`
 	Languages          []MasterItemResponse        `json:"languages,omitempty"`
 	Photos             []PhotoResponse             `json:"photos,omitempty"`
@@ -67,11 +68,12 @@ type EntityResponse struct {
 }
 
 type GroupResponse struct {
-	ID        uuid.UUID      `json:"id"`
-	EntityID  uuid.UUID      `json:"entity_id"`
-	Name      string         `json:"name"`
-	CreatedBy uuid.UUID      `json:"created_by"`
-	Members   []UserResponse `json:"members,omitempty"`
+	ID         uuid.UUID      `json:"id"`
+	EntityID   uuid.UUID      `json:"entity_id"`
+	Name       string         `json:"name"`
+	CreatedBy  uuid.UUID      `json:"created_by"`
+	Members    []UserResponse `json:"members,omitempty"`
+	MainPhotos []string       `json:"main_photos,omitempty"`
 }
 
 

@@ -30,6 +30,7 @@ func NewChatHandler(r *gin.RouterGroup, chatSvc services.ChatService, swipeSvc s
 		chatGroup.GET("/conversations", handler.GetConversations)
 		chatGroup.GET("/new-matches", handler.GetNewMatches)
 		chatGroup.GET("/conversations/:id/messages", handler.GetMessages)
+		chatGroup.GET("/conversations/match/:matchId", handler.GetConversationByMatch)
 		chatGroup.GET("/upload-url", handler.GetUploadURL)
 	}
 }
@@ -162,5 +163,35 @@ func (h *ChatHandler) GetNewMatches(c *gin.Context) {
 		resp[i] = ToConversationResponse(&match, userID, 0, false, h.storageService)
 	}
 
+	response.OK(c, resp)
+}
+
+// GetConversationByMatch godoc
+// @Summary      Get conversation by match ID
+// @Description  Fetches the conversation associated with a specific match ID.
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        matchId path string true "Match ID"
+// @Success      200  {object}  response.BaseResponse{data=ConversationResponse} "Conversation details"
+// @Router       /chat/conversations/match/{matchId} [get]
+func (h *ChatHandler) GetConversationByMatch(c *gin.Context) {
+	userID := c.MustGet("userID").(uuid.UUID)
+	
+	matchIDStr := c.Param("matchId")
+	matchID, err := uuid.Parse(matchIDStr)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid match ID", err.Error())
+		return
+	}
+
+	conv, err := h.chatService.GetConversationByMatchID(c.Request.Context(), matchID)
+	if err != nil {
+		response.Error(c, http.StatusNotFound, "Conversation not found", err.Error())
+		return
+	}
+
+	resp := ToConversationResponse(conv, userID, 0, false, h.storageService)
 	response.OK(c, resp)
 }

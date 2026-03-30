@@ -21,6 +21,7 @@ type ChatService interface {
 	GetUnreadCount(ctx context.Context, userID, conversationID uuid.UUID) (int, error)
 	IsTyping(ctx context.Context, conversationID, userID uuid.UUID) (bool, error)
 	GetMessages(ctx context.Context, conversationID uuid.UUID, limit, offset int) ([]entities.Message, error)
+	GetConversationByMatchID(ctx context.Context, matchID uuid.UUID) (*entities.Conversation, error)
 }
 
 
@@ -178,6 +179,10 @@ func (s *chatService) SendReadReceipt(ctx context.Context, userID, conversationI
 
 func (s *chatService) GetConversations(ctx context.Context, userID uuid.UUID, limit int, cursor *time.Time) ([]entities.Conversation, error) {
 	return s.repo.GetUserConversations(ctx, userID, limit, cursor)
+}
+
+func (s *chatService) GetConversationByMatchID(ctx context.Context, matchID uuid.UUID) (*entities.Conversation, error) {
+	return s.repo.GetConversationByEntityID(ctx, matchID)
 }
 
 func (s *chatService) GetNewMatches(ctx context.Context, userID uuid.UUID, limit int, cursor *time.Time) ([]entities.Conversation, error) {

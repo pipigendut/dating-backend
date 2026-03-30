@@ -14,11 +14,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
+	"github.com/pipigendut/dating-backend/internal/background"
+	"github.com/pipigendut/dating-backend/internal/background/jobs"
 	"github.com/pipigendut/dating-backend/internal/background/workers"
 	"github.com/pipigendut/dating-backend/internal/chat/ws"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/admin"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/chat"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/entity"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/groups"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/master"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/monetization"
@@ -57,9 +61,14 @@ import (
 // @description Type 'Bearer ' followed by your JWT token.
 
 func main() {
-	// 0. Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system environment variables")
+	// 0. Load environment variables based on APP_ENV
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "development"
+	}
+	envFile := ".env." + appEnv
+	if err := godotenv.Load(envFile); err != nil {
+		log.Printf("Warning: %s file not found, using system environment variables", envFile)
 	}
 
 	// 1. Setup Infrastructure
@@ -180,16 +189,18 @@ func main() {
 
 		notifySvc = services.NewNotificationService(asynqClient, redisRepo)
 
-		// Setup Worker
+		// Setup Worker with Tracking Router
 		chatRepo := impl.NewChatRepository(db)
 		notifyWorker := workers.NewNotificationWorker(chatRepo, userRepo, redisRepo)
+		cleanupHandler := jobs.NewUserCleanupHandler(db, storageImpl)
 
-		mux := asynq.NewServeMux()
-		mux.HandleFunc(services.TaskTypeNotificationGroup, notifyWorker.HandleNotificationGroupTask)
+		jobRouter := background.NewJobRouter(jobRepo)
+		jobRouter.RegisterHandler(services.TaskTypeNotificationGroup, notifyWorker.HandleNotificationGroupTask)
+		jobRouter.Mux().Handle(jobs.TaskUserCleanup, cleanupHandler)
 
 		// Start Asynq Server non-blocking
 		go func() {
-			if err := asynqServer.Run(mux); err != nil {
+			if err := asynqServer.Run(jobRouter.Mux()); err != nil {
 				log.Fatalf("could not run asynq server: %v", err)
 			}
 		}()
@@ -227,57 +238,22 @@ func main() {
 		_ = acm.RateLimitSwipe()
 	}
 
-	user.NewUserHandler(v1, userSvc, storageService, verifySvc, entitySvc, groupSvc, authMiddleware)
+	user.NewUserHandler(v1, userSvc, storageService, verifySvc, entitySvc, authMiddleware)
 	auth.NewAuthHandler(v1, authSvc, storageService)
 	master.NewMasterHandler(v1, masterSvc)
 	monetization.NewMonetizationHandler(v1, subscriptionService, userRepo, storageService, authMiddleware)
 	swipe.NewSwipeHandler(v1, swipeSvc, storageService, authMiddleware)
 	chat.NewChatHandler(v1, chatSvc, swipeSvc, storageService, authMiddleware)
 	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo, storageService).RegisterRoutes(v1, authMiddleware)
-	user.NewInviteHandler(v1, groupSvc, storageService, authMiddleware)
+	entity.NewEntityHandler(v1, entitySvc, storageService, authMiddleware)
+	groupHandler := groups.NewGroupHandler(v1, groupSvc, storageService, authMiddleware)
 
-	// Well-known routes for Universal Links (served at root)
-	r.GET("/.well-known/apple-app-site-association", func(c *gin.Context) {
-		teamID := os.Getenv("APPLE_TEAM_ID")
-		bundleID := "com.swipee"
-		
-		// Manual JSON to control content-type precisely
-		aasa := `{
-			"applinks": {
-				"details": [
-					{
-						"appIDs": ["` + teamID + `.` + bundleID + `"],
-						"components": [
-							{
-								"/": "/invite*"
-							}
-						]
-					}
-				]
-			}
-		}`
-		// User requested: No content-type application/json
-		c.Header("Content-Type", "text/plain")
-		c.String(http.StatusOK, aasa)
-	})
+	// Root routes for deep linking landing pages
+	r.GET("/invite", groupHandler.HandleInviteRedirect)
+	r.GET("/invite/:token", groupHandler.HandleInviteRedirect)
 
-	r.GET("/.well-known/assetlinks.json", func(c *gin.Context) {
-		packageName := "com.swipee"
-		sha256 := os.Getenv("ANDROID_SHA256_CERT")
-		
-		assetLinks := `[
-			{
-				"relation": ["delegate_permission/common.handle_all_urls"],
-				"target": {
-					"namespace": "android_app",
-					"package_name": "` + packageName + `",
-					"sha256_cert_fingerprints": ["` + sha256 + `"]
-				}
-			}
-		]`
-		c.Header("Content-Type", "application/json") // Android typically requires it
-		c.String(http.StatusOK, assetLinks)
-	})
+	// Well-known routes for Universal Links (served at root based on environment)
+	r.Static("/.well-known", fmt.Sprintf("./well-known/%s", appEnv))
 
 	// WebSocket Route
 	v1.GET("/ws", func(c *gin.Context) {

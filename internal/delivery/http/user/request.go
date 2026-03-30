@@ -1,6 +1,5 @@
 package user
 
-import "github.com/google/uuid"
 
 type UploadURLResponse struct {
 	UploadURL string `json:"upload_url"`
@@ -32,11 +31,3 @@ type UpdateProfileRequest struct {
 	Photos          *[]PhotoRequest `json:"photos"` // List of photo objects
 }
 
-
-type CreateGroupRequest struct {
-	Name string `json:"name" binding:"required"`
-}
-
-type InviteToGroupRequest struct {
-	UserID uuid.UUID `json:"user_id" binding:"required"`
-}

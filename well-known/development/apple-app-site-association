@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.com.swipee.app.dev"],
+        "components": [
+          {
+            "/": "/invite/*"
+          }
+        ]
+      }
+    ]
+  }
+}
