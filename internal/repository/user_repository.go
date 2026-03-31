@@ -8,6 +8,7 @@ import (
 type UserRepository interface {
 	Create(user *entities.User) error
 	GetByID(id uuid.UUID) (*entities.User, error)
+	GetByEntityID(entityID uuid.UUID) (*entities.User, error)
 	GetWithRelations(id uuid.UUID) (*entities.User, error)
 	Update(user *entities.User) error
 	GetByEmail(email string) (*entities.User, error)

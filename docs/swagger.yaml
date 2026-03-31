@@ -264,6 +264,10 @@ definitions:
         $ref: '#/definitions/entities.MessageMetadata'
       sender_id:
         type: string
+      sender_name:
+        type: string
+      sender_photo_url:
+        type: string
       type:
         $ref: '#/definitions/entities.MessageType'
     type: object
@@ -870,6 +874,8 @@ definitions:
         type: array
       relationship_type:
         $ref: '#/definitions/response.MasterItemResponse'
+      relationshipType:
+        $ref: '#/definitions/response.MasterItemResponse'
       status:
         $ref: '#/definitions/entities.UserStatus'
       subscription:
@@ -961,6 +967,30 @@ definitions:
     - direction
     - swiped_entity_id
     - swiper_entity_id
+    type: object
+  user.NotificationSettingRequest:
+    properties:
+      is_enable:
+        type: boolean
+      notification_setting_id:
+        type: string
+    required:
+    - notification_setting_id
+    type: object
+  user.NotificationSettingResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      is_user_enable:
+        type: boolean
+      title:
+        type: string
+      type:
+        type: string
     type: object
   user.PhotoRequest:
     properties:
@@ -2227,6 +2257,75 @@ paths:
       summary: Unmatch an entity
       tags:
       - swipe
+  /users/notifications:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the list of all master notification settings with the current
+        user's preferences.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of notification settings
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/user.NotificationSettingResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user notification settings
+      tags:
+      - notifications
+    post:
+      consumes:
+      - application/json
+      description: Enables or disables a specific notification type for the authenticated
+        user using upsert logic.
+      parameters:
+      - description: Update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.NotificationSettingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a user notification setting
+      tags:
+      - notifications
   /users/profile:
     delete:
       description: Permanently deletes the authenticated user's account and all associated

@@ -238,6 +238,23 @@ func SeedMasterData(db *gorm.DB) error {
 			}
 		}
 
+		// 10. Seed Notification Settings
+		notifSettings := []entities.NotificationSetting{
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("f1000000-0000-0000-0000-000000000001")}, Type: "new_message", Title: "Messages", Description: "When you receive a new message", IsEnable: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("f1000000-0000-0000-0000-000000000002")}, Type: "new_match", Title: "Matches", Description: "When you get a new match", IsEnable: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("f1000000-0000-0000-0000-000000000003")}, Type: "new_like", Title: "Likes", Description: "When someone likes you", IsEnable: true},
+			{BaseModel: entities.BaseModel{ID: uuid.MustParse("f1000000-0000-0000-0000-000000000004")}, Type: "new_crush", Title: "Crushes", Description: "When you get a new crush", IsEnable: true},
+		}
+
+		for _, ns := range notifSettings {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "id"}},
+				DoUpdates: clause.AssignmentColumns([]string{"type", "title", "description", "is_enable", "updated_at"}),
+			}).Create(&ns).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 }

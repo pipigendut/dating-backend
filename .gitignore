@@ -26,3 +26,12 @@ models/*.onnx
 
 # Debug
 __debug_bin*
+
+# Firebase
+firebase-service-account-*.json
+google-services.json
+
+# Env Local
+.env
+.env.*.local
+.env.local

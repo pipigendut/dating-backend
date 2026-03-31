@@ -1979,6 +1979,116 @@
                 }
             }
         },
+        "/users/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches the list of all master notification settings with the current user's preferences.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Get user notification settings",
+                "responses": {
+                    "200": {
+                        "description": "List of notification settings",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/user.NotificationSettingResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Enables or disables a specific notification type for the authenticated user using upsert logic.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Update a user notification setting",
+                "parameters": [
+                    {
+                        "description": "Update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.NotificationSettingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users/profile": {
             "delete": {
                 "security": [
@@ -2622,6 +2732,12 @@
                     "$ref": "#/definitions/entities.MessageMetadata"
                 },
                 "sender_id": {
+                    "type": "string"
+                },
+                "sender_name": {
+                    "type": "string"
+                },
+                "sender_photo_url": {
                     "type": "string"
                 },
                 "type": {
@@ -3543,6 +3659,9 @@
                         "$ref": "#/definitions/response.PhotoResponse"
                     }
                 },
+                "relationshipType": {
+                    "$ref": "#/definitions/response.MasterItemResponse"
+                },
                 "relationship_type": {
                     "$ref": "#/definitions/response.MasterItemResponse"
                 },
@@ -3682,6 +3801,43 @@
                     "type": "string"
                 },
                 "swiper_entity_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.NotificationSettingRequest": {
+            "type": "object",
+            "required": [
+                "notification_setting_id"
+            ],
+            "properties": {
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "notification_setting_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.NotificationSettingResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "is_user_enable": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }

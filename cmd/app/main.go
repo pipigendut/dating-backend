@@ -21,6 +21,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/admin"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/auth"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/chat"
+	"github.com/pipigendut/dating-backend/internal/delivery/http/device"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/entity"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/groups"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/master"
@@ -29,6 +30,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/delivery/http/swipe"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/user"
 	"github.com/pipigendut/dating-backend/internal/infra"
+	"github.com/pipigendut/dating-backend/internal/infra/fcm"
 	"github.com/pipigendut/dating-backend/internal/infra/ml"
 	infraStorage "github.com/pipigendut/dating-backend/internal/infra/storage"
 	"github.com/pipigendut/dating-backend/internal/repository"
@@ -142,6 +144,8 @@ func main() {
 		redisRepo        repository.RedisRepository
 		entityRepo       repository.EntityRepository
 		groupRepo        repository.GroupRepository
+		deviceRepo       repository.DeviceRepository
+		notifRepo        repository.NotificationRepository
 	)
 
 	redisRepo = impl.NewRedisRepository(redisClient)
@@ -160,6 +164,8 @@ func main() {
 	subscriptionRepo = impl.NewSubscriptionRepository(db)
 	entityRepo = impl.NewEntityRepository(db)
 	groupRepo = impl.NewGroupRepository(db)
+	deviceRepo = impl.NewDeviceRepository(db)
+	notifRepo = impl.NewNotificationRepository(db)
 
 	storageService := services.NewStorageService(storageImpl)
 
@@ -167,6 +173,7 @@ func main() {
 	var asynqClient *asynq.Client
 	var asynqServer *asynq.Server
 	var notifySvc services.NotificationService
+	var fcmClient *fcm.Client
 
 	if redisClient != nil {
 		redisOpt := asynq.RedisClientOpt{
@@ -189,13 +196,25 @@ func main() {
 
 		notifySvc = services.NewNotificationService(asynqClient, redisRepo)
 
+		// 1.10 Setup FCM Client
+		svcAccountPath := os.Getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
+		if svcAccountPath != "" {
+			var err error
+			fcmClient, err = fcm.NewClient(svcAccountPath)
+			if err != nil {
+				log.Printf("Warning: FCM Client not initialized: %v", err)
+			}
+		}
+
 		// Setup Worker with Tracking Router
 		chatRepo := impl.NewChatRepository(db)
-		notifyWorker := workers.NewNotificationWorker(chatRepo, userRepo, redisRepo)
+		notifyWorker := workers.NewNotificationWorker(chatRepo, userRepo, redisRepo, deviceRepo, groupRepo, notifRepo, fcmClient)
 		cleanupHandler := jobs.NewUserCleanupHandler(db, storageImpl)
 
 		jobRouter := background.NewJobRouter(jobRepo)
 		jobRouter.RegisterHandler(services.TaskTypeNotificationGroup, notifyWorker.HandleNotificationGroupTask)
+		jobRouter.RegisterHandler(services.TaskTypeNotificationMatch, notifyWorker.HandleMatchNotificationTask)
+		jobRouter.RegisterHandler(services.TaskTypeNotificationLike, notifyWorker.HandleLikeNotificationTask)
 		jobRouter.Mux().Handle(jobs.TaskUserCleanup, cleanupHandler)
 
 		// Start Asynq Server non-blocking
@@ -222,8 +241,9 @@ func main() {
 	groupSvc := services.NewGroupService(groupRepo, entityRepo, userRepo)
 
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, redisRepo, configSvc)
-	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, subscriptionService, swipeRepo, userRepo, entityRepo, groupRepo)
+	swipeSvc := services.NewSwipeService(db, configSvc, chatSvc, subscriptionService, notifySvc, swipeRepo, userRepo, entityRepo, groupRepo)
 	adminSvc := services.NewAdminService(subscriptionRepo, userRepo)
+	notifConfigSvc := services.NewNotificationConfigService(notifRepo)
 
 	r := gin.Default()
 
@@ -247,6 +267,8 @@ func main() {
 	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo, storageService).RegisterRoutes(v1, authMiddleware)
 	entity.NewEntityHandler(v1, entitySvc, storageService, authMiddleware)
 	groupHandler := groups.NewGroupHandler(v1, groupSvc, storageService, authMiddleware)
+	device.NewDeviceHandler(v1, deviceRepo, authMiddleware)
+	user.NewNotificationHandler(v1, notifConfigSvc, authMiddleware)
 
 	// Root routes for deep linking landing pages
 	r.GET("/invite", groupHandler.HandleInviteRedirect)

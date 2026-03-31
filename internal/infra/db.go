@@ -89,6 +89,9 @@ func NewPostgresDB(cfg Config) (*gorm.DB, error) {
 		&entities.ConsumablePackage{},
 		// Background Jobs
 		&entities.Job{},
+		// Notifications
+		&entities.NotificationSetting{},
+		&entities.UserNotificationSetting{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to auto migrate: %v", err)

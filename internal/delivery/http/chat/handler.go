@@ -110,7 +110,7 @@ func (h *ChatHandler) GetMessages(c *gin.Context) {
 
 	resp := make([]MessageResponse, len(msgs))
 	for i, msg := range msgs {
-		resp[i] = ToMessageResponse(&msg, userID)
+		resp[i] = ToMessageResponse(&msg, userID, h.storageService)
 	}
 
 	response.OK(c, resp)

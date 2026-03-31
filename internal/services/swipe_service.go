@@ -55,6 +55,7 @@ type swipeService struct {
 	config       ConfigService
 	chat         ChatService
 	subscription SubscriptionService
+	notify       NotificationService
 	swipeRepo    repository.SwipeRepository
 	userRepo     repository.UserRepository
 	entityRepo   repository.EntityRepository
@@ -66,6 +67,7 @@ func NewSwipeService(
 	config ConfigService,
 	chat ChatService,
 	subscription SubscriptionService,
+	notify NotificationService,
 	swipeRepo repository.SwipeRepository,
 	userRepo repository.UserRepository,
 	entityRepo repository.EntityRepository,
@@ -76,6 +78,7 @@ func NewSwipeService(
 		config:       config,
 		chat:         chat,
 		subscription: subscription,
+		notify:       notify,
 		swipeRepo:    swipeRepo,
 		userRepo:     userRepo,
 		entityRepo:   entityRepo,
@@ -772,6 +775,22 @@ func (s *swipeService) CreateSwipe(ctx context.Context, swiperUserID, swiperEnti
 
 		return nil
 	})
+
+	// Trigger notifications after successful transaction
+	if err == nil {
+		if match != nil {
+			// Match occurred — notify both parties
+			if s.notify != nil {
+				_ = s.notify.TriggerMatchNotification(context.Background(), swiperEntityID, swipedEntityID, match.ID)
+			}
+		} else if direction == entities.SwipeDirectionLike || direction == entities.SwipeDirectionCrush {
+			// No match yet — notify the swiped entity
+			if s.notify != nil {
+				isCrush := direction == entities.SwipeDirectionCrush
+				_ = s.notify.TriggerLikeNotification(context.Background(), swiperEntityID, swipedEntityID, isCrush)
+			}
+		}
+	}
 
 	return match, matchedEntity, err
 }

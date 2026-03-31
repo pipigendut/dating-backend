@@ -70,7 +70,11 @@ func (r *chatRepository) GetConversationByID(ctx context.Context, id uuid.UUID) 
 	if err == nil {
 		// Fetch last message separately to avoid the Limit(1) bug on Preload
 		var lastMsg entities.Message
-		if err := r.db.WithContext(ctx).Where("conversation_id = ?", conv.ID).Order("created_at DESC").First(&lastMsg).Error; err == nil {
+		if err := r.db.WithContext(ctx).
+			Preload("Sender.Photos").
+			Where("conversation_id = ?", conv.ID).
+			Order("created_at DESC").
+			First(&lastMsg).Error; err == nil {
 			conv.Messages = []entities.Message{lastMsg}
 		}
 	}
@@ -109,7 +113,11 @@ func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.U
 
 	for i := range convs {
 		var lastMsg entities.Message
-		if err := r.db.WithContext(ctx).Where("conversation_id = ?", convs[i].ID).Order("created_at DESC").First(&lastMsg).Error; err == nil {
+		if err := r.db.WithContext(ctx).
+			Preload("Sender.Photos").
+			Where("conversation_id = ?", convs[i].ID).
+			Order("created_at DESC").
+			First(&lastMsg).Error; err == nil {
 			convs[i].Messages = []entities.Message{lastMsg}
 		}
 	}
@@ -160,6 +168,7 @@ func (r *chatRepository) CreateMessage(ctx context.Context, message *entities.Me
 func (r *chatRepository) GetConversationMessages(ctx context.Context, conversationID uuid.UUID, limit int, offset int) ([]entities.Message, error) {
 	var msgs []entities.Message
 	err := r.db.WithContext(ctx).
+		Preload("Sender.Photos").
 		Where("conversation_id = ?", conversationID).
 		Order("created_at DESC").
 		Limit(limit).

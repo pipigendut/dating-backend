@@ -64,6 +64,9 @@ type Message struct {
 	ReplyToID      *uuid.UUID     `gorm:"type:uuid;index"`
 
 	Metadata MessageMetadata `gorm:"serializer:json;type:jsonb"`
+
+	// Associations
+	Sender *User `gorm:"foreignKey:SenderID"`
 }
 
 type MessageMetadata struct {

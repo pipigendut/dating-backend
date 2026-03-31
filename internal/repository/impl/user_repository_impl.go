@@ -29,6 +29,12 @@ func (r *userRepo) GetByID(id uuid.UUID) (*entities.User, error) {
 	err := r.db.First(&user, "id = ?", id).Error
 	return &user, err
 }
+
+func (r *userRepo) GetByEntityID(entityID uuid.UUID) (*entities.User, error) {
+	var user entities.User
+	err := r.db.First(&user, "entity_id = ?", entityID).Error
+	return &user, err
+}
 func (r *userRepo) GetWithRelations(id uuid.UUID) (*entities.User, error) {
 	var user entities.User
 	query := r.db.WithContext(context.Background())

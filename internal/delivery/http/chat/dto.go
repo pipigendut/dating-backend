@@ -27,6 +27,8 @@ type MessageResponse struct {
 	ID             uuid.UUID                `json:"id"`
 	ConversationID uuid.UUID                `json:"conversation_id"`
 	SenderID       uuid.UUID                `json:"sender_id"`
+	SenderName     string                   `json:"sender_name,omitempty"`
+	SenderPhotoURL string                   `json:"sender_photo_url,omitempty"`
 	Type           entities.MessageType     `json:"type"`
 	Content        string                   `json:"content"`
 	Metadata       entities.MessageMetadata `json:"metadata"`
@@ -39,10 +41,9 @@ type ChatUploadURLResponse struct {
 	FileKey   string `json:"file_key"`
 }
 
-
-func ToMessageResponse(m *entities.Message, currentUserID uuid.UUID) MessageResponse {
+func ToMessageResponse(m *entities.Message, currentUserID uuid.UUID, storage StorageURLProvider) MessageResponse {
 	isRead := m.Status == entities.MessageStatusRead
-	return MessageResponse{
+	resp := MessageResponse{
 		ID:             m.ID,
 		ConversationID: m.ConversationID,
 		SenderID:       m.SenderID,
@@ -52,6 +53,19 @@ func ToMessageResponse(m *entities.Message, currentUserID uuid.UUID) MessageResp
 		CreatedAt:      m.CreatedAt,
 		IsRead:         isRead,
 	}
+
+	if m.Sender != nil {
+		resp.SenderName = m.Sender.FullName
+		if mainPhoto := m.Sender.GetMainPhotoProfile(); mainPhoto != nil {
+			url := mainPhoto.URL
+			if storage != nil && url != "" && !strings.HasPrefix(url, "http") {
+				url = storage.GetPublicURL(url)
+			}
+			resp.SenderPhotoURL = url
+		}
+	}
+
+	return resp
 }
 
 type StorageURLProvider interface {
@@ -192,7 +206,7 @@ func ToConversationResponse(c *entities.Conversation, currentUserID uuid.UUID, u
 	}
 
 	if len(c.Messages) > 0 {
-		m := ToMessageResponse(&c.Messages[0], currentUserID)
+		m := ToMessageResponse(&c.Messages[0], currentUserID, storage)
 		resp.LastMessage = &m
 	}
 
