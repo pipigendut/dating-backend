@@ -219,7 +219,7 @@ func (u *AuthService) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 
 	dob := time.Date(1995, 1, 1, 0, 0, 0, 0, time.UTC)
 	if dto.DateOfBirth != nil {
-		if t, err := time.Parse("2006-01-02", *dto.DateOfBirth); err == nil {
+		if t, err := parseDateOfBirthStr(*dto.DateOfBirth); err == nil {
 			dob = t
 		}
 	}
@@ -311,6 +311,26 @@ func (u *AuthService) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 
 	token, refresh, err := u.generateTokensAndDevice(newUser.ID, dto.Device)
 	return token, refresh, newUser, err
+}
+
+func parseDateOfBirthStr(s string) (time.Time, error) {
+	// Try RFC3339 explicitly
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t, nil
+	}
+	// Try mobile standard format first
+	if t, err := time.Parse("2006-01-02T15:04:05.000Z", s); err == nil {
+		return t, nil
+	}
+	// Try YYYY-MM-DD
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t, nil
+	}
+	// Try DD/MM/YYYY
+	if t, err := time.Parse("02/01/2006", s); err == nil {
+		return t, nil
+	}
+	return time.Time{}, errors.New("invalid date format")
 }
 
 func getString(s *string) string {
@@ -445,7 +465,10 @@ func (u *AuthService) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 		}
 	}
 
-	dob, _ := time.Parse("2006-01-02", dto.DateOfBirth)
+	dob, err := parseDateOfBirthStr(dto.DateOfBirth)
+	if err != nil {
+		return "", "", nil, errors.New("invalid date_of_birth format")
+	}
 
 	status := entities.UserStatusActive
 
