@@ -18,4 +18,8 @@ type NotificationRepository interface {
 	
 	// Combined view for the API
 	GetUserSettingsWithMetadata(ctx context.Context, userID uuid.UUID) ([]entities.UserNotificationSetting, error)
+
+	// Modular management
+	DeactivateAllUserSettings(ctx context.Context, userID uuid.UUID) error
 }
+

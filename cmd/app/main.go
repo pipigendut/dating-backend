@@ -267,8 +267,9 @@ func main() {
 	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo, storageService).RegisterRoutes(v1, authMiddleware)
 	entity.NewEntityHandler(v1, entitySvc, storageService, authMiddleware)
 	groupHandler := groups.NewGroupHandler(v1, groupSvc, storageService, authMiddleware)
-	device.NewDeviceHandler(v1, deviceRepo, authMiddleware)
+	device.NewDeviceHandler(v1, deviceRepo, notifRepo, authMiddleware)
 	user.NewNotificationHandler(v1, notifConfigSvc, authMiddleware)
+
 
 	// Root routes for deep linking landing pages
 	r.GET("/invite", groupHandler.HandleInviteRedirect)

@@ -114,3 +114,10 @@ func (r *notificationRepository) GetUserSettingsWithMetadata(ctx context.Context
 	return result, nil
 }
 
+func (r *notificationRepository) DeactivateAllUserSettings(ctx context.Context, userID uuid.UUID) error {
+	return r.db.WithContext(ctx).Model(&entities.UserNotificationSetting{}).
+		Where("user_id = ?", userID).
+		Update("is_enable", false).Error
+}
+
+

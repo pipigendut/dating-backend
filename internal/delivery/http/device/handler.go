@@ -11,18 +11,24 @@ import (
 )
 
 type DeviceHandler struct {
-	repo repository.DeviceRepository
+	repo      repository.DeviceRepository
+	notifRepo repository.NotificationRepository
 }
 
-func NewDeviceHandler(r *gin.RouterGroup, repo repository.DeviceRepository, authMiddleware gin.HandlerFunc) *DeviceHandler {
-	h := &DeviceHandler{repo: repo}
+func NewDeviceHandler(r *gin.RouterGroup, repo repository.DeviceRepository, notifRepo repository.NotificationRepository, authMiddleware gin.HandlerFunc) *DeviceHandler {
+	h := &DeviceHandler{
+		repo:      repo,
+		notifRepo: notifRepo,
+	}
 	
 	devices := r.Group("/devices")
 	devices.Use(authMiddleware)
 	{
 		devices.POST("/register", h.RegisterDevice)
 		devices.PATCH("/fcm-token", h.UpdateFCMToken)
+		devices.POST("/deactivate", h.DeactivateDevice)
 	}
+
 	
 	return h
 }
@@ -86,3 +92,32 @@ func (h *DeviceHandler) UpdateFCMToken(c *gin.Context) {
 
 	response.OK(c, gin.H{"message": "FCM token updated successfully"})
 }
+
+type DeactivateDeviceRequest struct {
+	DeviceID string `json:"device_id" binding:"required"`
+}
+
+func (h *DeviceHandler) DeactivateDevice(c *gin.Context) {
+	var req DeactivateDeviceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
+		return
+	}
+
+	userID := c.MustGet("userID").(uuid.UUID)
+
+	// 1. Deactivate device
+	if err := h.repo.DeactivateDevice(c.Request.Context(), userID, req.DeviceID); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to deactivate device", err.Error())
+		return
+	}
+
+	// 2. Disable all notification settings for the user (as requested by user)
+	if err := h.notifRepo.DeactivateAllUserSettings(c.Request.Context(), userID); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to deactivate all user settings", err.Error())
+		return
+	}
+
+	response.OK(c, gin.H{"message": "Device deactivated and all notifications disabled"})
+}
+
