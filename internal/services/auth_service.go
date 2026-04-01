@@ -30,15 +30,17 @@ type AuthService struct {
 	repo           repository.UserRepository
 	sessionRepo    repository.SessionRepository
 	entityRepo     repository.EntityRepository
-	storageService *StorageService
+	storageService   *StorageService
+	promotionService PromotionService
 }
 
-func NewAuthService(repo repository.UserRepository, sessionRepo repository.SessionRepository, entityRepo repository.EntityRepository, storageService *StorageService) *AuthService {
+func NewAuthService(repo repository.UserRepository, sessionRepo repository.SessionRepository, entityRepo repository.EntityRepository, storageService *StorageService, promotionService PromotionService) *AuthService {
 	return &AuthService{
-		repo:           repo,
-		sessionRepo:    sessionRepo,
-		entityRepo:     entityRepo,
-		storageService: storageService,
+		repo:             repo,
+		sessionRepo:      sessionRepo,
+		entityRepo:       entityRepo,
+		storageService:   storageService,
+		promotionService: promotionService,
 	}
 }
 
@@ -310,6 +312,14 @@ func (u *AuthService) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 	}
 
 	token, refresh, err := u.generateTokensAndDevice(newUser.ID, dto.Device)
+	if err == nil {
+		// Apply registration promotion for NEW users only
+		if user == nil || !user.DeletedAt.Valid {
+			go func() {
+				_ = u.promotionService.HandleRegistrationPromotion(context.Background(), newUser.ID)
+			}()
+		}
+	}
 	return token, refresh, newUser, err
 }
 
@@ -537,6 +547,14 @@ func (u *AuthService) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	}
 
 	token, refresh, err := u.generateTokensAndDevice(user.ID, dto.Device)
+	if err == nil {
+		// Apply registration promotion for NEW users only
+		if existingUser == nil {
+			go func() {
+				_ = u.promotionService.HandleRegistrationPromotion(context.Background(), user.ID)
+			}()
+		}
+	}
 	return token, refresh, user, err
 }
 

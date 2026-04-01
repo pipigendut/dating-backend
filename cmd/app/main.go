@@ -227,13 +227,14 @@ func main() {
 		}()
 	}
 
-	userSvc := services.NewUserService(userRepo, jobRepo, sessionRepo, asynqClient, storageService, chatHub)
-	authSvc := services.NewAuthService(userRepo, sessionRepo, entityRepo, storageService)
-	masterSvc := services.NewMasterService(masterRepo)
-	adSvc := services.NewAdvertisementService(adRepo)
-
 	configRepo := impl.NewConfigRepository(db)
 	configSvc := services.NewConfigService(configRepo)
+
+	promotionSvc := services.NewPromotionService(subscriptionRepo, userRepo, configSvc)
+	userSvc := services.NewUserService(userRepo, jobRepo, sessionRepo, asynqClient, storageService, chatHub)
+	authSvc := services.NewAuthService(userRepo, sessionRepo, entityRepo, storageService, promotionSvc)
+	masterSvc := services.NewMasterService(masterRepo)
+	adSvc := services.NewAdvertisementService(adRepo)
 
 	verifySvc := services.NewVerificationService(userRepo, storageService, mlProvider, redisClient, configSvc)
 

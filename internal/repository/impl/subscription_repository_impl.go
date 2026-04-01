@@ -53,29 +53,38 @@ func (r *subscriptionRepository) GetConsumables(ctx context.Context, userID uuid
 }
 
 func (r *subscriptionRepository) UpdateConsumable(ctx context.Context, userID uuid.UUID, consumableType string, delta int) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		var cons entities.UserConsumable
-		err := tx.
-			Where("user_id = ? AND item_type = ?", userID, consumableType).
-			First(&cons).Error
+	now := time.Now()
+	cons := entities.UserConsumable{
+		UserID:   userID,
+		ItemType: consumableType,
+		Amount:   delta,
+	}
 
-		if err != nil {
-			return err
-		}
+	if delta < 0 {
+		// If decreasing, we MUST check existing balance first
+		return r.db.Transaction(func(tx *gorm.DB) error {
+			var existing entities.UserConsumable
+			if err := tx.Where("user_id = ? AND item_type = ?", userID, consumableType).First(&existing).Error; err != nil {
+				return err
+			}
+			if existing.Amount+delta < 0 {
+				return gorm.ErrRecordNotFound // Insufficient
+			}
+			return tx.Model(&existing).Updates(map[string]interface{}{
+				"amount":       existing.Amount + delta,
+				"last_used_at": &now,
+			}).Error
+		})
+	}
 
-		newAmount := cons.Amount + delta
-		if newAmount < 0 {
-			return gorm.ErrRecordNotFound // Insufficient balance
-		}
-
-		updates := map[string]interface{}{"amount": newAmount}
-		if delta < 0 {
-			now := time.Now()
-			updates["last_used_at"] = &now
-		}
-
-		return tx.Model(&cons).Updates(updates).Error
-	})
+	// If increasing (like for promotions), we use Upsert (OnConflict)
+	return r.db.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "user_id"}, {Name: "item_type"}},
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"amount":     gorm.Expr("user_consumables.amount + ?", delta),
+			"updated_at": now,
+		}),
+	}).Create(&cons).Error
 }
 
 func (r *subscriptionRepository) CreateEntityBoost(ctx context.Context, boost *entities.EntityBoost) error {

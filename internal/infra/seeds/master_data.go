@@ -112,6 +112,7 @@ func SeedMasterData(db *gorm.DB) error {
 			{Key: "max_limit_face_verification_per_day", Value: "5"}, // Security rate-limit default
 			{Key: "whitelist_emails", Value: `["akbar.maulana090895@gmail.com"]`},
 			{Key: "boost_duration_minutes", Value: "60"},
+			{Key: "register_promotion", Value: "true"},
 		}
 
 		for _, c := range configs {
