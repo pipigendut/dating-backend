@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: dating_db_prod
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate:v4.17.0
+    container_name: dating_migrate_prod
+    env_file:
+      - .env.production
+    volumes:
+      - ./migrations:/migrations
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        migrate -path=/migrations -database="postgres://$${DB_USER}:$${DB_PASSWORD}@db:5432/$${DB_NAME}?sslmode=disable" up
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  app:
+    image: dockerpipigendut/dating-backend:latest
+    container_name: dating_backend_prod
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    volumes:
+      - ./firebase-service-account-prod.json:/app/firebase-service-account-prod.json:ro
+      - ./models:/app/models:ro
+      - ./lib:/app/lib:ro
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  postgres_data_prod:

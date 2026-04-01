@@ -1,0 +1,67 @@
+# ==========================================
+# STAGE 1: Cross-Compile Builder (Native ARM64 for Speed & Stability)
+# ==========================================
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS builder
+
+# Variabel otomatis dari Docker Buildx (cth: TARGETOS=linux, TARGETARCH=amd64)
+ARG TARGETOS TARGETARCH
+
+WORKDIR /app
+
+# Install dependensi khusus untuk Cross-compile CGO dari Mac ARM ke Linux AMD64
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    bash \
+    gcc-x86-64-linux-gnu \
+    g++-x86-64-linux-gnu \
+    libc6-dev-amd64-cross \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy script downloader ML
+COPY scripts/setup_ml.sh ./scripts/setup_ml.sh
+
+# Download ONNX (versi linux x86_64) hanya untuk proses compile CGO
+ENV FORCE_OS=Linux
+ENV FORCE_ARCH=x86_64
+RUN bash ./scripts/setup_ml.sh
+
+# Copy seluruh source code
+COPY . .
+
+# Build Binary secara Cross-Compile (Sangat Stabil di M1/M2, tidak akan crash panik)
+RUN CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    CC=x86_64-linux-gnu-gcc CXX=x86_64-linux-gnu-g++ \
+    go build -mod=vendor -ldflags="-w -s" -o main ./cmd/app/main.go
+
+# ==========================================
+# STAGE 2: Final Minimal Image (Akan di-push ke Dockerhub)
+# ==========================================
+FROM debian:bookworm-slim
+
+WORKDIR /app
+
+# Install dependency runtime C (TIDAK menyertakan file model raksasa)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ca-certificates \
+  libgomp1 \
+  && rm -rf /var/lib/apt/lists/* \
+  && apt-get clean
+
+# Bikin Non-Root User
+RUN addgroup --system appuser && adduser --system --ingroup appuser appuser
+
+# HANYA COPY hasil binary. (Ukuran image Docker akan turun drastis < 50MB!)
+COPY --from=builder /app/main .
+
+# Path Library ONNX (Nantinya folder ./lib ini akan di-mount dari host VPS)
+ENV LD_LIBRARY_PATH=/app/lib:$LD_LIBRARY_PATH
+
+# Pastikan folder bisa diakses
+RUN chown -R appuser:appuser /app
+
+EXPOSE 8080
+
+USER appuser
+
+CMD ["./main"]

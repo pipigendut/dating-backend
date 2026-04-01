@@ -10,9 +10,9 @@ mkdir -p lib
 mkdir -p models
 
 # 1. Download ONNX Runtime berdasarkan OS dan Arsitektur
-OS="$(uname -s)"
-ARCH="$(uname -m)"
-ORT_VERSION="1.17.1" # Versi ONNX Runtime stabil
+OS="${FORCE_OS:-$(uname -s)}"
+ARCH="${FORCE_ARCH:-$(uname -m)}"
+ORT_VERSION="1.20.1" # Ubah ke 1.20.1 untuk memenuhi requirement API Version 21
 
 echo "=> Mendeteksi Sistem Operasi: $OS ($ARCH)"
 
@@ -43,6 +43,9 @@ curl -L -o ort.tgz "$URL"
 
 echo "=> Mengekstrak Library C/C++..."
 tar -xzf ort.tgz
+
+# Bersihkan folder lib lama agar tidak ada versi ganda / bentrok symlink
+rm -rf ./lib/*
 
 # Temukan folder hasil ekstrak dan copy isinya ke ./lib
 EXTRA_FOLDER=$(find . -maxdepth 1 -type d -name "onnxruntime-*" | head -n 1)

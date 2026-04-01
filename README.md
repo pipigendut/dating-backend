@@ -144,3 +144,106 @@ go run cmd/migrate/main.go step 1
 # Force a specific version (use this if the database is in a 'dirty' state)
 go run cmd/migrate/main.go force <version_number>
 ```
+
+## 🚀 Production Deployment (Docker Hub & VPS)
+
+We use an optimized deployment strategy where the Go Backend is built locally on a Mac (Cross-Compiled to Linux AMD64) and pushed to Docker Hub as a highly minimalistic image (<50MB). To save space and bandwidth, we do not include large ML models (ONNX) into the image, but instead download and bind-mount them natively on the VPS Host.
+
+### 1. Build & Push Image (Local / Macbook)
+
+1. Ensure the vendor dependencies and the exact Go version (`v1.26.0` & `onnxruntime_go v1.15.0`) are solid:
+   ```bash
+   go mod vendor
+   ```
+2. Build and push the image using Docker Buildx for Cross-Compilation Architecture (`linux/amd64`):
+   ```bash
+   docker buildx build \
+     --platform linux/amd64 \
+     -f Dockerfile.prod \
+     -t dockerpipigendut/dating-backend:latest \
+     --push \
+     .
+   ```
+
+### 2. VPS Preparation (Host Server)
+
+1. **SSH** into your Ubuntu Server and prepare the working directory:
+   ```bash
+   mkdir -p ~/app
+   cd ~/app
+   ```
+2. Upload the necessary configuration and migration files from your Local Mac:
+   ```bash
+   # From Mac Terminal
+   scp -i key.pem docker-compose.prod.yml ubuntu@<YOUR_VPS_IP>:~/app/
+   scp -i key.pem .env.production ubuntu@<YOUR_VPS_IP>:~/app/
+   scp -i key.pem firebase-service-account-prod.json ubuntu@<YOUR_VPS_IP>:~/app/
+   scp -r -i key.pem ./migrations ubuntu@<YOUR_VPS_IP>:~/app/
+   scp -i key.pem ./scripts/setup_ml.sh ubuntu@<YOUR_VPS_IP>:~/app/setup_ml.sh
+   ```
+3. Prepare the Machine Learning directory inside the VPS natively (downloads `lib/` and `models/` into `~/app/`):
+   ```bash
+   # From VPS Terminal
+   cd ~/app
+   bash setup_ml.sh
+   ```
+
+### 3. Deploy & Run
+
+Pull the lightweight Docker Image and start the services. It will automatically wait for the PostgreSQL database to be healthy, run the Database Migrations, and then start the Go App smoothly.
+
+```bash
+cd ~/app
+# Pull the latest thin image from Docker Hub
+sudo docker compose --env-file .env.production -f docker-compose.prod.yml pull
+
+# Run everything in detached mode
+sudo docker compose --env-file .env.production -f docker-compose.prod.yml up -d
+```
+
+### 4. Native Nginx Reverse Proxy & SSL (VPS Host)
+
+The backend runs inside Docker but exposes port `8080` locally (`127.0.0.1:8080`). To hook it to a domain with SSL, we install Nginx directly on the VPS Host (not inside Docker) to save RAM and CPU.
+
+1. **Install Nginx & Certbot**:
+   ```bash
+   sudo apt update
+   sudo apt install nginx python3-certbot-nginx
+   ```
+
+2. **Create Nginx Server Block**:
+   Create a new file `/etc/nginx/sites-available/api.swipee` (Adjust the domain to yours):
+   ```bash
+   sudo nano /etc/nginx/sites-available/api.swipee
+   ```
+   Paste this optimized reverse-proxy configuration:
+   ```nginx
+   server {
+       listen 80;
+       server_name api.swipee.pipigendut.space; # CHANGE THIS TO YOUR DOMAIN
+
+       location / {
+           proxy_pass http://127.0.0.1:8080;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+3. **Enable and Restart Nginx**:
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/api.swipee /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+4. **Generate Auto-Renewing SSL Certificate (HTTPS)**:
+   ```bash
+   sudo certbot --nginx -d api.swipee.pipigendut.space
+   ```
+   *(Certbot will automatically edit your Nginx config to serve HTTPS on port 443).*
