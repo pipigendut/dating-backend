@@ -265,19 +265,9 @@ func SeedMasterData(db *gorm.DB) error {
 				BaseModel: entities.BaseModel{ID: uuid.New()},
 				Source:    "internal",
 				Placement: "popup_modal",
-				ImageURL:  "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?auto=format&fit=crop&w=800&q=80",
-				Link:      "https://google.com/promo1",
+				ImageURL:  "https://drive.google.com/uc?export=view&id=1em0wqLnzUO2jNTuRPkhb72Hbt507l8Og",
 				IsActive:  true,
 				SortOrder: 1,
-			},
-			{
-				BaseModel: entities.BaseModel{ID: uuid.New()},
-				Source:    "internal",
-				Placement: "popup_modal",
-				ImageURL:  "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80",
-				Link:      "https://google.com/promo2",
-				IsActive:  true,
-				SortOrder: 2,
 			},
 		}
 
