@@ -207,6 +207,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/advertisements": {
+            "get": {
+                "description": "Returns a list of active ads filtered by placement.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "advertisements"
+                ],
+                "summary": "Get active advertisements",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Placement filter (carousel, popup_modal, etc)",
+                        "name": "placement",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/master.AdResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/check-email": {
             "post": {
                 "description": "Checks if the provided email is already registered in the system.",
@@ -3459,6 +3511,45 @@ const docTemplate = `{
             "properties": {
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "master.AdResponse": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "id": {
+                    "type": "string",
+                    "example": "uuid"
+                },
+                "image_url": {
+                    "type": "string",
+                    "example": "https://example.com/banner.jpg"
+                },
+                "link": {
+                    "type": "string",
+                    "example": "https://example.com/promo"
+                },
+                "order": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "placement": {
+                    "description": "carousel, card_deck, popup_modal, interstitial",
+                    "type": "string",
+                    "example": "carousel"
+                },
+                "source": {
+                    "description": "internal, sponsor, admob",
+                    "type": "string",
+                    "example": "internal"
+                },
+                "sponsor": {
+                    "type": "string",
+                    "example": "Brand Name"
                 }
             }
         },

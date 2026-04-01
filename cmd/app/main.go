@@ -146,6 +146,7 @@ func main() {
 		groupRepo        repository.GroupRepository
 		deviceRepo       repository.DeviceRepository
 		notifRepo        repository.NotificationRepository
+		adRepo           repository.AdvertisementRepository
 	)
 
 	redisRepo = impl.NewRedisRepository(redisClient)
@@ -166,6 +167,7 @@ func main() {
 	groupRepo = impl.NewGroupRepository(db)
 	deviceRepo = impl.NewDeviceRepository(db)
 	notifRepo = impl.NewNotificationRepository(db)
+	adRepo = impl.NewAdvertisementRepository(db)
 
 	storageService := services.NewStorageService(storageImpl)
 
@@ -228,6 +230,7 @@ func main() {
 	userSvc := services.NewUserService(userRepo, jobRepo, sessionRepo, asynqClient, storageService, chatHub)
 	authSvc := services.NewAuthService(userRepo, sessionRepo, entityRepo, storageService)
 	masterSvc := services.NewMasterService(masterRepo)
+	adSvc := services.NewAdvertisementService(adRepo)
 
 	configRepo := impl.NewConfigRepository(db)
 	configSvc := services.NewConfigService(configRepo)
@@ -260,7 +263,7 @@ func main() {
 
 	user.NewUserHandler(v1, userSvc, storageService, verifySvc, entitySvc, authMiddleware)
 	auth.NewAuthHandler(v1, authSvc, storageService)
-	master.NewMasterHandler(v1, masterSvc)
+	master.NewMasterHandler(v1, masterSvc, adSvc)
 	monetization.NewMonetizationHandler(v1, subscriptionService, userRepo, storageService, authMiddleware)
 	swipe.NewSwipeHandler(v1, swipeSvc, storageService, authMiddleware)
 	chat.NewChatHandler(v1, chatSvc, swipeSvc, storageService, authMiddleware)

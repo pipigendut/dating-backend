@@ -258,6 +258,34 @@ func SeedMasterData(db *gorm.DB) error {
 			}
 		}
 
+		// 11. Seed Modular Advertisements
+		ads := []entities.Advertisement{
+			{
+				BaseModel: entities.BaseModel{ID: uuid.New()},
+				Source:    "internal",
+				Placement: "popup_modal",
+				ImageURL:  "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?auto=format&fit=crop&w=800&q=80",
+				Link:      "https://google.com/promo1",
+				IsActive:  true,
+				SortOrder: 1,
+			},
+			{
+				BaseModel: entities.BaseModel{ID: uuid.New()},
+				Source:    "internal",
+				Placement: "popup_modal",
+				ImageURL:  "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80",
+				Link:      "https://google.com/promo2",
+				IsActive:  true,
+				SortOrder: 2,
+			},
+		}
+
+		for _, b := range ads {
+			if err := tx.Table("advertisements").Where("source = ? AND placement = ? AND image_url = ?", b.Source, b.Placement, b.ImageURL).FirstOrCreate(&b).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 }

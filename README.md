@@ -77,7 +77,10 @@ graph TD
    # Run all pending migrations
    go run cmd/migrate/main.go up
 
-   # Rollback the last migration
+   # Rollback one step (Undo the last migration)
+   go run cmd/migrate/main.go step -1
+
+   # Full Rollback (CAUTION: Removes all tables!)
    go run cmd/migrate/main.go down
 
    # Seed master data

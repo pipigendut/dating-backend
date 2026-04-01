@@ -738,6 +738,35 @@ definitions:
     required:
     - user_id
     type: object
+  master.AdResponse:
+    properties:
+      active:
+        example: true
+        type: boolean
+      id:
+        example: uuid
+        type: string
+      image_url:
+        example: https://example.com/banner.jpg
+        type: string
+      link:
+        example: https://example.com/promo
+        type: string
+      order:
+        example: 1
+        type: integer
+      placement:
+        description: carousel, card_deck, popup_modal, interstitial
+        example: carousel
+        type: string
+      source:
+        description: internal, sponsor, admob
+        example: internal
+        type: string
+      sponsor:
+        example: Brand Name
+        type: string
+    type: object
   monetization.ActivateBoostRequest:
     properties:
       entity_id:
@@ -1177,6 +1206,37 @@ paths:
       summary: Simulate user subscription to a plan
       tags:
       - admin
+  /advertisements:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of active ads filtered by placement.
+      parameters:
+      - description: Placement filter (carousel, popup_modal, etc)
+        in: query
+        name: placement
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/master.AdResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+      summary: Get active advertisements
+      tags:
+      - advertisements
   /auth/check-email:
     post:
       consumes:

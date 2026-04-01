@@ -10,10 +10,11 @@ import (
 
 type MasterHandler struct {
 	masterService *services.MasterService
+	adService     services.AdvertisementService
 }
 
-func NewMasterHandler(r *gin.RouterGroup, masterService *services.MasterService) {
-	handler := &MasterHandler{masterService: masterService}
+func NewMasterHandler(r *gin.RouterGroup, masterService *services.MasterService, adService services.AdvertisementService) {
+	handler := &MasterHandler{masterService: masterService, adService: adService}
 	group := r.Group("/master")
 	{
 		group.GET("/genders", handler.GetGenders)
@@ -21,6 +22,7 @@ func NewMasterHandler(r *gin.RouterGroup, masterService *services.MasterService)
 		group.GET("/interests", handler.GetInterests)
 		group.GET("/languages", handler.GetLanguages)
 	}
+	r.GET("/advertisements", handler.GetAdvertisements)
 }
 
 // GetGenders godoc
