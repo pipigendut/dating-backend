@@ -20,7 +20,7 @@ func NewDeviceHandler(r *gin.RouterGroup, repo repository.DeviceRepository, noti
 		repo:      repo,
 		notifRepo: notifRepo,
 	}
-	
+
 	devices := r.Group("/devices")
 	devices.Use(authMiddleware)
 	{
@@ -29,7 +29,6 @@ func NewDeviceHandler(r *gin.RouterGroup, repo repository.DeviceRepository, noti
 		devices.POST("/deactivate", h.DeactivateDevice)
 	}
 
-	
 	return h
 }
 
@@ -50,7 +49,7 @@ func (h *DeviceHandler) RegisterDevice(c *gin.Context) {
 	}
 
 	userID := c.MustGet("userID").(uuid.UUID)
-	
+
 	device := &entities.Device{
 		UserID:      userID,
 		DeviceID:    req.DeviceID,
@@ -90,6 +89,12 @@ func (h *DeviceHandler) UpdateFCMToken(c *gin.Context) {
 		return
 	}
 
+	// 2. activate all notification settings for the user (as requested by user)
+	if err := h.notifRepo.ActivateAllUserSettings(c.Request.Context(), userID); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to activate all user settings", err.Error())
+		return
+	}
+
 	response.OK(c, gin.H{"message": "FCM token updated successfully"})
 }
 
@@ -120,4 +125,3 @@ func (h *DeviceHandler) DeactivateDevice(c *gin.Context) {
 
 	response.OK(c, gin.H{"message": "Device deactivated and all notifications disabled"})
 }
-

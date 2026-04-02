@@ -78,7 +78,6 @@ func (r *notificationRepository) UpdateUserSetting(ctx context.Context, setting 
 	return r.db.WithContext(ctx).Create(setting).Error
 }
 
-
 func (r *notificationRepository) GetUserSettingsWithMetadata(ctx context.Context, userID uuid.UUID) ([]entities.UserNotificationSetting, error) {
 	var masterSettings []entities.NotificationSetting
 	if err := r.db.WithContext(ctx).Find(&masterSettings).Error; err != nil {
@@ -105,8 +104,8 @@ func (r *notificationRepository) GetUserSettingsWithMetadata(ctx context.Context
 			result = append(result, entities.UserNotificationSetting{
 				UserID:                userID,
 				NotificationSettingID: ms.ID,
-				IsEnable:              false, 
-				NotificationSetting:  &ms,
+				IsEnable:              false,
+				NotificationSetting:   &ms,
 			})
 		}
 	}
@@ -120,4 +119,8 @@ func (r *notificationRepository) DeactivateAllUserSettings(ctx context.Context, 
 		Update("is_enable", false).Error
 }
 
-
+func (r *notificationRepository) ActivateAllUserSettings(ctx context.Context, userID uuid.UUID) error {
+	return r.db.WithContext(ctx).Model(&entities.UserNotificationSetting{}).
+		Where("user_id = ?", userID).
+		Update("is_enable", true).Error
+}

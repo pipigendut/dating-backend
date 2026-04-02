@@ -37,6 +37,23 @@ func NewClient(serviceAccountPath string) (*Client, error) {
 	}, nil
 }
 
+func getChannelID(data map[string]string) string {
+	channelID := "channel_messages"
+	if notifType, ok := data["notification_type"]; ok {
+		switch notifType {
+		case "new_match":
+			channelID = "channel_matches"
+		case "new_like":
+			channelID = "channel_likes"
+		case "new_crush":
+			channelID = "channel_crushes"
+		case "new_message":
+			channelID = "channel_messages"
+		}
+	}
+	return channelID
+}
+
 func (c *Client) SendToToken(ctx context.Context, token string, title, body string, data map[string]string) error {
 	message := &messaging.Message{
 		Token: token,
@@ -48,7 +65,8 @@ func (c *Client) SendToToken(ctx context.Context, token string, title, body stri
 		Android: &messaging.AndroidConfig{
 			Priority: "high",
 			Notification: &messaging.AndroidNotification{
-				Sound: "default",
+				Sound:     "default",
+				ChannelID: getChannelID(data),
 			},
 		},
 		APNS: &messaging.APNSConfig{
@@ -83,6 +101,10 @@ func (c *Client) SendMulticast(ctx context.Context, tokens []string, title, body
 		Data: data,
 		Android: &messaging.AndroidConfig{
 			Priority: "high",
+			Notification: &messaging.AndroidNotification{
+				Sound:     "default",
+				ChannelID: getChannelID(data),
+			},
 		},
 		APNS: &messaging.APNSConfig{
 			Payload: &messaging.APNSPayload{
