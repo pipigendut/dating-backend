@@ -65,7 +65,7 @@ func (w *NotificationWorker) HandleNotificationGroupTask(ctx context.Context, t 
 
 		// check if user is currently online/active in this chat (optional skip if online)
 		// For dating apps, we usually send push if they've been inactive for > 10s
-		
+
 		// 4. Fetch all active devices for this user
 		devices, err := w.deviceRepo.GetUserDevices(ctx, part.UserID)
 		if err != nil {
@@ -107,9 +107,9 @@ func (w *NotificationWorker) HandleNotificationGroupTask(ctx context.Context, t 
 			"type":              string(conv.Type),
 		}
 
-		log.Printf("[FCM] Sending Grouped Notification to User %s: '%s' from Conv %s", 
+		log.Printf("[FCM] Sending Grouped Notification to User %s: '%s' from Conv %s",
 			part.UserID, lastMsg.Content, p.ConversationID)
-		
+
 		if w.fcmClient != nil && w.canSendNotification(ctx, part.UserID, "new_message") {
 			_ = w.fcmClient.SendMulticast(ctx, tokens, title, lastMsg.Content, data)
 		}
@@ -136,7 +136,6 @@ func (w *NotificationWorker) canSendNotification(ctx context.Context, recipientI
 
 	return userSetting.IsEnable
 }
-
 
 // HandleMatchNotificationTask sends a "It's a Match!" notification to both matched users.
 func (w *NotificationWorker) HandleMatchNotificationTask(ctx context.Context, t *asynq.Task) error {

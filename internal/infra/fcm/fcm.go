@@ -115,7 +115,7 @@ func (c *Client) SendMulticast(ctx context.Context, tokens []string, title, body
 		},
 	}
 
-	_, err := c.msg.SendMulticast(ctx, message)
+	_, err := c.msg.SendEachForMulticast(ctx, message)
 	if err != nil {
 		log.Printf("[FCM] Error sending multicast message: %v", err)
 		return err

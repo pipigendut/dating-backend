@@ -114,13 +114,39 @@ func (r *notificationRepository) GetUserSettingsWithMetadata(ctx context.Context
 }
 
 func (r *notificationRepository) DeactivateAllUserSettings(ctx context.Context, userID uuid.UUID) error {
-	return r.db.WithContext(ctx).Model(&entities.UserNotificationSetting{}).
-		Where("user_id = ?", userID).
-		Update("is_enable", false).Error
+	var masterSettings []entities.NotificationSetting
+	if err := r.db.WithContext(ctx).Find(&masterSettings).Error; err != nil {
+		return err
+	}
+
+	for _, ms := range masterSettings {
+		setting := &entities.UserNotificationSetting{
+			UserID:                userID,
+			NotificationSettingID: ms.ID,
+			IsEnable:              false,
+		}
+		if err := r.UpdateUserSetting(ctx, setting); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *notificationRepository) ActivateAllUserSettings(ctx context.Context, userID uuid.UUID) error {
-	return r.db.WithContext(ctx).Model(&entities.UserNotificationSetting{}).
-		Where("user_id = ?", userID).
-		Update("is_enable", true).Error
+	var masterSettings []entities.NotificationSetting
+	if err := r.db.WithContext(ctx).Find(&masterSettings).Error; err != nil {
+		return err
+	}
+
+	for _, ms := range masterSettings {
+		setting := &entities.UserNotificationSetting{
+			UserID:                userID,
+			NotificationSettingID: ms.ID,
+			IsEnable:              true,
+		}
+		if err := r.UpdateUserSetting(ctx, setting); err != nil {
+			return err
+		}
+	}
+	return nil
 }

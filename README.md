@@ -199,6 +199,9 @@ sudo docker compose --env-file .env.production -f docker-compose.prod.yml pull
 
 # Run everything in detached mode
 sudo docker compose --env-file .env.production -f docker-compose.prod.yml up -d
+
+# Check logs
+sudo docker compose -f docker-compose.prod.yml logs -f
 ```
 
 ### 4. Native Nginx Reverse Proxy & SSL (VPS Host)
@@ -247,3 +250,13 @@ The backend runs inside Docker but exposes port `8080` locally (`127.0.0.1:8080`
    sudo certbot --nginx -d api.swipee.pipigendut.space
    ```
    *(Certbot will automatically edit your Nginx config to serve HTTPS on port 443).*
+
+
+### Run seeder
+```bash
+#tunneling
+ssh -i /Users/pipigendut/Project/personal/akbar/dating-project/swipee-key.pem -N -L 5433:127.0.0.1:5432 ubuntu@13.212.117.42
+
+#in new terminal
+DB_HOST=127.0.0.1 DB_USER=postgres DB_PASSWORD=password DB_NAME=dating_app DB_PORT=5433 go run cmd/seed/main.go
+```
