@@ -11,7 +11,7 @@ import (
 	"github.com/pipigendut/dating-backend/internal/repository"
 )
 type ChatService interface {
-	SendMessage(ctx context.Context, senderID, conversationID uuid.UUID, messageType entities.MessageType, content string) error
+	SendMessage(ctx context.Context, senderID, conversationID uuid.UUID, messageType entities.MessageType, content string, metadata *entities.MessageMetadata) error
 	SendTypingEvent(ctx context.Context, userID, conversationID uuid.UUID, isTyping bool) error
 	SendReadReceipt(ctx context.Context, userID, conversationID, messageID uuid.UUID) error
 
@@ -46,7 +46,7 @@ func NewChatService(repo repository.ChatRepository, userRepo repository.UserRepo
 	}
 }
 
-func (s *chatService) SendMessage(ctx context.Context, senderID, conversationID uuid.UUID, messageType entities.MessageType, content string) error {
+func (s *chatService) SendMessage(ctx context.Context, senderID, conversationID uuid.UUID, messageType entities.MessageType, content string, metadata *entities.MessageMetadata) error {
 	// 1. Save to DB
 	msg := &entities.Message{
 		ConversationID: conversationID,
@@ -54,6 +54,9 @@ func (s *chatService) SendMessage(ctx context.Context, senderID, conversationID 
 		Type:           messageType,
 		Content:        content,
 		Status:         entities.MessageStatusSent,
+	}
+	if metadata != nil {
+		msg.Metadata = *metadata
 	}
 	msg.ID = uuid.New()
 	if err := s.repo.CreateMessage(ctx, msg); err != nil {

@@ -27,20 +27,29 @@ func (r *userRepo) GetByID(id uuid.UUID) (*entities.User, error) {
 	var user entities.User
 	// No Preload here by default - avoid N+1 and slow queries
 	err := r.db.First(&user, "id = ?", id).Error
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *userRepo) GetByEntityID(entityID uuid.UUID) (*entities.User, error) {
 	var user entities.User
 	err := r.db.First(&user, "entity_id = ?", entityID).Error
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 func (r *userRepo) GetWithRelations(id uuid.UUID) (*entities.User, error) {
 	var user entities.User
 	query := r.db.WithContext(context.Background())
 	query = ApplyFullUserPreload(query, "")
 	err := query.First(&user, "id = ?", id).Error
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *userRepo) Update(user *entities.User) error {
@@ -110,13 +119,19 @@ func (r *userRepo) Update(user *entities.User) error {
 func (r *userRepo) GetByEmail(email string) (*entities.User, error) {
 	var user entities.User
 	err := r.db.First(&user, "LOWER(email) = LOWER(?)", email).Error
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *userRepo) GetByEmailUnscoped(email string) (*entities.User, error) {
 	var user entities.User
 	err := r.db.Unscoped().First(&user, "LOWER(email) = LOWER(?)", email).Error
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *userRepo) GetByProvider(provider, providerUserID string) (*entities.User, error) {

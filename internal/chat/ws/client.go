@@ -13,7 +13,7 @@ import (
 )
 
 type ChatServiceInterface interface {
-	SendMessage(ctx context.Context, senderID, conversationID uuid.UUID, messageType entities.MessageType, content string) error
+	SendMessage(ctx context.Context, senderID, conversationID uuid.UUID, messageType entities.MessageType, content string, metadata *entities.MessageMetadata) error
 	SendTypingEvent(ctx context.Context, userID, conversationID uuid.UUID, isTyping bool) error
 	SendReadReceipt(ctx context.Context, userID, conversationID, messageID uuid.UUID) error
 }
@@ -69,7 +69,7 @@ func (c *Client) readPump() {
 			var payload SendMessagePayload
 			payloadBytes, _ := json.Marshal(event.Payload)
 			if err := json.Unmarshal(payloadBytes, &payload); err == nil {
-				c.chatService.SendMessage(ctx, c.userID, *event.ConversationID, entities.MessageType(payload.MessageType), payload.Content)
+				c.chatService.SendMessage(ctx, c.userID, *event.ConversationID, entities.MessageType(payload.MessageType), payload.Content, nil)
 			}
 		case EventTypingStart:
 			c.chatService.SendTypingEvent(ctx, c.userID, *event.ConversationID, true)

@@ -33,6 +33,8 @@ import (
 	"github.com/pipigendut/dating-backend/internal/infra/fcm"
 	"github.com/pipigendut/dating-backend/internal/infra/ml"
 	infraStorage "github.com/pipigendut/dating-backend/internal/infra/storage"
+	"github.com/pipigendut/dating-backend/internal/providers/gif"
+	"github.com/pipigendut/dating-backend/internal/providers/gif/klipy"
 	"github.com/pipigendut/dating-backend/internal/repository"
 	"github.com/pipigendut/dating-backend/internal/repository/impl"
 	"github.com/pipigendut/dating-backend/internal/services"
@@ -249,6 +251,18 @@ func main() {
 	adminSvc := services.NewAdminService(subscriptionRepo, userRepo)
 	notifConfigSvc := services.NewNotificationConfigService(notifRepo)
 
+	klipyAPIKey := os.Getenv("KLIPY_API_KEY")
+	klipyShowAds := os.Getenv("KLIPY_SHOW_ADS") == "true"
+	gifProviderName := os.Getenv("GIF_PROVIDER")
+
+	var gifProvider gif.Provider
+	if gifProviderName == "klipy" {
+		gifProvider = klipy.NewKlipyProvider(klipyAPIKey, klipyShowAds)
+	}
+	// Add other providers here if needed
+
+	gifSvc := services.NewGifService(gifProvider)
+
 	r := gin.Default()
 
 	// API Group
@@ -268,6 +282,7 @@ func main() {
 	monetization.NewMonetizationHandler(v1, subscriptionService, userRepo, storageService, authMiddleware)
 	swipe.NewSwipeHandler(v1, swipeSvc, storageService, authMiddleware)
 	chat.NewChatHandler(v1, chatSvc, swipeSvc, storageService, authMiddleware)
+	chat.NewGifHandler(v1, gifSvc, chatSvc, authMiddleware)
 	admin.NewAdminHandler(db, configSvc, adminSvc, userRepo, storageService).RegisterRoutes(v1, authMiddleware)
 	entity.NewEntityHandler(v1, entitySvc, storageService, authMiddleware)
 	groupHandler := groups.NewGroupHandler(v1, groupSvc, storageService, authMiddleware)

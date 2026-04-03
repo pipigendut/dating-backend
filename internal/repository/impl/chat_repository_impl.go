@@ -67,19 +67,21 @@ func (r *chatRepository) GetConversationByID(ctx context.Context, id uuid.UUID) 
 		Where("id = ?", id).
 		First(&conv).Error
 	
-	if err == nil {
-		// Fetch last message separately to avoid the Limit(1) bug on Preload
-		var lastMsg entities.Message
-		if err := r.db.WithContext(ctx).
-			Preload("Sender.Photos").
-			Where("conversation_id = ?", conv.ID).
-			Order("created_at DESC").
-			First(&lastMsg).Error; err == nil {
-			conv.Messages = []entities.Message{lastMsg}
-		}
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch last message separately to avoid the Limit(1) bug on Preload
+	var lastMsg entities.Message
+	if err := r.db.WithContext(ctx).
+		Preload("Sender.Photos").
+		Where("conversation_id = ?", conv.ID).
+		Order("created_at DESC").
+		First(&lastMsg).Error; err == nil {
+		conv.Messages = []entities.Message{lastMsg}
 	}
 	
-	return &conv, err
+	return &conv, nil
 }
 
 func (r *chatRepository) GetUserConversations(ctx context.Context, userID uuid.UUID, limit int, cursor *time.Time) ([]entities.Conversation, error) {
@@ -212,5 +214,8 @@ func (r *chatRepository) UpdatePresence(ctx context.Context, presence *entities.
 func (r *chatRepository) GetUserPresence(ctx context.Context, userID uuid.UUID) (*entities.UserPresence, error) {
 	var presence entities.UserPresence
 	err := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&presence).Error
-	return &presence, err
+	if err != nil {
+		return nil, err
+	}
+	return &presence, nil
 }

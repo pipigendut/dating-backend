@@ -194,7 +194,7 @@ func (u *AuthService) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 
 	// 2. Check if email exists (Account Linking or Restoration)
 	user, err = u.repo.GetByEmailUnscoped(dto.Email)
-	if err == nil && !user.DeletedAt.Valid {
+	if err == nil && (user.DeletedAt == nil || !user.DeletedAt.Valid) {
 		// Active user -> link
 		err = u.repo.LinkProvider(user.ID, "google", dto.GoogleID)
 		if err != nil {
@@ -210,7 +210,7 @@ func (u *AuthService) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 
 	// 3. Register New User (or Restore) via Google
 	userID := uuid.New()
-	if user != nil && user.DeletedAt.Valid {
+	if user != nil && user.DeletedAt != nil && user.DeletedAt.Valid {
 		// Restore user
 		userID = user.ID
 	} else if dto.ID != nil && *dto.ID != "" {
@@ -243,9 +243,9 @@ func (u *AuthService) LoginWithGoogle(dto GoogleLoginDTO) (string, string, *enti
 	}
 	newUser.ID = userID
 
-	if user != nil && user.DeletedAt.Valid {
+	if user != nil && user.DeletedAt != nil && user.DeletedAt.Valid {
 		// Restore user (Undelete)
-		newUser.DeletedAt = gorm.DeletedAt{Valid: false}
+		newUser.DeletedAt = nil
 		// RE-CREATE ENTITY (Legacy entity was hard-deleted during cleanup)
 		ent := &entities.Entity{Type: entities.EntityTypeUser}
 		if err := u.entityRepo.Create(context.Background(), ent); err != nil {
@@ -454,8 +454,12 @@ func (u *AuthService) CheckEmail(email string) (bool, error) {
 
 func (u *AuthService) RegisterEmail(dto RegisterEmailDTO) (string, string, *entities.User, error) {
 	// First check if email belongs to an existing (and possibly soft-deleted) user
-	existingUser, _ := u.repo.GetByEmailUnscoped(dto.Email)
-	if existingUser != nil && !existingUser.DeletedAt.Valid {
+	existingUser, err := u.repo.GetByEmailUnscoped(dto.Email)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return "", "", nil, err
+	}
+
+	if existingUser != nil && (existingUser.DeletedAt == nil || !existingUser.DeletedAt.Valid) {
 		// Found active user -> reject
 		return "", "", nil, errors.New("email already registered")
 	}
@@ -466,7 +470,7 @@ func (u *AuthService) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	}
 
 	userID := uuid.New()
-	if existingUser != nil && existingUser.DeletedAt.Valid {
+	if existingUser != nil && existingUser.DeletedAt != nil && existingUser.DeletedAt.Valid {
 		// Restore Soft Deleted Account
 		userID = existingUser.ID
 	} else if dto.ID != nil && *dto.ID != "" {
@@ -498,9 +502,9 @@ func (u *AuthService) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 	}
 	user.ID = userID
 
-	if existingUser != nil && existingUser.DeletedAt.Valid {
+	if existingUser != nil && existingUser.DeletedAt != nil && existingUser.DeletedAt.Valid {
 		// Specifically nullify the soft-delete timestamp
-		user.DeletedAt = gorm.DeletedAt{Valid: false}
+		user.DeletedAt = nil
 		// RE-CREATE ENTITY (Legacy entity was hard-deleted during cleanup)
 		ent := &entities.Entity{Type: entities.EntityTypeUser}
 		if err := u.entityRepo.Create(context.Background(), ent); err != nil {
@@ -529,7 +533,7 @@ func (u *AuthService) RegisterEmail(dto RegisterEmailDTO) (string, string, *enti
 		}
 	}
 
-	if existingUser != nil && existingUser.DeletedAt.Valid {
+	if existingUser != nil && existingUser.DeletedAt != nil && existingUser.DeletedAt.Valid {
 		// Update instead of Create when restoring
 		err = u.repo.Update(user) // Update also propagates to nested associations in repo layer
 	} else {
