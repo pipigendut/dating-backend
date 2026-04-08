@@ -67,12 +67,14 @@ func (c *Client) SendToToken(ctx context.Context, token string, title, body stri
 			Notification: &messaging.AndroidNotification{
 				Sound:     "default",
 				ChannelID: getChannelID(data),
+				Tag:       data["conversation_id"],
 			},
 		},
 		APNS: &messaging.APNSConfig{
 			Payload: &messaging.APNSPayload{
 				Aps: &messaging.Aps{
-					Sound: "default",
+					Sound:    "default",
+					ThreadID: data["conversation_id"],
 				},
 			},
 		},
@@ -104,12 +106,14 @@ func (c *Client) SendMulticast(ctx context.Context, tokens []string, title, body
 			Notification: &messaging.AndroidNotification{
 				Sound:     "default",
 				ChannelID: getChannelID(data),
+				Tag:       data["conversation_id"],
 			},
 		},
 		APNS: &messaging.APNSConfig{
 			Payload: &messaging.APNSPayload{
 				Aps: &messaging.Aps{
-					Sound: "default",
+					Sound:    "default",
+					ThreadID: data["conversation_id"],
 				},
 			},
 		},

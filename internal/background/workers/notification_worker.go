@@ -85,6 +85,9 @@ func (w *NotificationWorker) HandleNotificationGroupTask(ctx context.Context, t 
 		}
 
 		// 5. Send FCM
+		// Always fetch sender to get their name for the notification data
+		sender, _ := w.userRepo.GetByID(lastMsg.SenderID)
+
 		title := "New Message"
 		if conv.Type == entities.ConversationTypeGroup && conv.EntityID != nil {
 			g, _ := w.groupRepo.GetGroupByEntityID(ctx, *conv.EntityID)
@@ -94,8 +97,6 @@ func (w *NotificationWorker) HandleNotificationGroupTask(ctx context.Context, t 
 				title = "Group Message"
 			}
 		} else {
-			// Find the sender participant in this conversation
-			sender, _ := w.userRepo.GetByID(lastMsg.SenderID)
 			if sender != nil {
 				title = sender.FullName
 			}
@@ -104,14 +105,21 @@ func (w *NotificationWorker) HandleNotificationGroupTask(ctx context.Context, t 
 		data := map[string]string{
 			"notification_type": "new_message",
 			"conversation_id":   p.ConversationID.String(),
+			"sender_id":         lastMsg.SenderID.String(),
 			"type":              string(conv.Type),
 		}
 
-		log.Printf("[FCM] Sending Grouped Notification to User %s: '%s' from Conv %s",
-			part.UserID, lastMsg.Content, p.ConversationID)
+		if sender != nil {
+			data["sender_name"] = sender.FullName
+		}
+
+		body := lastMsg.Content
+		if conv.Type == entities.ConversationTypeGroup && sender != nil {
+			body = fmt.Sprintf("%s: %s", sender.FullName, lastMsg.Content)
+		}
 
 		if w.fcmClient != nil && w.canSendNotification(ctx, part.UserID, "new_message") {
-			_ = w.fcmClient.SendMulticast(ctx, tokens, title, lastMsg.Content, data)
+			_ = w.fcmClient.SendMulticast(ctx, tokens, title, body, data)
 		}
 	}
 

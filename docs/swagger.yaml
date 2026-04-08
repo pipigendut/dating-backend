@@ -1,26 +1,24 @@
 basePath: /api/v1
 definitions:
-  admin.AdminConsumableRequest:
+  base.BaseResponse:
     properties:
-      package_id:
+      data: {}
+      errors: {}
+      message:
+        example: Success
         type: string
-      user_id:
+      status:
+        example: 200
+        type: integer
+    type: object
+  dtov1.AcceptInviteRequest:
+    properties:
+      token:
         type: string
     required:
-    - package_id
-    - user_id
+    - token
     type: object
-  admin.AdminSubscribeRequest:
-    properties:
-      plan_id:
-        type: string
-      user_id:
-        type: string
-    required:
-    - plan_id
-    - user_id
-    type: object
-  auth.AuthResponse:
+  dtov1.AuthResponse:
     properties:
       refresh_token:
         example: abcdef123456...
@@ -29,9 +27,9 @@ definitions:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
       user:
-        $ref: '#/definitions/response.UserResponse'
+        $ref: '#/definitions/dtov1.UserResponse'
     type: object
-  auth.CheckEmailRequest:
+  dtov1.CheckEmailRequest:
     properties:
       email:
         example: user@example.com
@@ -39,13 +37,55 @@ definitions:
     required:
     - email
     type: object
-  auth.CheckEmailResponse:
+  dtov1.CheckEmailResponse:
     properties:
       exists:
         example: true
         type: boolean
     type: object
-  auth.DeviceRequest:
+  dtov1.ConsumableItemResponse:
+    properties:
+      amount:
+        type: integer
+      item_type:
+        type: string
+    type: object
+  dtov1.ConversationResponse:
+    properties:
+      avatar_url:
+        type: string
+      avatar_urls:
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      entity:
+        $ref: '#/definitions/dtov1.EntityResponse'
+      id:
+        type: string
+      is_typing:
+        type: boolean
+      last_message:
+        $ref: '#/definitions/dtov1.MessageResponse'
+      swiper_entity_id:
+        type: string
+      title:
+        type: string
+      type:
+        description: '"direct" or "group"'
+        type: string
+      unread_count:
+        type: integer
+    type: object
+  dtov1.CreateGroupRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  dtov1.DeviceRequest:
     properties:
       app_version:
         type: string
@@ -62,14 +102,25 @@ definitions:
     required:
     - device_id
     type: object
-  auth.GoogleLoginRequest:
+  dtov1.EntityResponse:
+    properties:
+      group:
+        $ref: '#/definitions/dtov1.GroupResponse'
+      id:
+        type: string
+      type:
+        type: string
+      user:
+        $ref: '#/definitions/dtov1.UserResponse'
+    type: object
+  dtov1.GoogleLoginRequest:
     properties:
       bio:
         type: string
       date_of_birth:
         type: string
       device:
-        $ref: '#/definitions/auth.DeviceRequest'
+        $ref: '#/definitions/dtov1.DeviceRequest'
       email:
         example: user@example.com
         type: string
@@ -107,7 +158,7 @@ definitions:
         type: string
       photos:
         items:
-          $ref: '#/definitions/auth.PhotoRequest'
+          $ref: '#/definitions/dtov1.PhotoRequest'
         type: array
       profile_picture:
         example: https://example.com/photo.jpg
@@ -116,10 +167,56 @@ definitions:
     - email
     - google_id
     type: object
-  auth.LoginEmailRequest:
+  dtov1.GroupResponse:
+    properties:
+      created_by:
+        type: string
+      entity_id:
+        type: string
+      id:
+        type: string
+      main_photos:
+        items:
+          type: string
+        type: array
+      members:
+        items:
+          $ref: '#/definitions/dtov1.UserResponse'
+        type: array
+      name:
+        type: string
+    type: object
+  dtov1.IncomingLikeResponse:
+    properties:
+      entity:
+        $ref: '#/definitions/dtov1.EntityResponse'
+      is_boosted:
+        type: boolean
+      is_crush:
+        type: boolean
+      swipe_time:
+        type: string
+      target_entity_id:
+        type: string
+    type: object
+  dtov1.InviteToGroupRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
+  dtov1.LikesSummaryResponse:
+    properties:
+      count:
+        type: integer
+      last_photo:
+        type: string
+    type: object
+  dtov1.LoginEmailRequest:
     properties:
       device:
-        $ref: '#/definitions/auth.DeviceRequest'
+        $ref: '#/definitions/dtov1.DeviceRequest'
       email:
         example: user@example.com
         type: string
@@ -130,15 +227,60 @@ definitions:
     - email
     - password
     type: object
-  auth.LogoutRequest:
+  dtov1.LogoutRequest:
     properties:
       device_id:
         type: string
     required:
     - device_id
     type: object
-  auth.PhotoRequest:
+  dtov1.MasterItemResponse:
     properties:
+      icon:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  dtov1.MatchResponse:
+    properties:
+      is_match:
+        type: boolean
+      match_id:
+        type: string
+      matched_entity:
+        $ref: '#/definitions/dtov1.EntityResponse'
+    type: object
+  dtov1.MessageResponse:
+    properties:
+      content:
+        type: string
+      conversation_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_read:
+        type: boolean
+      metadata:
+        $ref: '#/definitions/entities.MessageMetadata'
+      sender_id:
+        type: string
+      sender_name:
+        type: string
+      sender_photo_url:
+        type: string
+      type:
+        $ref: '#/definitions/entities.MessageType'
+    type: object
+  dtov1.PhotoRequest:
+    properties:
+      _destroy:
+        type: boolean
+      id:
+        type: string
       is_main:
         type: boolean
       url:
@@ -146,7 +288,16 @@ definitions:
     required:
     - url
     type: object
-  auth.RefreshTokenRequest:
+  dtov1.PhotoResponse:
+    properties:
+      id:
+        type: string
+      is_main:
+        type: boolean
+      url:
+        type: string
+    type: object
+  dtov1.RefreshTokenRequest:
     properties:
       device_id:
         type: string
@@ -156,7 +307,7 @@ definitions:
     - device_id
     - refresh_token
     type: object
-  auth.RegisterEmailRequest:
+  dtov1.RegisterEmailRequest:
     properties:
       bio:
         type: string
@@ -164,7 +315,7 @@ definitions:
         example: "1995-01-01"
         type: string
       device:
-        $ref: '#/definitions/auth.DeviceRequest'
+        $ref: '#/definitions/dtov1.DeviceRequest'
       email:
         example: user@example.com
         type: string
@@ -203,7 +354,7 @@ definitions:
         type: string
       photos:
         items:
-          $ref: '#/definitions/auth.PhotoRequest'
+          $ref: '#/definitions/dtov1.PhotoRequest'
         type: array
     required:
     - date_of_birth
@@ -211,766 +362,12 @@ definitions:
     - full_name
     - password
     type: object
-  auth.TokenResponse:
-    properties:
-      refresh_token:
-        example: abcdef123456...
-        type: string
-      token:
-        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        type: string
-    type: object
-  chat.ConversationResponse:
-    properties:
-      avatar_url:
-        type: string
-      avatar_urls:
-        items:
-          type: string
-        type: array
-      created_at:
-        type: string
-      entity:
-        $ref: '#/definitions/response.EntityResponse'
-      id:
-        type: string
-      is_typing:
-        type: boolean
-      last_message:
-        $ref: '#/definitions/chat.MessageResponse'
-      swiper_entity_id:
-        type: string
-      title:
-        type: string
-      type:
-        description: '"direct" or "group"'
-        type: string
-      unread_count:
-        type: integer
-    type: object
-  chat.MessageResponse:
-    properties:
-      content:
-        type: string
-      conversation_id:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: string
-      is_read:
-        type: boolean
-      metadata:
-        $ref: '#/definitions/entities.MessageMetadata'
-      sender_id:
-        type: string
-      sender_name:
-        type: string
-      sender_photo_url:
-        type: string
-      type:
-        $ref: '#/definitions/entities.MessageType'
-    type: object
-  entities.AuthProvider:
-    properties:
-      created_at:
-        type: string
-      id:
-        type: string
-      provider:
-        type: string
-      providerUserID:
-        type: string
-      updated_at:
-        type: string
-      userID:
-        type: string
-    type: object
-  entities.Device:
-    properties:
-      appVersion:
-        type: string
-      created_at:
-        type: string
-      deviceID:
-        type: string
-      deviceModel:
-        type: string
-      deviceName:
-        type: string
-      fcmtoken:
-        type: string
-      id:
-        type: string
-      isActive:
-        type: boolean
-      lastIP:
-        type: string
-      lastLogin:
-        type: string
-      osversion:
-        type: string
-      updated_at:
-        type: string
-      userID:
-        type: string
-    type: object
-  entities.Entity:
-    properties:
-      created_at:
-        type: string
-      group:
-        $ref: '#/definitions/entities.Group'
-      id:
-        type: string
-      type:
-        $ref: '#/definitions/entities.EntityType'
-      updated_at:
-        type: string
-      user:
-        allOf:
-        - $ref: '#/definitions/entities.User'
-        description: Associations for preloading
-    type: object
-  entities.EntityType:
-    enum:
-    - user
-    - group
-    type: string
-    x-enum-varnames:
-    - EntityTypeUser
-    - EntityTypeGroup
-  entities.Group:
-    properties:
-      created_at:
-        type: string
-      created_by:
-        type: string
-      entity:
-        allOf:
-        - $ref: '#/definitions/entities.Entity'
-        description: Associations
-      entity_id:
-        type: string
-      id:
-        type: string
-      members:
-        items:
-          $ref: '#/definitions/entities.GroupMember'
-        type: array
-      name:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  entities.GroupMember:
-    properties:
-      created_at:
-        type: string
-      group_id:
-        type: string
-      id:
-        type: string
-      is_admin:
-        type: boolean
-      updated_at:
-        type: string
-      user:
-        allOf:
-        - $ref: '#/definitions/entities.User'
-        description: Associations
-      user_id:
-        type: string
-    type: object
-  entities.MasterGender:
-    properties:
-      code:
-        type: string
-      created_at:
-        type: string
-      icon:
-        type: string
-      id:
-        type: string
-      isActive:
-        type: boolean
-      name:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  entities.MasterInterest:
-    properties:
-      created_at:
-        type: string
-      icon:
-        type: string
-      id:
-        type: string
-      isActive:
-        type: boolean
-      name:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  entities.MasterLanguage:
-    properties:
-      code:
-        type: string
-      created_at:
-        type: string
-      icon:
-        type: string
-      id:
-        type: string
-      isActive:
-        type: boolean
-      name:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  entities.MasterRelationshipType:
-    properties:
-      code:
-        type: string
-      created_at:
-        type: string
-      icon:
-        type: string
-      id:
-        type: string
-      isActive:
-        type: boolean
-      name:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  entities.MessageMetadata:
-    properties:
-      gif_provider:
-        type: string
-      image_height:
-        type: integer
-      image_width:
-        type: integer
-    type: object
-  entities.MessageType:
-    enum:
-    - text
-    - image
-    - gif
-    type: string
-    x-enum-varnames:
-    - MessageTypeText
-    - MessageTypeImage
-    - MessageTypeGif
-  entities.Photo:
-    properties:
-      created_at:
-        type: string
-      id:
-        type: string
-      isMain:
-        type: boolean
-      sortOrder:
-        type: integer
-      updated_at:
-        type: string
-      url:
-        type: string
-      userID:
-        type: string
-    type: object
-  entities.RefreshToken:
-    properties:
-      created_at:
-        type: string
-      deviceID:
-        type: string
-      expiresAt:
-        type: string
-      id:
-        type: string
-      revokedAt:
-        type: string
-      tokenHash:
-        type: string
-      updated_at:
-        type: string
-      userID:
-        type: string
-    type: object
-  entities.SubscriptionPlan:
-    properties:
-      created_at:
-        type: string
-      features:
-        items:
-          $ref: '#/definitions/entities.SubscriptionPlanFeature'
-        type: array
-      id:
-        type: string
-      is_active:
-        type: boolean
-      name:
-        type: string
-      prices:
-        items:
-          $ref: '#/definitions/entities.SubscriptionPrice'
-        type: array
-      updated_at:
-        type: string
-    type: object
-  entities.SubscriptionPlanFeature:
-    properties:
-      amount:
-        type: integer
-      category:
-        type: string
-      created_at:
-        type: string
-      display_title:
-        type: string
-      feature_key:
-        type: string
-      icon:
-        type: string
-      id:
-        type: string
-      is_active:
-        type: boolean
-      is_consumable:
-        type: boolean
-      plan_id:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  entities.SubscriptionPrice:
-    properties:
-      created_at:
-        type: string
-      currency:
-        type: string
-      duration_type:
-        description: weekly, monthly, quarterly, yearly
-        type: string
-      external_slug:
-        description: For App Store / Play Store Product ID
-        type: string
-      id:
-        type: string
-      plan_id:
-        type: string
-      price:
-        type: number
-      updated_at:
-        type: string
-    type: object
-  entities.User:
-    properties:
-      age:
-        type: integer
-      authProviders:
-        items:
-          $ref: '#/definitions/entities.AuthProvider'
-        type: array
-      bio:
-        type: string
-      consumables:
-        items:
-          $ref: '#/definitions/entities.UserConsumable'
-        type: array
-      created_at:
-        type: string
-      dateOfBirth:
-        type: string
-      deleted_at:
-        format: date-time
-        type: string
-      devices:
-        items:
-          $ref: '#/definitions/entities.Device'
-        type: array
-      email:
-        type: string
-      entity:
-        allOf:
-        - $ref: '#/definitions/entities.Entity'
-        description: Associations
-      entity_id:
-        type: string
-      fullName:
-        type: string
-      gender:
-        $ref: '#/definitions/entities.MasterGender'
-      genderID:
-        type: string
-      heightCM:
-        type: integer
-      id:
-        type: string
-      interestedGenders:
-        description: Many-to-Many Associations via pivot tables
-        items:
-          $ref: '#/definitions/entities.MasterGender'
-        type: array
-      interests:
-        items:
-          $ref: '#/definitions/entities.MasterInterest'
-        type: array
-      isPremium:
-        type: boolean
-      languages:
-        items:
-          $ref: '#/definitions/entities.MasterLanguage'
-        type: array
-      lastActiveAt:
-        type: string
-      latitude:
-        type: number
-      locationCity:
-        type: string
-      locationCountry:
-        type: string
-      longitude:
-        type: number
-      passwordHash:
-        type: string
-      photos:
-        items:
-          $ref: '#/definitions/entities.Photo'
-        type: array
-      refreshTokens:
-        items:
-          $ref: '#/definitions/entities.RefreshToken'
-        type: array
-      relationshipType:
-        $ref: '#/definitions/entities.MasterRelationshipType'
-      relationshipTypeID:
-        type: string
-      status:
-        $ref: '#/definitions/entities.UserStatus'
-      subscriptions:
-        items:
-          $ref: '#/definitions/entities.UserSubscription'
-        type: array
-      swipeCountToday:
-        type: integer
-      updated_at:
-        type: string
-      verifiedAt:
-        type: string
-    type: object
-  entities.UserConsumable:
-    properties:
-      amount:
-        type: integer
-      created_at:
-        type: string
-      id:
-        type: string
-      item_type:
-        description: boost, crush
-        type: string
-      last_used_at:
-        type: string
-      updated_at:
-        type: string
-      user_id:
-        type: string
-    type: object
-  entities.UserStatus:
-    enum:
-    - onboarding
-    - active
-    - banned
-    type: string
-    x-enum-varnames:
-    - UserStatusOnboarding
-    - UserStatusActive
-    - UserStatusBanned
-  entities.UserSubscription:
-    properties:
-      created_at:
-        type: string
-      deleted_at:
-        format: date-time
-        type: string
-      expired_at:
-        type: string
-      id:
-        type: string
-      is_active:
-        type: boolean
-      plan:
-        $ref: '#/definitions/entities.SubscriptionPlan'
-      plan_id:
-        type: string
-      started_at:
-        type: string
-      updated_at:
-        type: string
-      user_id:
-        type: string
-    type: object
-  groups.AcceptInviteRequest:
-    properties:
-      token:
-        type: string
-    required:
-    - token
-    type: object
-  groups.CreateGroupRequest:
-    properties:
-      name:
-        type: string
-    required:
-    - name
-    type: object
-  groups.InviteToGroupRequest:
-    properties:
-      user_id:
-        type: string
-    required:
-    - user_id
-    type: object
-  master.AdResponse:
-    properties:
-      active:
-        example: true
-        type: boolean
-      id:
-        example: uuid
-        type: string
-      image_url:
-        example: https://example.com/banner.jpg
-        type: string
-      link:
-        example: https://example.com/promo
-        type: string
-      order:
-        example: 1
-        type: integer
-      placement:
-        description: carousel, card_deck, popup_modal, interstitial
-        example: carousel
-        type: string
-      source:
-        description: internal, sponsor, admob
-        example: internal
-        type: string
-      sponsor:
-        example: Brand Name
-        type: string
-    type: object
-  monetization.ActivateBoostRequest:
-    properties:
-      entity_id:
-        type: string
-    required:
-    - entity_id
-    type: object
-  monetization.PurchaseRequest:
-    properties:
-      item_id:
-        type: string
-      plan_id:
-        type: string
-      price_id:
-        type: string
-    type: object
-  response.BaseResponse:
-    properties:
-      data: {}
-      errors: {}
-      message:
-        example: Success
-        type: string
-      status:
-        example: 200
-        type: integer
-    type: object
-  response.ConsumableItemResponse:
-    properties:
-      amount:
-        type: integer
-      item_type:
-        type: string
-    type: object
-  response.EntityResponse:
-    properties:
-      group:
-        $ref: '#/definitions/response.GroupResponse'
-      id:
-        type: string
-      type:
-        type: string
-      user:
-        $ref: '#/definitions/response.UserResponse'
-    type: object
-  response.GroupResponse:
-    properties:
-      created_by:
-        type: string
-      entity_id:
-        type: string
-      id:
-        type: string
-      main_photos:
-        items:
-          type: string
-        type: array
-      members:
-        items:
-          $ref: '#/definitions/response.UserResponse'
-        type: array
-      name:
-        type: string
-    type: object
-  response.MasterItemResponse:
-    properties:
-      icon:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-    type: object
-  response.PhotoResponse:
-    properties:
-      id:
-        type: string
-      is_main:
-        type: boolean
-      url:
-        type: string
-    type: object
-  response.UserResponse:
-    properties:
-      age:
-        type: integer
-      bio:
-        type: string
-      consumables:
-        items:
-          $ref: '#/definitions/response.ConsumableItemResponse'
-        type: array
-      created_at:
-        type: string
-      date_of_birth:
-        type: string
-      email:
-        type: string
-      entity_id:
-        type: string
-      full_name:
-        type: string
-      gender:
-        $ref: '#/definitions/response.MasterItemResponse'
-      height_cm:
-        type: integer
-      id:
-        type: string
-      interested_genders:
-        items:
-          $ref: '#/definitions/response.MasterItemResponse'
-        type: array
-      interests:
-        items:
-          $ref: '#/definitions/response.MasterItemResponse'
-        type: array
-      languages:
-        items:
-          $ref: '#/definitions/response.MasterItemResponse'
-        type: array
-      latitude:
-        type: number
-      location_city:
-        type: string
-      location_country:
-        type: string
-      longitude:
-        type: number
-      main_photo:
-        type: string
-      photos:
-        items:
-          $ref: '#/definitions/response.PhotoResponse'
-        type: array
-      relationship_type:
-        $ref: '#/definitions/response.MasterItemResponse'
-      relationshipType:
-        $ref: '#/definitions/response.MasterItemResponse'
-      status:
-        $ref: '#/definitions/entities.UserStatus'
-      subscription:
-        $ref: '#/definitions/response.UserSubscriptionResponse'
-      updated_at:
-        type: string
-      verified_at:
-        type: string
-    type: object
-  response.UserSubscriptionResponse:
-    properties:
-      expired_at:
-        type: string
-      is_active:
-        type: boolean
-      plan_id:
-        type: string
-      plan_name:
-        type: string
-      started_at:
-        type: string
-    type: object
-  response.VerificationResult:
-    properties:
-      confidence:
-        type: number
-      error:
-        type: string
-      is_match:
-        type: boolean
-    type: object
-  swipe.IncomingLikeResponse:
-    properties:
-      entity:
-        $ref: '#/definitions/response.EntityResponse'
-      is_boosted:
-        type: boolean
-      is_crush:
-        type: boolean
-      swipe_time:
-        type: string
-      target_entity_id:
-        type: string
-    type: object
-  swipe.LikesSummaryResponse:
-    properties:
-      count:
-        type: integer
-      last_photo:
-        type: string
-    type: object
-  swipe.MatchResponse:
-    properties:
-      is_match:
-        type: boolean
-      match_id:
-        type: string
-      matched_entity:
-        $ref: '#/definitions/response.EntityResponse'
-    type: object
-  swipe.SentLikeResponse:
+  dtov1.SentLikeResponse:
     properties:
       created_at:
         type: string
       entity:
-        $ref: '#/definitions/response.EntityResponse'
+        $ref: '#/definitions/dtov1.EntityResponse'
       expires_at:
         type: string
       is_boosted:
@@ -980,7 +377,7 @@ definitions:
       swiper_entity_id:
         type: string
     type: object
-  swipe.SwipeRequest:
+  dtov1.SwipeRequest:
     properties:
       direction:
         enum:
@@ -997,44 +394,16 @@ definitions:
     - swiped_entity_id
     - swiper_entity_id
     type: object
-  user.NotificationSettingRequest:
+  dtov1.TokenResponse:
     properties:
-      is_enable:
-        type: boolean
-      notification_setting_id:
+      refresh_token:
+        example: abcdef123456...
         type: string
-    required:
-    - notification_setting_id
-    type: object
-  user.NotificationSettingResponse:
-    properties:
-      description:
-        type: string
-      id:
-        type: string
-      is_enable:
-        type: boolean
-      is_user_enable:
-        type: boolean
-      title:
-        type: string
-      type:
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
     type: object
-  user.PhotoRequest:
-    properties:
-      _destroy:
-        type: boolean
-      id:
-        type: string
-      is_main:
-        type: boolean
-      url:
-        type: string
-    required:
-    - url
-    type: object
-  user.UpdateProfileRequest:
+  dtov1.UpdateProfileRequest:
     properties:
       bio:
         type: string
@@ -1068,7 +437,7 @@ definitions:
       photos:
         description: List of photo objects
         items:
-          $ref: '#/definitions/user.PhotoRequest'
+          $ref: '#/definitions/dtov1.PhotoRequest'
         type: array
       relationship_type:
         type: string
@@ -1076,11 +445,390 @@ definitions:
         description: onboarding, active
         type: string
     type: object
-  user.UploadURLResponse:
+  dtov1.UploadURLResponse:
     properties:
       file_key:
         type: string
       upload_url:
+        type: string
+    type: object
+  dtov1.UserResponse:
+    properties:
+      age:
+        type: integer
+      bio:
+        type: string
+      consumables:
+        items:
+          $ref: '#/definitions/dtov1.ConsumableItemResponse'
+        type: array
+      created_at:
+        type: string
+      date_of_birth:
+        type: string
+      email:
+        type: string
+      entity_id:
+        type: string
+      full_name:
+        type: string
+      gender:
+        $ref: '#/definitions/dtov1.MasterItemResponse'
+      height_cm:
+        type: integer
+      id:
+        type: string
+      interested_genders:
+        items:
+          $ref: '#/definitions/dtov1.MasterItemResponse'
+        type: array
+      interests:
+        items:
+          $ref: '#/definitions/dtov1.MasterItemResponse'
+        type: array
+      languages:
+        items:
+          $ref: '#/definitions/dtov1.MasterItemResponse'
+        type: array
+      latitude:
+        type: number
+      location_city:
+        type: string
+      location_country:
+        type: string
+      longitude:
+        type: number
+      main_photo:
+        type: string
+      photos:
+        items:
+          $ref: '#/definitions/dtov1.PhotoResponse'
+        type: array
+      relationship_type:
+        $ref: '#/definitions/dtov1.MasterItemResponse'
+      relationshipType:
+        $ref: '#/definitions/dtov1.MasterItemResponse'
+      status:
+        $ref: '#/definitions/entities.UserStatus'
+      subscription:
+        $ref: '#/definitions/dtov1.UserSubscriptionResponse'
+      updated_at:
+        type: string
+      verified_at:
+        type: string
+    type: object
+  dtov1.UserSubscriptionResponse:
+    properties:
+      expired_at:
+        type: string
+      is_active:
+        type: boolean
+      plan_id:
+        type: string
+      plan_name:
+        type: string
+      started_at:
+        type: string
+    type: object
+  dtov1.VerificationResult:
+    properties:
+      confidence:
+        type: number
+      error:
+        type: string
+      is_match:
+        type: boolean
+    type: object
+  dtov2.ConsumableItemResponse:
+    properties:
+      amount:
+        type: integer
+      item_type:
+        type: string
+    type: object
+  dtov2.PhotoRequest:
+    properties:
+      destroy:
+        type: boolean
+      id:
+        type: string
+      is_main:
+        type: boolean
+      url:
+        type: string
+    required:
+    - url
+    type: object
+  dtov2.PhotoResponse:
+    properties:
+      id:
+        type: string
+      is_main:
+        type: boolean
+      url:
+        type: string
+    type: object
+  dtov2.UpdateProfileRequest:
+    properties:
+      bio:
+        type: string
+      date_of_birth:
+        description: YYYY-MM-DD
+        type: string
+      full_name:
+        type: string
+      gender:
+        type: string
+      height_cm:
+        type: integer
+      interested_in:
+        type: string
+      interests:
+        items:
+          type: string
+        type: array
+      languages:
+        items:
+          type: string
+        type: array
+      latitude:
+        type: number
+      location_city:
+        type: string
+      location_country:
+        type: string
+      longitude:
+        type: number
+      photos:
+        description: List of photo objects
+        items:
+          $ref: '#/definitions/dtov2.PhotoRequest'
+        type: array
+      relationship_type:
+        type: string
+      status:
+        description: onboarding, active
+        type: string
+    type: object
+  dtov2.UploadURLResponse:
+    properties:
+      file_key:
+        type: string
+      upload_url:
+        type: string
+    type: object
+  dtov2.UserResponse:
+    properties:
+      age:
+        type: integer
+      bio:
+        type: string
+      consumables:
+        items:
+          $ref: '#/definitions/dtov2.ConsumableItemResponse'
+        type: array
+      created_at:
+        type: string
+      date_of_birth:
+        type: string
+      email:
+        type: string
+      entity_id:
+        type: string
+      full_name:
+        type: string
+      gender:
+        $ref: '#/definitions/dtov2.V2BaseMasterItemResponse'
+      height_cm:
+        type: integer
+      id:
+        type: string
+      interested_genders:
+        items:
+          $ref: '#/definitions/dtov2.V2BaseMasterItemResponse'
+        type: array
+      interests:
+        items:
+          $ref: '#/definitions/dtov2.V2BaseMasterItemResponse'
+        type: array
+      languages:
+        items:
+          $ref: '#/definitions/dtov2.V2BaseMasterItemResponse'
+        type: array
+      latitude:
+        type: number
+      location_city:
+        type: string
+      location_country:
+        type: string
+      longitude:
+        type: number
+      main_photo:
+        type: string
+      photos:
+        items:
+          $ref: '#/definitions/dtov2.PhotoResponse'
+        type: array
+      relationship_type:
+        $ref: '#/definitions/dtov2.V2BaseMasterItemResponse'
+      relationshipType:
+        $ref: '#/definitions/dtov2.V2BaseMasterItemResponse'
+      status:
+        $ref: '#/definitions/entities.UserStatus'
+      subscription:
+        $ref: '#/definitions/dtov2.UserSubscriptionResponse'
+      updated_at:
+        type: string
+      verified_at:
+        type: string
+    type: object
+  dtov2.UserSubscriptionResponse:
+    properties:
+      expired_at:
+        type: string
+      is_active:
+        type: boolean
+      plan_id:
+        type: string
+      plan_name:
+        type: string
+      started_at:
+        type: string
+    type: object
+  dtov2.V2BaseMasterItemResponse:
+    properties:
+      icon:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  dtov2.VerificationResult:
+    properties:
+      confidence:
+        type: number
+      error:
+        type: string
+      is_match:
+        type: boolean
+    type: object
+  entities.MessageMetadata:
+    properties:
+      gif_provider:
+        type: string
+      image_height:
+        type: integer
+      image_width:
+        type: integer
+    type: object
+  entities.MessageType:
+    enum:
+    - text
+    - image
+    - gif
+    type: string
+    x-enum-varnames:
+    - MessageTypeText
+    - MessageTypeImage
+    - MessageTypeGif
+  entities.UserStatus:
+    enum:
+    - onboarding
+    - active
+    - banned
+    type: string
+    x-enum-varnames:
+    - UserStatusOnboarding
+    - UserStatusActive
+    - UserStatusBanned
+  v1.ActivateBoostRequest:
+    properties:
+      entity_id:
+        type: string
+    required:
+    - entity_id
+    type: object
+  v1.AdResponse:
+    properties:
+      active:
+        example: true
+        type: boolean
+      id:
+        example: uuid
+        type: string
+      image_url:
+        example: https://example.com/banner.jpg
+        type: string
+      link:
+        example: https://example.com/promo
+        type: string
+      order:
+        example: 1
+        type: integer
+      placement:
+        description: carousel, card_deck, popup_modal, interstitial
+        example: carousel
+        type: string
+      source:
+        description: internal, sponsor, admob
+        example: internal
+        type: string
+      sponsor:
+        example: Brand Name
+        type: string
+    type: object
+  v1.AdminConsumableRequest:
+    properties:
+      package_id:
+        type: string
+      user_id:
+        type: string
+    required:
+    - package_id
+    - user_id
+    type: object
+  v1.AdminSubscribeRequest:
+    properties:
+      plan_id:
+        type: string
+      user_id:
+        type: string
+    required:
+    - plan_id
+    - user_id
+    type: object
+  v1.NotificationSettingRequest:
+    properties:
+      is_enable:
+        type: boolean
+      notification_setting_id:
+        type: string
+    required:
+    - notification_setting_id
+    type: object
+  v1.NotificationSettingResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      is_user_enable:
+        type: boolean
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  v1.PurchaseRequest:
+    properties:
+      item_id:
+        type: string
+      plan_id:
+        type: string
+      price_id:
         type: string
     type: object
 host: localhost:8080
@@ -1103,7 +851,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - Bearer: []
       summary: Get all configs
@@ -1147,14 +895,19 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/admin.AdminConsumableRequest'
+          $ref: '#/definitions/v1.AdminConsumableRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.UserResponse'
+            allOf:
+            - $ref: '#/definitions/base.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtov1.UserResponse'
+              type: object
       security:
       - Bearer: []
       summary: Simulate adding a boost package to user
@@ -1170,14 +923,19 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/admin.AdminConsumableRequest'
+          $ref: '#/definitions/v1.AdminConsumableRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.UserResponse'
+            allOf:
+            - $ref: '#/definitions/base.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtov1.UserResponse'
+              type: object
       security:
       - Bearer: []
       summary: Simulate adding a crush package to user
@@ -1193,14 +951,19 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/admin.AdminSubscribeRequest'
+          $ref: '#/definitions/v1.AdminSubscribeRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.UserResponse'
+            allOf:
+            - $ref: '#/definitions/base.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtov1.UserResponse'
+              type: object
       security:
       - Bearer: []
       summary: Simulate user subscription to a plan
@@ -1223,17 +986,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/master.AdResponse'
+                    $ref: '#/definitions/v1.AdResponse'
                   type: array
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Get active advertisements
       tags:
       - advertisements
@@ -1248,7 +1011,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.CheckEmailRequest'
+          $ref: '#/definitions/dtov1.CheckEmailRequest'
       produces:
       - application/json
       responses:
@@ -1256,15 +1019,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.CheckEmailResponse'
+                  $ref: '#/definitions/dtov1.CheckEmailResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Check if email exists
       tags:
       - auth
@@ -1280,7 +1043,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.GoogleLoginRequest'
+          $ref: '#/definitions/dtov1.GoogleLoginRequest'
       produces:
       - application/json
       responses:
@@ -1288,15 +1051,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.AuthResponse'
+                  $ref: '#/definitions/dtov1.AuthResponse'
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Google OAuth Login/Register
       tags:
       - auth
@@ -1312,7 +1075,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.LoginEmailRequest'
+          $ref: '#/definitions/dtov1.LoginEmailRequest'
       produces:
       - application/json
       responses:
@@ -1320,15 +1083,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.AuthResponse'
+                  $ref: '#/definitions/dtov1.AuthResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Login via Email
       tags:
       - auth
@@ -1344,18 +1107,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.LogoutRequest'
+          $ref: '#/definitions/dtov1.LogoutRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Logout
@@ -1373,7 +1136,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.RefreshTokenRequest'
+          $ref: '#/definitions/dtov1.RefreshTokenRequest'
       produces:
       - application/json
       responses:
@@ -1381,15 +1144,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.TokenResponse'
+                  $ref: '#/definitions/dtov1.TokenResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Refresh Access Token
       tags:
       - auth
@@ -1404,7 +1167,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/auth.RegisterEmailRequest'
+          $ref: '#/definitions/dtov1.RegisterEmailRequest'
       produces:
       - application/json
       responses:
@@ -1412,15 +1175,15 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.AuthResponse'
+                  $ref: '#/definitions/dtov1.AuthResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Register via Email
       tags:
       - auth
@@ -1432,14 +1195,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/monetization.ActivateBoostRequest'
+          $ref: '#/definitions/v1.ActivateBoostRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Activate a boost for the user
@@ -1453,7 +1216,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Check if user has boosts available and current boost status
@@ -1481,11 +1244,11 @@ paths:
           description: Conversations list
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/chat.ConversationResponse'
+                    $ref: '#/definitions/dtov1.ConversationResponse'
                   type: array
               type: object
       security:
@@ -1520,11 +1283,11 @@ paths:
           description: Message history
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/chat.MessageResponse'
+                    $ref: '#/definitions/dtov1.MessageResponse'
                   type: array
               type: object
       security:
@@ -1550,10 +1313,10 @@ paths:
           description: Conversation details
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/chat.ConversationResponse'
+                  $ref: '#/definitions/dtov1.ConversationResponse'
               type: object
       security:
       - BearerAuth: []
@@ -1582,11 +1345,11 @@ paths:
           description: New matches list
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/chat.ConversationResponse'
+                    $ref: '#/definitions/dtov1.ConversationResponse'
                   type: array
               type: object
       security:
@@ -1605,7 +1368,7 @@ paths:
         "501":
           description: Not implemented
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get chat media upload URL
@@ -1630,23 +1393,23 @@ paths:
           description: Entity profile
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.EntityResponse'
+                  $ref: '#/definitions/dtov1.EntityResponse'
               type: object
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
         "404":
           description: Entity not found
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get entity details
@@ -1664,14 +1427,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/groups.AcceptInviteRequest'
+          $ref: '#/definitions/dtov1.AcceptInviteRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Accept group invitation
@@ -1695,7 +1458,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   additionalProperties: true
@@ -1715,7 +1478,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/groups.CreateGroupRequest'
+          $ref: '#/definitions/dtov1.CreateGroupRequest'
       produces:
       - application/json
       responses:
@@ -1723,10 +1486,10 @@ paths:
           description: Created group details
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/entities.Group'
+                  $ref: '#/definitions/dtov1.GroupResponse'
               type: object
       security:
       - BearerAuth: []
@@ -1750,7 +1513,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Disband group
@@ -1773,7 +1536,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Leave group
@@ -1801,7 +1564,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Kick group member
@@ -1823,14 +1586,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/groups.InviteToGroupRequest'
+          $ref: '#/definitions/dtov1.InviteToGroupRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Successfully invited
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Invite user to group
@@ -1854,7 +1617,7 @@ paths:
           description: Invite Link
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   type: string
@@ -1877,15 +1640,15 @@ paths:
           description: Group details
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.GroupResponse'
+                  $ref: '#/definitions/dtov1.GroupResponse'
               type: object
         "404":
           description: Group not found
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get user's group
@@ -1901,17 +1664,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/response.MasterItemResponse'
+                    $ref: '#/definitions/dtov1.MasterItemResponse'
                   type: array
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Get all active genders
       tags:
       - master
@@ -1925,17 +1688,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/response.MasterItemResponse'
+                    $ref: '#/definitions/dtov1.MasterItemResponse'
                   type: array
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Get all active interests
       tags:
       - master
@@ -1949,17 +1712,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/response.MasterItemResponse'
+                    $ref: '#/definitions/dtov1.MasterItemResponse'
                   type: array
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Get all active languages
       tags:
       - master
@@ -1974,17 +1737,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/response.MasterItemResponse'
+                    $ref: '#/definitions/dtov1.MasterItemResponse'
                   type: array
               type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Get all active relationship types
       tags:
       - master
@@ -1997,7 +1760,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: List all consumable items
       tags:
       - Monetization
@@ -2011,7 +1774,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: List all subscription plans
       tags:
       - Monetization
@@ -2025,14 +1788,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/monetization.PurchaseRequest'
+          $ref: '#/definitions/v1.PurchaseRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Purchase a consumable item
       tags:
       - Monetization
@@ -2046,14 +1809,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/monetization.PurchaseRequest'
+          $ref: '#/definitions/v1.PurchaseRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       summary: Purchase a subscription plan
       tags:
       - Monetization
@@ -2065,7 +1828,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get current user's subscription status and features
@@ -2083,7 +1846,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/swipe.SwipeRequest'
+          $ref: '#/definitions/dtov1.SwipeRequest'
       produces:
       - application/json
       responses:
@@ -2091,10 +1854,10 @@ paths:
           description: Swipe recorded result
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/swipe.MatchResponse'
+                  $ref: '#/definitions/dtov1.MatchResponse'
               type: object
       security:
       - BearerAuth: []
@@ -2162,11 +1925,11 @@ paths:
           description: Candidate list
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/response.EntityResponse'
+                    $ref: '#/definitions/dtov1.EntityResponse'
                   type: array
               type: object
       security:
@@ -2193,11 +1956,11 @@ paths:
           description: Incoming likes list
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/swipe.IncomingLikeResponse'
+                    $ref: '#/definitions/dtov1.IncomingLikeResponse'
                   type: array
               type: object
       security:
@@ -2224,10 +1987,10 @@ paths:
           description: Likes summary data
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/swipe.LikesSummaryResponse'
+                  $ref: '#/definitions/dtov1.LikesSummaryResponse'
               type: object
       security:
       - BearerAuth: []
@@ -2252,11 +2015,11 @@ paths:
           description: Sent likes list
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/swipe.SentLikeResponse'
+                    $ref: '#/definitions/dtov1.SentLikeResponse'
                   type: array
               type: object
       security:
@@ -2287,7 +2050,7 @@ paths:
         "200":
           description: Successfully unliked
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Unlike an entity
@@ -2311,7 +2074,7 @@ paths:
         "200":
           description: Successfully unmatched
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Unmatch an entity
@@ -2330,21 +2093,21 @@ paths:
           description: List of notification settings
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/user.NotificationSettingResponse'
+                    $ref: '#/definitions/v1.NotificationSettingResponse'
                   type: array
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get user notification settings
@@ -2361,26 +2124,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/user.NotificationSettingRequest'
+          $ref: '#/definitions/v1.NotificationSettingRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Success
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Update a user notification setting
@@ -2394,7 +2157,7 @@ paths:
         "200":
           description: Successfully deleted
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Delete user account
@@ -2411,7 +2174,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/user.UpdateProfileRequest'
+          $ref: '#/definitions/dtov2.UpdateProfileRequest'
       produces:
       - application/json
       responses:
@@ -2419,10 +2182,10 @@ paths:
           description: Updated profile
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.UserResponse'
+                  $ref: '#/definitions/dtov2.UserResponse'
               type: object
       security:
       - BearerAuth: []
@@ -2447,19 +2210,19 @@ paths:
           description: User profile
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.UserResponse'
+                  $ref: '#/definitions/dtov2.UserResponse'
               type: object
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.BaseResponse'
+            $ref: '#/definitions/base.BaseResponse'
       security:
       - BearerAuth: []
       summary: Get user profile
@@ -2473,10 +2236,10 @@ paths:
           description: Upload URL details
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/user.UploadURLResponse'
+                  $ref: '#/definitions/dtov2.UploadURLResponse'
               type: object
       security:
       - BearerAuth: []
@@ -2498,10 +2261,10 @@ paths:
           description: Upload URL details
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/user.UploadURLResponse'
+                  $ref: '#/definitions/dtov2.UploadURLResponse'
               type: object
       summary: Get public upload URL
       tags:
@@ -2525,10 +2288,10 @@ paths:
           description: Verification result
           schema:
             allOf:
-            - $ref: '#/definitions/response.BaseResponse'
+            - $ref: '#/definitions/base.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.VerificationResult'
+                  $ref: '#/definitions/dtov2.VerificationResult'
               type: object
       security:
       - BearerAuth: []

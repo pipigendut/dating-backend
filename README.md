@@ -18,17 +18,43 @@ This project follows **Clean Architecture** to ensure separation of concerns, sc
 
 ```mermaid
 graph TD
-    A[Delivery Layer / HTTP] --> B[Usecase Layer / Business Logic]
+    A[Delivery Layer / HTTP] --> B[Service Layer / Business Logic]
     B --> C[Repository Layer / Data Access]
     C --> D[Domain Layer / Entities]
     B --> D
 ```
 
+### Layer Responsibilities
+
 - **`internal/entities`**: Core business models (User, Profile, Photo).
-- **`internal/usecases`**: Business logic orchestration.
+- **`internal/services`**: Business logic orchestration.
 - **`internal/repository`**: Data persistence interfaces and GORM implementations.
 - **`internal/delivery/http`**: HTTP handlers, requests/responses DTOs.
 - **`pkg`**: Shared utilities (Auth, JWT, etc.).
+
+## 📁 Project Structure
+
+```text
+cmd/
+├── migrate/           # Database migration tool
+├── seed/              # Master data seeder
+└── app/               # Main entry point (runs all versions)
+
+internal/
+├── background/        # Asynq task routers and job definitions
+├── chat/              # WebSocket hub and communication logic
+├── delivery/
+│   └── http/
+│       ├── dto/       # Shared and versioned DTOs
+│       ├── handler/   # Versioned handlers (v1, v2)
+│       └── middleware/# Auth, Anti-cheat, Cache
+├── entities/          # Core domain models
+├── infra/             # Core infrastructure (S3, FCM, ML, Postgres, Redis)
+├── providers/         # External service providers
+├── repository/        # Data access layer
+├── routes/            # Global and versioned route registration
+└── services/          # Pure business logic layer
+```
 
 ## 🔑 Key Features
 
@@ -94,13 +120,20 @@ graph TD
 
 ## 📖 API Documentation
 
-The project uses Swagger for API documentation.
+The project uses Swagger UI with per-version documentation.
 
-1. **Access Swagger UI**: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
-2. **Regenerate Documentation** (after adding annotations):
-   ```bash
-   swag init -g cmd/app/main.go
-   ```
+| Version | URL |
+| :--- | :--- |
+| **V1** | [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html) |
+
+Use the **"Select a definition"** dropdown at the top right of the Swagger UI to switch between API versions. Defaults to **V1 - Current**.
+
+### Regenerate Swagger Docs
+
+```bash
+# Regenerate docs (run from project root)
+swag init -g cmd/app/main.go -o docs
+```
 
 ## 🌐 Environment & Development
 

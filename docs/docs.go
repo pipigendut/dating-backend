@@ -39,7 +39,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -117,7 +117,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/admin.AdminConsumableRequest"
+                            "$ref": "#/definitions/v1.AdminConsumableRequest"
                         }
                     }
                 ],
@@ -125,7 +125,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.UserResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/base.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtov1.UserResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -155,7 +167,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/admin.AdminConsumableRequest"
+                            "$ref": "#/definitions/v1.AdminConsumableRequest"
                         }
                     }
                 ],
@@ -163,7 +175,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.UserResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/base.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtov1.UserResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -193,7 +217,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/admin.AdminSubscribeRequest"
+                            "$ref": "#/definitions/v1.AdminSubscribeRequest"
                         }
                     }
                 ],
@@ -201,7 +225,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.UserResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/base.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtov1.UserResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -234,7 +270,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -242,7 +278,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/master.AdResponse"
+                                                "$ref": "#/definitions/v1.AdResponse"
                                             }
                                         }
                                     }
@@ -253,7 +289,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -279,7 +315,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.CheckEmailRequest"
+                            "$ref": "#/definitions/dtov1.CheckEmailRequest"
                         }
                     }
                 ],
@@ -289,13 +325,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.CheckEmailResponse"
+                                            "$ref": "#/definitions/dtov1.CheckEmailResponse"
                                         }
                                     }
                                 }
@@ -305,7 +341,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -331,7 +367,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.GoogleLoginRequest"
+                            "$ref": "#/definitions/dtov1.GoogleLoginRequest"
                         }
                     }
                 ],
@@ -341,13 +377,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.AuthResponse"
+                                            "$ref": "#/definitions/dtov1.AuthResponse"
                                         }
                                     }
                                 }
@@ -357,7 +393,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -383,7 +419,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.LoginEmailRequest"
+                            "$ref": "#/definitions/dtov1.LoginEmailRequest"
                         }
                     }
                 ],
@@ -393,13 +429,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.AuthResponse"
+                                            "$ref": "#/definitions/dtov1.AuthResponse"
                                         }
                                     }
                                 }
@@ -409,7 +445,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -440,7 +476,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.LogoutRequest"
+                            "$ref": "#/definitions/dtov1.LogoutRequest"
                         }
                     }
                 ],
@@ -448,13 +484,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -480,7 +516,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RefreshTokenRequest"
+                            "$ref": "#/definitions/dtov1.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -490,13 +526,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.TokenResponse"
+                                            "$ref": "#/definitions/dtov1.TokenResponse"
                                         }
                                     }
                                 }
@@ -506,7 +542,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -532,7 +568,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RegisterEmailRequest"
+                            "$ref": "#/definitions/dtov1.RegisterEmailRequest"
                         }
                     }
                 ],
@@ -542,13 +578,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/auth.AuthResponse"
+                                            "$ref": "#/definitions/dtov1.AuthResponse"
                                         }
                                     }
                                 }
@@ -558,7 +594,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -585,7 +621,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/monetization.ActivateBoostRequest"
+                            "$ref": "#/definitions/v1.ActivateBoostRequest"
                         }
                     }
                 ],
@@ -593,7 +629,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -617,7 +653,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -661,7 +697,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -669,7 +705,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/chat.ConversationResponse"
+                                                "$ref": "#/definitions/dtov1.ConversationResponse"
                                             }
                                         }
                                     }
@@ -713,13 +749,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/chat.ConversationResponse"
+                                            "$ref": "#/definitions/dtov1.ConversationResponse"
                                         }
                                     }
                                 }
@@ -774,7 +810,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -782,7 +818,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/chat.MessageResponse"
+                                                "$ref": "#/definitions/dtov1.MessageResponse"
                                             }
                                         }
                                     }
@@ -831,7 +867,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -839,7 +875,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/chat.ConversationResponse"
+                                                "$ref": "#/definitions/dtov1.ConversationResponse"
                                             }
                                         }
                                     }
@@ -872,7 +908,7 @@ const docTemplate = `{
                     "501": {
                         "description": "Not implemented",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -911,13 +947,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/response.EntityResponse"
+                                            "$ref": "#/definitions/dtov1.EntityResponse"
                                         }
                                     }
                                 }
@@ -927,19 +963,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     },
                     "404": {
                         "description": "Entity not found",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -970,7 +1006,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/groups.AcceptInviteRequest"
+                            "$ref": "#/definitions/dtov1.AcceptInviteRequest"
                         }
                     }
                 ],
@@ -978,7 +1014,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1012,7 +1048,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1054,7 +1090,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/groups.CreateGroupRequest"
+                            "$ref": "#/definitions/dtov1.CreateGroupRequest"
                         }
                     }
                 ],
@@ -1064,13 +1100,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/entities.Group"
+                                            "$ref": "#/definitions/dtov1.GroupResponse"
                                         }
                                     }
                                 }
@@ -1104,13 +1140,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/response.GroupResponse"
+                                            "$ref": "#/definitions/dtov1.GroupResponse"
                                         }
                                     }
                                 }
@@ -1120,7 +1156,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Group not found",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1157,7 +1193,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1194,7 +1230,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1238,7 +1274,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1276,7 +1312,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/groups.InviteToGroupRequest"
+                            "$ref": "#/definitions/dtov1.InviteToGroupRequest"
                         }
                     }
                 ],
@@ -1284,7 +1320,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully invited",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1323,7 +1359,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1355,7 +1391,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1363,7 +1399,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/response.MasterItemResponse"
+                                                "$ref": "#/definitions/dtov1.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -1374,7 +1410,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1396,7 +1432,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1404,7 +1440,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/response.MasterItemResponse"
+                                                "$ref": "#/definitions/dtov1.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -1415,7 +1451,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1437,7 +1473,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1445,7 +1481,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/response.MasterItemResponse"
+                                                "$ref": "#/definitions/dtov1.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -1456,7 +1492,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1478,7 +1514,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1486,7 +1522,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/response.MasterItemResponse"
+                                                "$ref": "#/definitions/dtov1.MasterItemResponse"
                                             }
                                         }
                                     }
@@ -1497,7 +1533,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1517,7 +1553,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1537,7 +1573,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1562,7 +1598,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/monetization.PurchaseRequest"
+                            "$ref": "#/definitions/v1.PurchaseRequest"
                         }
                     }
                 ],
@@ -1570,7 +1606,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1595,7 +1631,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/monetization.PurchaseRequest"
+                            "$ref": "#/definitions/v1.PurchaseRequest"
                         }
                     }
                 ],
@@ -1603,7 +1639,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1627,7 +1663,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -1658,7 +1694,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swipe.SwipeRequest"
+                            "$ref": "#/definitions/dtov1.SwipeRequest"
                         }
                     }
                 ],
@@ -1668,13 +1704,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/swipe.MatchResponse"
+                                            "$ref": "#/definitions/dtov1.MatchResponse"
                                         }
                                     }
                                 }
@@ -1784,7 +1820,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1792,7 +1828,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/response.EntityResponse"
+                                                "$ref": "#/definitions/dtov1.EntityResponse"
                                             }
                                         }
                                     }
@@ -1836,7 +1872,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1844,7 +1880,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/swipe.IncomingLikeResponse"
+                                                "$ref": "#/definitions/dtov1.IncomingLikeResponse"
                                             }
                                         }
                                     }
@@ -1888,13 +1924,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/swipe.LikesSummaryResponse"
+                                            "$ref": "#/definitions/dtov1.LikesSummaryResponse"
                                         }
                                     }
                                 }
@@ -1937,7 +1973,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1945,7 +1981,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/swipe.SentLikeResponse"
+                                                "$ref": "#/definitions/dtov1.SentLikeResponse"
                                             }
                                         }
                                     }
@@ -1994,7 +2030,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully unliked",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -2031,7 +2067,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully unmatched",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -2061,7 +2097,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2069,7 +2105,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/user.NotificationSettingResponse"
+                                                "$ref": "#/definitions/v1.NotificationSettingResponse"
                                             }
                                         }
                                     }
@@ -2080,13 +2116,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -2115,7 +2151,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.NotificationSettingRequest"
+                            "$ref": "#/definitions/v1.NotificationSettingRequest"
                         }
                     }
                 ],
@@ -2123,25 +2159,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Success",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -2163,7 +2199,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully deleted",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -2192,7 +2228,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.UpdateProfileRequest"
+                            "$ref": "#/definitions/dtov2.UpdateProfileRequest"
                         }
                     }
                 ],
@@ -2202,13 +2238,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/response.UserResponse"
+                                            "$ref": "#/definitions/dtov2.UserResponse"
                                         }
                                     }
                                 }
@@ -2251,13 +2287,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/response.UserResponse"
+                                            "$ref": "#/definitions/dtov2.UserResponse"
                                         }
                                     }
                                 }
@@ -2267,13 +2303,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.BaseResponse"
+                            "$ref": "#/definitions/base.BaseResponse"
                         }
                     }
                 }
@@ -2297,13 +2333,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/user.UploadURLResponse"
+                                            "$ref": "#/definitions/dtov2.UploadURLResponse"
                                         }
                                     }
                                 }
@@ -2335,13 +2371,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/user.UploadURLResponse"
+                                            "$ref": "#/definitions/dtov2.UploadURLResponse"
                                         }
                                     }
                                 }
@@ -2384,13 +2420,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.BaseResponse"
+                                    "$ref": "#/definitions/base.BaseResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/response.VerificationResult"
+                                            "$ref": "#/definitions/dtov2.VerificationResult"
                                         }
                                     }
                                 }
@@ -2402,37 +2438,33 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "admin.AdminConsumableRequest": {
+        "base.BaseResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "errors": {},
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                },
+                "status": {
+                    "type": "integer",
+                    "example": 200
+                }
+            }
+        },
+        "dtov1.AcceptInviteRequest": {
             "type": "object",
             "required": [
-                "package_id",
-                "user_id"
+                "token"
             ],
             "properties": {
-                "package_id": {
-                    "type": "string"
-                },
-                "user_id": {
+                "token": {
                     "type": "string"
                 }
             }
         },
-        "admin.AdminSubscribeRequest": {
-            "type": "object",
-            "required": [
-                "plan_id",
-                "user_id"
-            ],
-            "properties": {
-                "plan_id": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "auth.AuthResponse": {
+        "dtov1.AuthResponse": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -2444,11 +2476,11 @@ const docTemplate = `{
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 },
                 "user": {
-                    "$ref": "#/definitions/response.UserResponse"
+                    "$ref": "#/definitions/dtov1.UserResponse"
                 }
             }
         },
-        "auth.CheckEmailRequest": {
+        "dtov1.CheckEmailRequest": {
             "type": "object",
             "required": [
                 "email"
@@ -2460,7 +2492,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.CheckEmailResponse": {
+        "dtov1.CheckEmailResponse": {
             "type": "object",
             "properties": {
                 "exists": {
@@ -2469,7 +2501,71 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.DeviceRequest": {
+        "dtov1.ConsumableItemResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "item_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.ConversationResponse": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "avatar_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "entity": {
+                    "$ref": "#/definitions/dtov1.EntityResponse"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_typing": {
+                    "type": "boolean"
+                },
+                "last_message": {
+                    "$ref": "#/definitions/dtov1.MessageResponse"
+                },
+                "swiper_entity_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"direct\" or \"group\"",
+                    "type": "string"
+                },
+                "unread_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtov1.CreateGroupRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.DeviceRequest": {
             "type": "object",
             "required": [
                 "device_id"
@@ -2495,7 +2591,24 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.GoogleLoginRequest": {
+        "dtov1.EntityResponse": {
+            "type": "object",
+            "properties": {
+                "group": {
+                    "$ref": "#/definitions/dtov1.GroupResponse"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/dtov1.UserResponse"
+                }
+            }
+        },
+        "dtov1.GoogleLoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -2509,7 +2622,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "device": {
-                    "$ref": "#/definitions/auth.DeviceRequest"
+                    "$ref": "#/definitions/dtov1.DeviceRequest"
                 },
                 "email": {
                     "type": "string",
@@ -2565,7 +2678,7 @@ const docTemplate = `{
                 "photos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/auth.PhotoRequest"
+                        "$ref": "#/definitions/dtov1.PhotoRequest"
                     }
                 },
                 "profile_picture": {
@@ -2574,7 +2687,78 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.LoginEmailRequest": {
+        "dtov1.GroupResponse": {
+            "type": "object",
+            "properties": {
+                "created_by": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "main_photos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "members": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov1.UserResponse"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.IncomingLikeResponse": {
+            "type": "object",
+            "properties": {
+                "entity": {
+                    "$ref": "#/definitions/dtov1.EntityResponse"
+                },
+                "is_boosted": {
+                    "type": "boolean"
+                },
+                "is_crush": {
+                    "type": "boolean"
+                },
+                "swipe_time": {
+                    "type": "string"
+                },
+                "target_entity_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.InviteToGroupRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.LikesSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "last_photo": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.LoginEmailRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -2582,7 +2766,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "device": {
-                    "$ref": "#/definitions/auth.DeviceRequest"
+                    "$ref": "#/definitions/dtov1.DeviceRequest"
                 },
                 "email": {
                     "type": "string",
@@ -2594,7 +2778,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.LogoutRequest": {
+        "dtov1.LogoutRequest": {
             "type": "object",
             "required": [
                 "device_id"
@@ -2605,12 +2789,81 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.PhotoRequest": {
+        "dtov1.MasterItemResponse": {
+            "type": "object",
+            "properties": {
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.MatchResponse": {
+            "type": "object",
+            "properties": {
+                "is_match": {
+                    "type": "boolean"
+                },
+                "match_id": {
+                    "type": "string"
+                },
+                "matched_entity": {
+                    "$ref": "#/definitions/dtov1.EntityResponse"
+                }
+            }
+        },
+        "dtov1.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "conversation_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_read": {
+                    "type": "boolean"
+                },
+                "metadata": {
+                    "$ref": "#/definitions/entities.MessageMetadata"
+                },
+                "sender_id": {
+                    "type": "string"
+                },
+                "sender_name": {
+                    "type": "string"
+                },
+                "sender_photo_url": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/entities.MessageType"
+                }
+            }
+        },
+        "dtov1.PhotoRequest": {
             "type": "object",
             "required": [
                 "url"
             ],
             "properties": {
+                "_destroy": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
                 "is_main": {
                     "type": "boolean"
                 },
@@ -2619,7 +2872,21 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.RefreshTokenRequest": {
+        "dtov1.PhotoResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "is_main": {
+                    "type": "boolean"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "device_id",
@@ -2634,7 +2901,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.RegisterEmailRequest": {
+        "dtov1.RegisterEmailRequest": {
             "type": "object",
             "required": [
                 "date_of_birth",
@@ -2651,7 +2918,7 @@ const docTemplate = `{
                     "example": "1995-01-01"
                 },
                 "device": {
-                    "$ref": "#/definitions/auth.DeviceRequest"
+                    "$ref": "#/definitions/dtov1.DeviceRequest"
                 },
                 "email": {
                     "type": "string",
@@ -2708,1161 +2975,19 @@ const docTemplate = `{
                 "photos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/auth.PhotoRequest"
+                        "$ref": "#/definitions/dtov1.PhotoRequest"
                     }
                 }
             }
         },
-        "auth.TokenResponse": {
-            "type": "object",
-            "properties": {
-                "refresh_token": {
-                    "type": "string",
-                    "example": "abcdef123456..."
-                },
-                "token": {
-                    "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                }
-            }
-        },
-        "chat.ConversationResponse": {
-            "type": "object",
-            "properties": {
-                "avatar_url": {
-                    "type": "string"
-                },
-                "avatar_urls": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "entity": {
-                    "$ref": "#/definitions/response.EntityResponse"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_typing": {
-                    "type": "boolean"
-                },
-                "last_message": {
-                    "$ref": "#/definitions/chat.MessageResponse"
-                },
-                "swiper_entity_id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
-                    "description": "\"direct\" or \"group\"",
-                    "type": "string"
-                },
-                "unread_count": {
-                    "type": "integer"
-                }
-            }
-        },
-        "chat.MessageResponse": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "conversation_id": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_read": {
-                    "type": "boolean"
-                },
-                "metadata": {
-                    "$ref": "#/definitions/entities.MessageMetadata"
-                },
-                "sender_id": {
-                    "type": "string"
-                },
-                "sender_name": {
-                    "type": "string"
-                },
-                "sender_photo_url": {
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/entities.MessageType"
-                }
-            }
-        },
-        "entities.AuthProvider": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "provider": {
-                    "type": "string"
-                },
-                "providerUserID": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "userID": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.Device": {
-            "type": "object",
-            "properties": {
-                "appVersion": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "deviceID": {
-                    "type": "string"
-                },
-                "deviceModel": {
-                    "type": "string"
-                },
-                "deviceName": {
-                    "type": "string"
-                },
-                "fcmtoken": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isActive": {
-                    "type": "boolean"
-                },
-                "lastIP": {
-                    "type": "string"
-                },
-                "lastLogin": {
-                    "type": "string"
-                },
-                "osversion": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "userID": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.Entity": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "group": {
-                    "$ref": "#/definitions/entities.Group"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/entities.EntityType"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user": {
-                    "description": "Associations for preloading",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entities.User"
-                        }
-                    ]
-                }
-            }
-        },
-        "entities.EntityType": {
-            "type": "string",
-            "enum": [
-                "user",
-                "group"
-            ],
-            "x-enum-varnames": [
-                "EntityTypeUser",
-                "EntityTypeGroup"
-            ]
-        },
-        "entities.Group": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "created_by": {
-                    "type": "string"
-                },
-                "entity": {
-                    "description": "Associations",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entities.Entity"
-                        }
-                    ]
-                },
-                "entity_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "members": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.GroupMember"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.GroupMember": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "group_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_admin": {
-                    "type": "boolean"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user": {
-                    "description": "Associations",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entities.User"
-                        }
-                    ]
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.MasterGender": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isActive": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.MasterInterest": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isActive": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.MasterLanguage": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isActive": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.MasterRelationshipType": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isActive": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.MessageMetadata": {
-            "type": "object",
-            "properties": {
-                "gif_provider": {
-                    "type": "string"
-                },
-                "image_height": {
-                    "type": "integer"
-                },
-                "image_width": {
-                    "type": "integer"
-                }
-            }
-        },
-        "entities.MessageType": {
-            "type": "string",
-            "enum": [
-                "text",
-                "image",
-                "gif"
-            ],
-            "x-enum-varnames": [
-                "MessageTypeText",
-                "MessageTypeImage",
-                "MessageTypeGif"
-            ]
-        },
-        "entities.Photo": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isMain": {
-                    "type": "boolean"
-                },
-                "sortOrder": {
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                },
-                "userID": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.RefreshToken": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "deviceID": {
-                    "type": "string"
-                },
-                "expiresAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "revokedAt": {
-                    "type": "string"
-                },
-                "tokenHash": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "userID": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.SubscriptionPlan": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "features": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.SubscriptionPlanFeature"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "prices": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.SubscriptionPrice"
-                    }
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.SubscriptionPlanFeature": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "integer"
-                },
-                "category": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "display_title": {
-                    "type": "string"
-                },
-                "feature_key": {
-                    "type": "string"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "is_consumable": {
-                    "type": "boolean"
-                },
-                "plan_id": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.SubscriptionPrice": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "currency": {
-                    "type": "string"
-                },
-                "duration_type": {
-                    "description": "weekly, monthly, quarterly, yearly",
-                    "type": "string"
-                },
-                "external_slug": {
-                    "description": "For App Store / Play Store Product ID",
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "plan_id": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "number"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.User": {
-            "type": "object",
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "authProviders": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.AuthProvider"
-                    }
-                },
-                "bio": {
-                    "type": "string"
-                },
-                "consumables": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.UserConsumable"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "dateOfBirth": {
-                    "type": "string"
-                },
-                "deleted_at": {
-                    "type": "string",
-                    "format": "date-time"
-                },
-                "devices": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.Device"
-                    }
-                },
-                "email": {
-                    "type": "string"
-                },
-                "entity": {
-                    "description": "Associations",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entities.Entity"
-                        }
-                    ]
-                },
-                "entity_id": {
-                    "type": "string"
-                },
-                "fullName": {
-                    "type": "string"
-                },
-                "gender": {
-                    "$ref": "#/definitions/entities.MasterGender"
-                },
-                "genderID": {
-                    "type": "string"
-                },
-                "heightCM": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "interestedGenders": {
-                    "description": "Many-to-Many Associations via pivot tables",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.MasterGender"
-                    }
-                },
-                "interests": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.MasterInterest"
-                    }
-                },
-                "isPremium": {
-                    "type": "boolean"
-                },
-                "languages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.MasterLanguage"
-                    }
-                },
-                "lastActiveAt": {
-                    "type": "string"
-                },
-                "latitude": {
-                    "type": "number"
-                },
-                "locationCity": {
-                    "type": "string"
-                },
-                "locationCountry": {
-                    "type": "string"
-                },
-                "longitude": {
-                    "type": "number"
-                },
-                "passwordHash": {
-                    "type": "string"
-                },
-                "photos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.Photo"
-                    }
-                },
-                "refreshTokens": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.RefreshToken"
-                    }
-                },
-                "relationshipType": {
-                    "$ref": "#/definitions/entities.MasterRelationshipType"
-                },
-                "relationshipTypeID": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/entities.UserStatus"
-                },
-                "subscriptions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entities.UserSubscription"
-                    }
-                },
-                "swipeCountToday": {
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "verifiedAt": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.UserConsumable": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "integer"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "item_type": {
-                    "description": "boost, crush",
-                    "type": "string"
-                },
-                "last_used_at": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "entities.UserStatus": {
-            "type": "string",
-            "enum": [
-                "onboarding",
-                "active",
-                "banned"
-            ],
-            "x-enum-varnames": [
-                "UserStatusOnboarding",
-                "UserStatusActive",
-                "UserStatusBanned"
-            ]
-        },
-        "entities.UserSubscription": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "deleted_at": {
-                    "type": "string",
-                    "format": "date-time"
-                },
-                "expired_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "plan": {
-                    "$ref": "#/definitions/entities.SubscriptionPlan"
-                },
-                "plan_id": {
-                    "type": "string"
-                },
-                "started_at": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "groups.AcceptInviteRequest": {
-            "type": "object",
-            "required": [
-                "token"
-            ],
-            "properties": {
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "groups.CreateGroupRequest": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "groups.InviteToGroupRequest": {
-            "type": "object",
-            "required": [
-                "user_id"
-            ],
-            "properties": {
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "master.AdResponse": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "id": {
-                    "type": "string",
-                    "example": "uuid"
-                },
-                "image_url": {
-                    "type": "string",
-                    "example": "https://example.com/banner.jpg"
-                },
-                "link": {
-                    "type": "string",
-                    "example": "https://example.com/promo"
-                },
-                "order": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "placement": {
-                    "description": "carousel, card_deck, popup_modal, interstitial",
-                    "type": "string",
-                    "example": "carousel"
-                },
-                "source": {
-                    "description": "internal, sponsor, admob",
-                    "type": "string",
-                    "example": "internal"
-                },
-                "sponsor": {
-                    "type": "string",
-                    "example": "Brand Name"
-                }
-            }
-        },
-        "monetization.ActivateBoostRequest": {
-            "type": "object",
-            "required": [
-                "entity_id"
-            ],
-            "properties": {
-                "entity_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "monetization.PurchaseRequest": {
-            "type": "object",
-            "properties": {
-                "item_id": {
-                    "type": "string"
-                },
-                "plan_id": {
-                    "type": "string"
-                },
-                "price_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.BaseResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "errors": {},
-                "message": {
-                    "type": "string",
-                    "example": "Success"
-                },
-                "status": {
-                    "type": "integer",
-                    "example": 200
-                }
-            }
-        },
-        "response.ConsumableItemResponse": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "integer"
-                },
-                "item_type": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.EntityResponse": {
-            "type": "object",
-            "properties": {
-                "group": {
-                    "$ref": "#/definitions/response.GroupResponse"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/response.UserResponse"
-                }
-            }
-        },
-        "response.GroupResponse": {
-            "type": "object",
-            "properties": {
-                "created_by": {
-                    "type": "string"
-                },
-                "entity_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "main_photos": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "members": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/response.UserResponse"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.MasterItemResponse": {
-            "type": "object",
-            "properties": {
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.PhotoResponse": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "is_main": {
-                    "type": "boolean"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.UserResponse": {
-            "type": "object",
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "bio": {
-                    "type": "string"
-                },
-                "consumables": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/response.ConsumableItemResponse"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "date_of_birth": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "entity_id": {
-                    "type": "string"
-                },
-                "full_name": {
-                    "type": "string"
-                },
-                "gender": {
-                    "$ref": "#/definitions/response.MasterItemResponse"
-                },
-                "height_cm": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "interested_genders": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/response.MasterItemResponse"
-                    }
-                },
-                "interests": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/response.MasterItemResponse"
-                    }
-                },
-                "languages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/response.MasterItemResponse"
-                    }
-                },
-                "latitude": {
-                    "type": "number"
-                },
-                "location_city": {
-                    "type": "string"
-                },
-                "location_country": {
-                    "type": "string"
-                },
-                "longitude": {
-                    "type": "number"
-                },
-                "main_photo": {
-                    "type": "string"
-                },
-                "photos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/response.PhotoResponse"
-                    }
-                },
-                "relationshipType": {
-                    "$ref": "#/definitions/response.MasterItemResponse"
-                },
-                "relationship_type": {
-                    "$ref": "#/definitions/response.MasterItemResponse"
-                },
-                "status": {
-                    "$ref": "#/definitions/entities.UserStatus"
-                },
-                "subscription": {
-                    "$ref": "#/definitions/response.UserSubscriptionResponse"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "verified_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.UserSubscriptionResponse": {
-            "type": "object",
-            "properties": {
-                "expired_at": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "plan_id": {
-                    "type": "string"
-                },
-                "plan_name": {
-                    "type": "string"
-                },
-                "started_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.VerificationResult": {
-            "type": "object",
-            "properties": {
-                "confidence": {
-                    "type": "number"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "is_match": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "swipe.IncomingLikeResponse": {
-            "type": "object",
-            "properties": {
-                "entity": {
-                    "$ref": "#/definitions/response.EntityResponse"
-                },
-                "is_boosted": {
-                    "type": "boolean"
-                },
-                "is_crush": {
-                    "type": "boolean"
-                },
-                "swipe_time": {
-                    "type": "string"
-                },
-                "target_entity_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "swipe.LikesSummaryResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "last_photo": {
-                    "type": "string"
-                }
-            }
-        },
-        "swipe.MatchResponse": {
-            "type": "object",
-            "properties": {
-                "is_match": {
-                    "type": "boolean"
-                },
-                "match_id": {
-                    "type": "string"
-                },
-                "matched_entity": {
-                    "$ref": "#/definitions/response.EntityResponse"
-                }
-            }
-        },
-        "swipe.SentLikeResponse": {
+        "dtov1.SentLikeResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "string"
                 },
                 "entity": {
-                    "$ref": "#/definitions/response.EntityResponse"
+                    "$ref": "#/definitions/dtov1.EntityResponse"
                 },
                 "expires_at": {
                     "type": "string"
@@ -3878,7 +3003,7 @@ const docTemplate = `{
                 }
             }
         },
-        "swipe.SwipeRequest": {
+        "dtov1.SwipeRequest": {
             "type": "object",
             "required": [
                 "direction",
@@ -3902,64 +3027,20 @@ const docTemplate = `{
                 }
             }
         },
-        "user.NotificationSettingRequest": {
+        "dtov1.TokenResponse": {
             "type": "object",
-            "required": [
-                "notification_setting_id"
-            ],
             "properties": {
-                "is_enable": {
-                    "type": "boolean"
+                "refresh_token": {
+                    "type": "string",
+                    "example": "abcdef123456..."
                 },
-                "notification_setting_id": {
-                    "type": "string"
+                "token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 }
             }
         },
-        "user.NotificationSettingResponse": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_enable": {
-                    "type": "boolean"
-                },
-                "is_user_enable": {
-                    "type": "boolean"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.PhotoRequest": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "_destroy": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_main": {
-                    "type": "boolean"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.UpdateProfileRequest": {
+        "dtov1.UpdateProfileRequest": {
             "type": "object",
             "properties": {
                 "bio": {
@@ -4009,7 +3090,7 @@ const docTemplate = `{
                     "description": "List of photo objects",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/user.PhotoRequest"
+                        "$ref": "#/definitions/dtov1.PhotoRequest"
                     }
                 },
                 "relationship_type": {
@@ -4021,13 +3102,580 @@ const docTemplate = `{
                 }
             }
         },
-        "user.UploadURLResponse": {
+        "dtov1.UploadURLResponse": {
             "type": "object",
             "properties": {
                 "file_key": {
                     "type": "string"
                 },
                 "upload_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.UserResponse": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "consumables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov1.ConsumableItemResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "$ref": "#/definitions/dtov1.MasterItemResponse"
+                },
+                "height_cm": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "interested_genders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov1.MasterItemResponse"
+                    }
+                },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov1.MasterItemResponse"
+                    }
+                },
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov1.MasterItemResponse"
+                    }
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "location_city": {
+                    "type": "string"
+                },
+                "location_country": {
+                    "type": "string"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "main_photo": {
+                    "type": "string"
+                },
+                "photos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov1.PhotoResponse"
+                    }
+                },
+                "relationshipType": {
+                    "$ref": "#/definitions/dtov1.MasterItemResponse"
+                },
+                "relationship_type": {
+                    "$ref": "#/definitions/dtov1.MasterItemResponse"
+                },
+                "status": {
+                    "$ref": "#/definitions/entities.UserStatus"
+                },
+                "subscription": {
+                    "$ref": "#/definitions/dtov1.UserSubscriptionResponse"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.UserSubscriptionResponse": {
+            "type": "object",
+            "properties": {
+                "expired_at": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov1.VerificationResult": {
+            "type": "object",
+            "properties": {
+                "confidence": {
+                    "type": "number"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "is_match": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dtov2.ConsumableItemResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "item_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov2.PhotoRequest": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "destroy": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_main": {
+                    "type": "boolean"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov2.PhotoResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "is_main": {
+                    "type": "boolean"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov2.UpdateProfileRequest": {
+            "type": "object",
+            "properties": {
+                "bio": {
+                    "type": "string"
+                },
+                "date_of_birth": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "height_cm": {
+                    "type": "integer"
+                },
+                "interested_in": {
+                    "type": "string"
+                },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "location_city": {
+                    "type": "string"
+                },
+                "location_country": {
+                    "type": "string"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "photos": {
+                    "description": "List of photo objects",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov2.PhotoRequest"
+                    }
+                },
+                "relationship_type": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "onboarding, active",
+                    "type": "string"
+                }
+            }
+        },
+        "dtov2.UploadURLResponse": {
+            "type": "object",
+            "properties": {
+                "file_key": {
+                    "type": "string"
+                },
+                "upload_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov2.UserResponse": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "consumables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov2.ConsumableItemResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "$ref": "#/definitions/dtov2.V2BaseMasterItemResponse"
+                },
+                "height_cm": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "interested_genders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov2.V2BaseMasterItemResponse"
+                    }
+                },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov2.V2BaseMasterItemResponse"
+                    }
+                },
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov2.V2BaseMasterItemResponse"
+                    }
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "location_city": {
+                    "type": "string"
+                },
+                "location_country": {
+                    "type": "string"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "main_photo": {
+                    "type": "string"
+                },
+                "photos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtov2.PhotoResponse"
+                    }
+                },
+                "relationshipType": {
+                    "$ref": "#/definitions/dtov2.V2BaseMasterItemResponse"
+                },
+                "relationship_type": {
+                    "$ref": "#/definitions/dtov2.V2BaseMasterItemResponse"
+                },
+                "status": {
+                    "$ref": "#/definitions/entities.UserStatus"
+                },
+                "subscription": {
+                    "$ref": "#/definitions/dtov2.UserSubscriptionResponse"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov2.UserSubscriptionResponse": {
+            "type": "object",
+            "properties": {
+                "expired_at": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov2.V2BaseMasterItemResponse": {
+            "type": "object",
+            "properties": {
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtov2.VerificationResult": {
+            "type": "object",
+            "properties": {
+                "confidence": {
+                    "type": "number"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "is_match": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "entities.MessageMetadata": {
+            "type": "object",
+            "properties": {
+                "gif_provider": {
+                    "type": "string"
+                },
+                "image_height": {
+                    "type": "integer"
+                },
+                "image_width": {
+                    "type": "integer"
+                }
+            }
+        },
+        "entities.MessageType": {
+            "type": "string",
+            "enum": [
+                "text",
+                "image",
+                "gif"
+            ],
+            "x-enum-varnames": [
+                "MessageTypeText",
+                "MessageTypeImage",
+                "MessageTypeGif"
+            ]
+        },
+        "entities.UserStatus": {
+            "type": "string",
+            "enum": [
+                "onboarding",
+                "active",
+                "banned"
+            ],
+            "x-enum-varnames": [
+                "UserStatusOnboarding",
+                "UserStatusActive",
+                "UserStatusBanned"
+            ]
+        },
+        "v1.ActivateBoostRequest": {
+            "type": "object",
+            "required": [
+                "entity_id"
+            ],
+            "properties": {
+                "entity_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.AdResponse": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "id": {
+                    "type": "string",
+                    "example": "uuid"
+                },
+                "image_url": {
+                    "type": "string",
+                    "example": "https://example.com/banner.jpg"
+                },
+                "link": {
+                    "type": "string",
+                    "example": "https://example.com/promo"
+                },
+                "order": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "placement": {
+                    "description": "carousel, card_deck, popup_modal, interstitial",
+                    "type": "string",
+                    "example": "carousel"
+                },
+                "source": {
+                    "description": "internal, sponsor, admob",
+                    "type": "string",
+                    "example": "internal"
+                },
+                "sponsor": {
+                    "type": "string",
+                    "example": "Brand Name"
+                }
+            }
+        },
+        "v1.AdminConsumableRequest": {
+            "type": "object",
+            "required": [
+                "package_id",
+                "user_id"
+            ],
+            "properties": {
+                "package_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.AdminSubscribeRequest": {
+            "type": "object",
+            "required": [
+                "plan_id",
+                "user_id"
+            ],
+            "properties": {
+                "plan_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.NotificationSettingRequest": {
+            "type": "object",
+            "required": [
+                "notification_setting_id"
+            ],
+            "properties": {
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "notification_setting_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.NotificationSettingResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "is_user_enable": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.PurchaseRequest": {
+            "type": "object",
+            "properties": {
+                "item_id": {
+                    "type": "string"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "price_id": {
                     "type": "string"
                 }
             }
