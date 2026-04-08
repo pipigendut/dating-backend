@@ -48,6 +48,18 @@ func NewApp() *App {
 
 	// Middleware setup
 	authMiddleware := middleware.AuthMiddleware()
+	
+	// Basic Auth Middleware for public-ish endpoints
+	basicAuthUser := os.Getenv("BASIC_AUTH_USER")
+	basicAuthPass := os.Getenv("BASIC_AUTH_PASS")
+	if basicAuthUser == "" {
+		basicAuthUser = "swipee-app"
+	}
+	if basicAuthPass == "" {
+		basicAuthPass = "swipee-secret-2026"
+	}
+	basicAuthMiddleware := middleware.BasicAuthMiddleware(basicAuthUser, basicAuthPass)
+
 	if infra.Redis != nil {
 		_ = middleware.NewCacheMiddleware(infra.Redis)
 		acm := middleware.NewAntiCheatMiddleware(infra.Redis)
@@ -61,10 +73,11 @@ func NewApp() *App {
 		AppEnv:         infra.AppEnv,
 		AuthMiddleware: authMiddleware,
 		V1Config: v1.RouterConfig{
-			AppEnv:         infra.AppEnv,
-			ChatHub:        chatHub,
-			ChatService:    svcs.Chat,
-			AuthMiddleware: authMiddleware,
+			AppEnv:              infra.AppEnv,
+			ChatHub:             chatHub,
+			ChatService:         svcs.Chat,
+			AuthMiddleware:      authMiddleware,
+			BasicAuthMiddleware: basicAuthMiddleware,
 		},
 	})
 

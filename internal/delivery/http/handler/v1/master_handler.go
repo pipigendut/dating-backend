@@ -23,6 +23,7 @@ func NewMasterHandler(masterService *services.MasterService, adService services.
 // @Description  Returns a list of all active gender options for user profiling.
 // @Tags         master
 // @Produce      json
+// @Security     BasicAuth
 // @Success      200      {object}  base.BaseResponse{data=[]dtov1.MasterItemResponse}
 // @Failure      500      {object}  base.BaseResponse
 // @Router       /master/genders [get]
@@ -40,6 +41,7 @@ func (h *MasterHandler) GetGenders(c *gin.Context) {
 // @Description  Returns a list of all active relationship types (e.g., Short-term, Long-term) for user profiling.
 // @Tags         master
 // @Produce      json
+// @Security     BasicAuth
 // @Success      200      {object}  base.BaseResponse{data=[]dtov1.MasterItemResponse}
 // @Failure      500      {object}  base.BaseResponse
 // @Router       /master/relationship-types [get]
@@ -57,6 +59,7 @@ func (h *MasterHandler) GetRelationshipTypes(c *gin.Context) {
 // @Description  Returns a list of all active interests/hobbies options.
 // @Tags         master
 // @Produce      json
+// @Security     BasicAuth
 // @Success      200      {object}  base.BaseResponse{data=[]dtov1.MasterItemResponse}
 // @Failure      500      {object}  base.BaseResponse
 // @Router       /master/interests [get]
@@ -74,6 +77,7 @@ func (h *MasterHandler) GetInterests(c *gin.Context) {
 // @Description  Returns a list of all active spoken languages options.
 // @Tags         master
 // @Produce      json
+// @Security     BasicAuth
 // @Success      200      {object}  base.BaseResponse{data=[]dtov1.MasterItemResponse}
 // @Failure      500      {object}  base.BaseResponse
 // @Router       /master/languages [get]

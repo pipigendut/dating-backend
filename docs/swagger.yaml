@@ -997,6 +997,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/base.BaseResponse'
+      security:
+      - BearerAuth: []
       summary: Get active advertisements
       tags:
       - advertisements
@@ -1675,6 +1677,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/base.BaseResponse'
+      security:
+      - BasicAuth: []
       summary: Get all active genders
       tags:
       - master
@@ -1699,6 +1703,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/base.BaseResponse'
+      security:
+      - BasicAuth: []
       summary: Get all active interests
       tags:
       - master
@@ -1723,6 +1729,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/base.BaseResponse'
+      security:
+      - BasicAuth: []
       summary: Get all active languages
       tags:
       - master
@@ -1748,6 +1756,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/base.BaseResponse'
+      security:
+      - BasicAuth: []
       summary: Get all active relationship types
       tags:
       - master
@@ -1761,6 +1771,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/base.BaseResponse'
+      security:
+      - BasicAuth: []
       summary: List all consumable items
       tags:
       - Monetization
@@ -1775,6 +1787,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/base.BaseResponse'
+      security:
+      - BasicAuth: []
       summary: List all subscription plans
       tags:
       - Monetization
@@ -1796,6 +1810,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/base.BaseResponse'
+      security:
+      - BearerAuth: []
       summary: Purchase a consumable item
       tags:
       - Monetization
@@ -1817,6 +1833,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/base.BaseResponse'
+      security:
+      - BearerAuth: []
       summary: Purchase a subscription plan
       tags:
       - Monetization

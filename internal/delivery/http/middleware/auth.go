@@ -37,3 +37,9 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func BasicAuthMiddleware(username, password string) gin.HandlerFunc {
+	return gin.BasicAuth(gin.Accounts{
+		username: password,
+	})
+}

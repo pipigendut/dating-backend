@@ -30,6 +30,7 @@ func NewMonetizationHandler(subService services.SubscriptionService, userRepo re
 // @Description Get a list of all available subscription plans with prices and features
 // @Tags Monetization
 // @Produce json
+// @Security BasicAuth
 // @Success 200 {object} base.BaseResponse
 // @Router /monetization/plans [get]
 func (h *MonetizationHandler) GetPlans(c *gin.Context) {
@@ -46,6 +47,7 @@ func (h *MonetizationHandler) GetPlans(c *gin.Context) {
 // @Description Get a list of all buyable consumable packets (boosts, crushes)
 // @Tags Monetization
 // @Produce json
+// @Security BasicAuth
 // @Success 200 {object} base.BaseResponse
 // @Router /monetization/consumables [get]
 func (h *MonetizationHandler) GetConsumableItems(c *gin.Context) {
@@ -68,6 +70,7 @@ type PurchaseRequest struct {
 // @Tags Monetization
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param request body PurchaseRequest true "Purchase Request"
 // @Success 200 {object} base.BaseResponse
 // @Router /monetization/purchase/consumable [post]
@@ -97,6 +100,7 @@ func (h *MonetizationHandler) PurchaseConsumable(c *gin.Context) {
 // @Tags Monetization
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param request body PurchaseRequest true "Purchase Request"
 // @Success 200 {object} base.BaseResponse
 // @Router /monetization/purchase/plan [post]

@@ -245,6 +245,11 @@ const docTemplate = `{
         },
         "/advertisements": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Returns a list of active ads filtered by placement.",
                 "consumes": [
                     "application/json"
@@ -1377,6 +1382,11 @@ const docTemplate = `{
         },
         "/master/genders": {
             "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Returns a list of all active gender options for user profiling.",
                 "produces": [
                     "application/json"
@@ -1418,6 +1428,11 @@ const docTemplate = `{
         },
         "/master/interests": {
             "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Returns a list of all active interests/hobbies options.",
                 "produces": [
                     "application/json"
@@ -1459,6 +1474,11 @@ const docTemplate = `{
         },
         "/master/languages": {
             "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Returns a list of all active spoken languages options.",
                 "produces": [
                     "application/json"
@@ -1500,6 +1520,11 @@ const docTemplate = `{
         },
         "/master/relationship-types": {
             "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Returns a list of all active relationship types (e.g., Short-term, Long-term) for user profiling.",
                 "produces": [
                     "application/json"
@@ -1541,6 +1566,11 @@ const docTemplate = `{
         },
         "/monetization/consumables": {
             "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Get a list of all buyable consumable packets (boosts, crushes)",
                 "produces": [
                     "application/json"
@@ -1561,6 +1591,11 @@ const docTemplate = `{
         },
         "/monetization/plans": {
             "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Get a list of all available subscription plans with prices and features",
                 "produces": [
                     "application/json"
@@ -1581,6 +1616,11 @@ const docTemplate = `{
         },
         "/monetization/purchase/consumable": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -1614,6 +1654,11 @@ const docTemplate = `{
         },
         "/monetization/purchase/plan": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],

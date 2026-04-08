@@ -23,10 +23,11 @@ type Handlers struct {
 }
 
 type RouterConfig struct {
-	AppEnv         string
-	ChatHub        *wshub.Hub
-	ChatService    services.ChatService
-	AuthMiddleware gin.HandlerFunc
+	AppEnv              string
+	ChatHub             *wshub.Hub
+	ChatService         services.ChatService
+	AuthMiddleware      gin.HandlerFunc
+	BasicAuthMiddleware gin.HandlerFunc
 }
 
 func RegisterRoutes(r *gin.Engine, h *Handlers, cfg RouterConfig) {

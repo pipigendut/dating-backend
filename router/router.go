@@ -3,9 +3,12 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pipigendut/dating-backend/router/api/v1"
+	"github.com/pipigendut/dating-backend/docs"
+	v1 "github.com/pipigendut/dating-backend/router/api/v1"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -69,6 +72,15 @@ window.onload = function() {
 </html>`
 
 func SetupRouter(r *gin.Engine, h *GlobalHandlers, cfg GlobalConfig) {
+	// Configure dynamic swagger host
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL != "" {
+		if u, err := url.Parse(baseURL); err == nil {
+			docs.SwaggerInfo.Host = u.Host
+			docs.SwaggerInfo.Schemes = []string{u.Scheme}
+		}
+	}
+
 	// 1. Global / Root Routes
 
 	// Deep Linking

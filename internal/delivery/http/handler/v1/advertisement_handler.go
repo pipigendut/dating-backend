@@ -25,6 +25,7 @@ type AdResponse struct {
 // @Tags         advertisements
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        placement  query     string  false  "Placement filter (carousel, popup_modal, etc)"
 // @Success      200      {object}  base.BaseResponse{data=[]AdResponse}
 // @Failure      500      {object}  base.BaseResponse
