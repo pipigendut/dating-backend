@@ -1,11 +1,9 @@
 package v1
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/pipigendut/dating-backend/internal/chat/ws"
+	// WebSocket Routes
+	"github.com/pipigendut/dating-backend/internal/websocket"
 )
 
 func registerChatRoutes(v1 *gin.RouterGroup, h *Handlers, cfg RouterConfig) {
@@ -27,14 +25,6 @@ func registerChatRoutes(v1 *gin.RouterGroup, h *Handlers, cfg RouterConfig) {
 		}
 	}
 
-	// WebSocket Route (Public entry, auth inside or via query)
-	v1.GET("/ws", func(c *gin.Context) {
-		userIDStr := c.Query("user_id")
-		userID, err := uuid.Parse(userIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
-			return
-		}
-		ws.ServeWs(cfg.ChatHub, cfg.ChatService, c.Writer, c.Request, userID)
-	})
+	// Register WebSocket routes (/ws, /ws/chat, /ws/notif, /ws/presence)
+	websocket.RegisterRoutes(v1, cfg.ChatHub, cfg.ChatService)
 }

@@ -2,7 +2,7 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/pipigendut/dating-backend/internal/chat/ws"
+	wshub "github.com/pipigendut/dating-backend/internal/websocket/hub"
 	handlerv1 "github.com/pipigendut/dating-backend/internal/delivery/http/handler/v1"
 	"github.com/pipigendut/dating-backend/internal/services"
 )
@@ -24,7 +24,7 @@ type Handlers struct {
 
 type RouterConfig struct {
 	AppEnv         string
-	ChatHub        *ws.Hub
+	ChatHub        *wshub.Hub
 	ChatService    services.ChatService
 	AuthMiddleware gin.HandlerFunc
 }

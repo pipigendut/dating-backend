@@ -1,4 +1,4 @@
-package ws
+package hub
 
 import (
 	"context"
@@ -7,15 +7,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pipigendut/dating-backend/internal/repository"
+	"github.com/pipigendut/dating-backend/internal/websocket/message"
 	"github.com/redis/go-redis/v9"
 )
 
+// Hub maintains the set of active WebSocket clients and broadcasts messages to them
 type Hub struct {
 	clients    map[uuid.UUID]*Client
 	register   chan *Client
 	unregister chan *Client
 	mu         sync.RWMutex
-	
 	redisRepo  repository.RedisRepository
 }
 
@@ -28,6 +29,7 @@ func NewHub(redisRepo repository.RedisRepository) *Hub {
 	}
 }
 
+// Run is the main event loop for the Hub. It must be started in a goroutine.
 func (h *Hub) Run(ctx context.Context) {
 	for {
 		select {
@@ -35,9 +37,8 @@ func (h *Hub) Run(ctx context.Context) {
 			h.mu.Lock()
 			h.clients[client.userID] = client
 			h.mu.Unlock()
-			// Notify online status via Redis
 			h.redisRepo.SetUserOnline(ctx, client.userID)
-			
+
 		case client := <-h.unregister:
 			h.mu.Lock()
 			if _, ok := h.clients[client.userID]; ok {
@@ -45,7 +46,6 @@ func (h *Hub) Run(ctx context.Context) {
 				close(client.send)
 			}
 			h.mu.Unlock()
-			// Notify offline status
 			h.redisRepo.SetUserOffline(ctx, client.userID)
 
 		case <-ctx.Done():
@@ -54,7 +54,8 @@ func (h *Hub) Run(ctx context.Context) {
 	}
 }
 
-func (h *Hub) BroadcastEvent(event WSEvent, targetUserID uuid.UUID) {
+// BroadcastEvent sends a WSEvent to a specific connected user
+func (h *Hub) BroadcastEvent(event message.WSEvent, targetUserID uuid.UUID) {
 	h.mu.RLock()
 	client, ok := h.clients[targetUserID]
 	h.mu.RUnlock()
@@ -65,6 +66,7 @@ func (h *Hub) BroadcastEvent(event WSEvent, targetUserID uuid.UUID) {
 	}
 }
 
+// DisconnectUser forcefully disconnects a user from the hub
 func (h *Hub) DisconnectUser(userID uuid.UUID) {
 	h.mu.RLock()
 	client, ok := h.clients[userID]
@@ -75,7 +77,8 @@ func (h *Hub) DisconnectUser(userID uuid.UUID) {
 	}
 }
 
-// ListenToRedisPubSub listens to the global chat:events channel and broadcasts to local clients
+// ListenToRedisPubSub subscribes to the Redis chat:events channel and
+// broadcasts incoming events to locally connected clients
 func (h *Hub) ListenToRedisPubSub(ctx context.Context, rdb *redis.Client) {
 	pubsub := rdb.Subscribe(ctx, "chat:events")
 	defer pubsub.Close()
@@ -83,8 +86,8 @@ func (h *Hub) ListenToRedisPubSub(ctx context.Context, rdb *redis.Client) {
 	ch := pubsub.Channel()
 	for msg := range ch {
 		var payload struct {
-			TargetUserID uuid.UUID `json:"target_user_id"`
-			Event        WSEvent   `json:"event"`
+			TargetUserID uuid.UUID       `json:"target_user_id"`
+			Event        message.WSEvent `json:"event"`
 		}
 		if err := json.Unmarshal([]byte(msg.Payload), &payload); err == nil {
 			h.BroadcastEvent(payload.Event, payload.TargetUserID)

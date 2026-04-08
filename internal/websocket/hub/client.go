@@ -1,4 +1,4 @@
-package ws
+package hub
 
 import (
 	"context"
@@ -10,8 +10,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/pipigendut/dating-backend/internal/entities"
+	"github.com/pipigendut/dating-backend/internal/websocket/message"
 )
 
+// ChatServiceInterface defines the methods the WS client needs from the chat service
 type ChatServiceInterface interface {
 	SendMessage(ctx context.Context, senderID, conversationID uuid.UUID, messageType entities.MessageType, content string, metadata *entities.MessageMetadata) error
 	SendTypingEvent(ctx context.Context, userID, conversationID uuid.UUID, isTyping bool) error
@@ -29,8 +31,29 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // For development
+		return true // Allow all origins (configure for production)
 	},
+}
+
+// Upgrade upgrades an HTTP connection to a WebSocket connection.
+// Exposed so the handler layer can call it without importing gorilla/websocket directly.
+func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
+	return upgrader.Upgrade(w, r, nil)
+}
+
+// RegisterClient creates a new Client, registers it with the Hub, and starts its pumps.
+func RegisterClient(h *Hub, conn *websocket.Conn, chatSvc ChatServiceInterface, userID uuid.UUID) {
+	client := &Client{
+		hub:         h,
+		conn:        conn,
+		send:        make(chan []byte, 256),
+		userID:      userID,
+		chatService: chatSvc,
+	}
+	log.Printf("[WebSocket] New connection established for userID: %s", userID)
+	h.register <- client
+	go client.writePump()
+	go client.readPump()
 }
 
 type Client struct {
@@ -41,6 +64,7 @@ type Client struct {
 	chatService ChatServiceInterface
 }
 
+// readPump pumps messages from the WebSocket connection to the hub
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
@@ -48,35 +72,39 @@ func (c *Client) readPump() {
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, raw, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				log.Printf("[WebSocket] unexpected close error: %v", err)
 			}
 			break
 		}
-		
-		var event WSEvent
-		if err := json.Unmarshal(message, &event); err != nil {
+
+		var event message.WSEvent
+		if err := json.Unmarshal(raw, &event); err != nil {
 			continue
 		}
-		
+
 		ctx := context.Background()
 		switch event.Type {
-		case EventSendMessage:
-			var payload SendMessagePayload
+		case message.EventSendMessage:
+			var payload message.SendMessagePayload
 			payloadBytes, _ := json.Marshal(event.Payload)
 			if err := json.Unmarshal(payloadBytes, &payload); err == nil {
 				c.chatService.SendMessage(ctx, c.userID, *event.ConversationID, entities.MessageType(payload.MessageType), payload.Content, nil)
 			}
-		case EventTypingStart:
+		case message.EventTypingStart:
 			c.chatService.SendTypingEvent(ctx, c.userID, *event.ConversationID, true)
-		case EventTypingStop:
+		case message.EventTypingStop:
 			c.chatService.SendTypingEvent(ctx, c.userID, *event.ConversationID, false)
-		case EventMessageRead:
-			var payload ReadPayload
+		case message.EventMessageRead:
+			var payload message.ReadPayload
 			payloadBytes, _ := json.Marshal(event.Payload)
 			if err := json.Unmarshal(payloadBytes, &payload); err == nil {
 				c.chatService.SendReadReceipt(ctx, c.userID, *event.ConversationID, payload.MessageID)
@@ -85,27 +113,27 @@ func (c *Client) readPump() {
 	}
 }
 
+// writePump pumps messages from the hub to the WebSocket connection
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
 	}()
+
 	for {
 		select {
-		case message, ok := <-c.send:
+		case msg, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
-			w.Write(message)
-
+			w.Write(msg)
 			if err := w.Close(); err != nil {
 				return
 			}
@@ -116,24 +144,4 @@ func (c *Client) writePump() {
 			}
 		}
 	}
-}
-
-func ServeWs(hub *Hub, chatSvc ChatServiceInterface, w http.ResponseWriter, r *http.Request, userID uuid.UUID) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	client := &Client{
-		hub:         hub,
-		conn:        conn,
-		send:        make(chan []byte, 256),
-		userID:      userID,
-		chatService: chatSvc,
-	}
-	log.Printf("[WebSocket] New connection established for userID: %s", userID)
-	client.hub.register <- client
-
-	go client.writePump()
-	go client.readPump()
 }

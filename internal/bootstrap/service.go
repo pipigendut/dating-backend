@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/hibiken/asynq"
-	"github.com/pipigendut/dating-backend/internal/chat/ws"
+	wshub "github.com/pipigendut/dating-backend/internal/websocket/hub"
 	"github.com/pipigendut/dating-backend/internal/providers/gif"
 	"github.com/pipigendut/dating-backend/internal/providers/gif/klipy"
 	"github.com/pipigendut/dating-backend/internal/services"
@@ -31,7 +31,7 @@ type Services struct {
 }
 
 // initServices initializes all service layer implementations
-func initServices(infra *Infrastructure, repos *Repositories, asynqClient *asynq.Client, chatHub *ws.Hub) *Services {
+func initServices(infra *Infrastructure, repos *Repositories, asynqClient *asynq.Client, chatHub *wshub.Hub) *Services {
 	storageService := services.NewStorageService(infra.Storage)
 	configSvc := services.NewConfigService(repos.Config)
 

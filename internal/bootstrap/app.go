@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
-	"github.com/pipigendut/dating-backend/internal/chat/ws"
+	wshub "github.com/pipigendut/dating-backend/internal/websocket/hub"
 	"github.com/pipigendut/dating-backend/internal/delivery/http/middleware"
 	"github.com/pipigendut/dating-backend/router"
 	v1 "github.com/pipigendut/dating-backend/router/api/v1"
@@ -23,7 +23,8 @@ type App struct {
 	HttpServer  *http.Server
 	AsynqServer *asynq.Server
 	AsynqClient *asynq.Client
-	ChatHub     *ws.Hub
+	WSManager   *wshub.Manager
+	ChatHub     *wshub.Hub
 	Infra       *Infrastructure
 }
 
@@ -32,12 +33,9 @@ func NewApp() *App {
 	infra := initInfra()
 	repos := initRepositories(infra)
 
-	// WebSocket Hub initialization and background loop
-	chatHub := ws.NewHub(repos.Redis)
-	go chatHub.Run(context.Background())
-	if infra.Redis != nil {
-		go chatHub.ListenToRedisPubSub(context.Background(), infra.Redis)
-	}
+	// WebSocket Manager initialization (handles Hub and background loops)
+	wsManager := wshub.NewManager(repos.Redis, infra.Redis)
+	chatHub := wsManager.GetChatHub()
 
 	// Background worker setup
 	asynqClient, asynqServer := initWorkers(infra, repos)
@@ -85,6 +83,7 @@ func NewApp() *App {
 		HttpServer:  srv,
 		AsynqServer: asynqServer,
 		AsynqClient: asynqClient,
+		WSManager:   wsManager,
 		ChatHub:     chatHub,
 		Infra:       infra,
 	}

@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pipigendut/dating-backend/internal/chat/ws"
+	wshub "github.com/pipigendut/dating-backend/internal/websocket/hub"
+	wsmsg "github.com/pipigendut/dating-backend/internal/websocket/message"
 	"github.com/pipigendut/dating-backend/internal/entities"
 	"github.com/pipigendut/dating-backend/internal/repository"
 )
@@ -32,10 +33,10 @@ type chatService struct {
 	swipeRepo    repository.SwipeRepository
 	redisRepo    repository.RedisRepository
 	notifySvc    NotificationService
-	hub          *ws.Hub
+	hub          *wshub.Hub
 }
 
-func NewChatService(repo repository.ChatRepository, userRepo repository.UserRepository, swipeRepo repository.SwipeRepository, redisRepo repository.RedisRepository, notifySvc NotificationService, hub *ws.Hub) ChatService {
+func NewChatService(repo repository.ChatRepository, userRepo repository.UserRepository, swipeRepo repository.SwipeRepository, redisRepo repository.RedisRepository, notifySvc NotificationService, hub *wshub.Hub) ChatService {
 	return &chatService{
 		repo:         repo,
 		userRepo:     userRepo,
@@ -77,10 +78,10 @@ func (s *chatService) SendMessage(ctx context.Context, senderID, conversationID 
 	}
 
 	// 5. Broadcast to Hub (Real-time)
-	event := ws.WSEvent{
-		Type:           ws.EventReceiveMessage,
+	event := wsmsg.WSEvent{
+		Type:           wsmsg.EventReceiveMessage,
 		ConversationID: &conversationID,
-		Payload: ws.MessagePayload{
+		Payload: wsmsg.MessagePayload{
 			ID:             msg.ID,
 			ConversationID: conversationID,
 			SenderID:       senderID,
@@ -93,8 +94,8 @@ func (s *chatService) SendMessage(ctx context.Context, senderID, conversationID 
 	for _, p := range conv.Participants {
 		// Broadcast to everyone (including sender for tab syncing)
 		s.redisRepo.PublishEvent(ctx, "chat:events", struct {
-			TargetUserID uuid.UUID  `json:"target_user_id"`
-			Event        ws.WSEvent `json:"event"`
+			TargetUserID uuid.UUID       `json:"target_user_id"`
+			Event        wsmsg.WSEvent   `json:"event"`
 		}{
 			TargetUserID: p.UserID,
 			Event:        event,
@@ -115,15 +116,15 @@ func (s *chatService) SendTypingEvent(ctx context.Context, userID, conversationI
 
 	conv, _ := s.repo.GetConversationByID(ctx, conversationID)
 	
-	eventType := ws.EventTypingStart
+	eventType := wsmsg.EventTypingStart
 	if !isTyping {
-		eventType = ws.EventTypingStop
+		eventType = wsmsg.EventTypingStop
 	}
 
-	event := ws.WSEvent{
+	event := wsmsg.WSEvent{
 		Type:           eventType,
 		ConversationID: &conversationID,
-		Payload: ws.TypingPayload{
+		Payload: wsmsg.TypingPayload{
 			ConversationID: conversationID,
 			UserID:         userID,
 		},
@@ -132,8 +133,8 @@ func (s *chatService) SendTypingEvent(ctx context.Context, userID, conversationI
 	for _, p := range conv.Participants {
 		if p.UserID != userID {
 			s.redisRepo.PublishEvent(ctx, "chat:events", struct {
-				TargetUserID uuid.UUID  `json:"target_user_id"`
-				Event        ws.WSEvent `json:"event"`
+				TargetUserID uuid.UUID       `json:"target_user_id"`
+				Event        wsmsg.WSEvent   `json:"event"`
 			}{
 				TargetUserID: p.UserID,
 				Event:        event,
@@ -154,10 +155,10 @@ func (s *chatService) SendReadReceipt(ctx context.Context, userID, conversationI
 
 	conv, _ := s.repo.GetConversationByID(ctx, conversationID)
 	
-	event := ws.WSEvent{
-		Type:           ws.EventMessageRead,
+	event := wsmsg.WSEvent{
+		Type:           wsmsg.EventMessageRead,
 		ConversationID: &conversationID,
-		Payload: ws.ReadPayload{
+		Payload: wsmsg.ReadPayload{
 			ConversationID: conversationID,
 			UserID:         userID,
 			MessageID:      messageID,
@@ -167,8 +168,8 @@ func (s *chatService) SendReadReceipt(ctx context.Context, userID, conversationI
 	for _, p := range conv.Participants {
 		if p.UserID != userID {
 			s.redisRepo.PublishEvent(ctx, "chat:events", struct {
-				TargetUserID uuid.UUID  `json:"target_user_id"`
-				Event        ws.WSEvent `json:"event"`
+				TargetUserID uuid.UUID       `json:"target_user_id"`
+				Event        wsmsg.WSEvent   `json:"event"`
 			}{
 				TargetUserID: p.UserID,
 				Event:        event,
